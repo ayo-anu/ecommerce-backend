@@ -4,14 +4,28 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from django.http import JsonResponse
+from django.db import connection
 
 
 def health_check(request):
-    """Simple health check endpoint"""
-    return JsonResponse({
+    """Enhanced health check endpoint with database verification"""
+    checks = {
         'status': 'healthy',
-        'environment': settings.ENVIRONMENT if hasattr(settings, 'ENVIRONMENT') else 'unknown'
-    })
+        'environment': settings.ENVIRONMENT if hasattr(settings, 'ENVIRONMENT') else 'unknown',
+        'checks': {}
+    }
+    
+    # Check database connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        checks['checks']['database'] = 'ok'
+    except Exception as e:
+        checks['checks']['database'] = 'error'
+        checks['status'] = 'unhealthy'
+    
+    status_code = 200 if checks['status'] == 'healthy' else 503
+    return JsonResponse(checks, status=status_code)
 
 
 urlpatterns = [
@@ -45,7 +59,6 @@ if settings.DEBUG:
     urlpatterns = [
         path('__debug__/', include(debug_toolbar.urls)),
     ] + urlpatterns
-
 
 # Admin site customization
 admin.site.site_header = "E-Commerce Admin"
