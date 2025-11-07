@@ -8,6 +8,9 @@ from django.core.cache import cache
 from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 from .models import Address, UserProfile
+from PIL import Image
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import io
 from .serializers import (
     UserRegistrationSerializer, UserSerializer, UserUpdateSerializer,
     ChangePasswordSerializer, AddressSerializer, UserProfileSerializer,
@@ -52,6 +55,8 @@ class UserViewSet(viewsets.ModelViewSet):
         request.user.save()
         
         return Response({'message': 'Password changed successfully'})
+
+
     
     @action(detail=False, methods=['post'])
     def upload_avatar(self, request):
@@ -59,14 +64,44 @@ class UserViewSet(viewsets.ModelViewSet):
         if 'avatar' not in request.FILES:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
         
+        avatar_file = request.FILES['avatar']
+        
+        # Validate file size (max 5MB)
+        if avatar_file.size > 5 * 1024 * 1024:
+            return Response(
+                {'error': 'File too large. Maximum size is 5MB'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate file type
+        allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+        if avatar_file.content_type not in allowed_types:
+            return Response(
+                {'error': 'Invalid file type. Allowed: JPEG, PNG, GIF, WebP'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify it's actually an image (prevents malicious files)
+        try:
+            img = Image.open(avatar_file)
+            img.verify()
+            avatar_file.seek(0)  # Reset file pointer after verify
+        except Exception as e:
+            return Response(
+                {'error': 'Invalid or corrupted image file'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         user = request.user
-        user.avatar = request.FILES['avatar']
+        user.avatar = avatar_file
         user.save()
         
         return Response({
             'message': 'Avatar uploaded successfully',
             'avatar_url': user.avatar.url
         })
+
+
     
     @action(detail=False, methods=['patch'])
     def update_preferences(self, request):

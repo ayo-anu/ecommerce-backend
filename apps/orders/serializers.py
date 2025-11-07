@@ -53,6 +53,13 @@ class OrderCreateSerializer(serializers.Serializer):
     shipping_address = ShippingAddressSerializer()
     billing_address = serializers.DictField(required=False)
     customer_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+    def validate_customer_notes(self, value):
+        """Sanitize customer notes to prevent XSS"""
+        if value:
+            return bleach.clean(value, strip=True)
+        return value
     
     def validate_items(self, items):
         if not items:
@@ -66,10 +73,6 @@ class OrderCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Quantity must be at least 1")
         
         return items
-        
-    def validate_customer_notes(self, value):
-        # Sanitize HTML to prevent XSS
-        return bleach.clean(value, strip=True)
 
     
     @transaction.atomic
