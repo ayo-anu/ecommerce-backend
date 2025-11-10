@@ -6,6 +6,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django.db import transaction
 from django.db.models import Prefetch
 from .models import Order, Cart, CartItem
+from apps.products.models import ProductImage
 from .serializers import (
     OrderListSerializer, OrderDetailSerializer,
     OrderCreateSerializer, CartSerializer, CartItemSerializer
