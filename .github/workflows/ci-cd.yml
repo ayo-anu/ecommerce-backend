@@ -10,10 +10,14 @@ env:
   PYTHON_VERSION: '3.13'
 
 jobs:
-  # Job 1: Run Tests
   test:
     name: Run Tests & Security Checks
     runs-on: ubuntu-latest
+    
+    # Set default working directory for all run commands
+    defaults:
+      run:
+        working-directory: backend
     
     services:
       postgres:
@@ -49,7 +53,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-	  cache-dependency-path: 'requirements/base.txt'
+          cache-dependency-path: 'backend/requirements/base.txt'
       
       - name: Install Dependencies
         run: |
@@ -104,17 +108,16 @@ jobs:
           ALLOWED_HOSTS: localhost
         run: |
           coverage run --source='.' manage.py test
-   	  coverage report
-    	  coverage html
+          coverage report
+          coverage html
       
       - name: Upload Coverage Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: htmlcov/
+          path: backend/htmlcov/
 
-  # Job 2: Deploy to Staging (only on main branch)
   deploy-staging:
     name: Deploy to Staging
     needs: test
@@ -131,13 +134,13 @@ jobs:
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
             echo "RENDER_DEPLOY_HOOK_URL not configured"
-            echo "Skipping auto-deploy - will deploy manually"
+            echo "Skipping auto-deploy"
             exit 0
           fi
           
           echo "Triggering Render deployment..."
           curl -X POST "$RENDER_DEPLOY_HOOK_URL"
-          echo "Deployment triggered successfully!"
+          echo "Deployment triggered!"
       
       - name: Deployment Summary
         run: |
