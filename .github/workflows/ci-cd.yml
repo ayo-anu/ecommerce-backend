@@ -49,6 +49,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
+	  cache-dependency-path: 'requirements/base.txt'
       
       - name: Install Dependencies
         run: |
@@ -102,10 +103,9 @@ jobs:
           ELASTICSEARCH_URL: ""
           ALLOWED_HOSTS: localhost
         run: |
-          pip install coverage
           coverage run --source='.' manage.py test
-          coverage report
-          coverage html
+   	  coverage report
+    	  coverage html
       
       - name: Upload Coverage Report
         if: always()
