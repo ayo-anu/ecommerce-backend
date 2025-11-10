@@ -1,7 +1,3 @@
-# ============================================
-"""
-Test settings - Fast and isolated
-"""
 from .base import *
 
 DEBUG = True
