@@ -1,6 +1,5 @@
 """
 Test production settings locally
-Use this to verify production configuration without deploying
 """
 from .production import *
 
