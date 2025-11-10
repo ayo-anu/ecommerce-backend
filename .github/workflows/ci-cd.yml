@@ -46,7 +46,7 @@ jobs:
         with:
           python-version: '3.13'
           cache: 'pip'
-          cache-dependency-path: 'backend/requirements/base.txt'
+          
       
       - name: Install
         run: |
