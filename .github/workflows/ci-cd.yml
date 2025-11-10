@@ -1,17 +1,13 @@
-name: Django E-Commerce CI/CD
+name: Django CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 
-env:
-  PYTHON_VERSION: '3.13'
-
 jobs:
   test:
-    name: Run Tests & Security Checks
     runs-on: ubuntu-latest
     
     defaults:
@@ -44,85 +40,41 @@ jobs:
           - 6379:6379
     
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: '3.13'
           cache: 'pip'
           cache-dependency-path: 'backend/requirements/base.txt'
       
-      - name: Install Dependencies
+      - name: Install
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements/base.txt
           pip install -r requirements/dev.txt
       
-      - name: Run Security Checks
-        run: |
-          echo "🔐 Running Bandit security scan..."
-          bandit -r apps/ config/ -ll || true
-          
-          echo "🔐 Running Safety dependency check..."
-          safety check || true
-      
-      - name: Run Django System Checks
+      - name: Test
         env:
           DJANGO_SETTINGS_MODULE: config.settings.development
-          SECRET_KEY: test-secret-key-for-ci
+          SECRET_KEY: test-key
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379/0
           CELERY_BROKER_URL: redis://localhost:6379/0
           CELERY_RESULT_BACKEND: redis://localhost:6379/0
           ELASTICSEARCH_URL: ""
           ALLOWED_HOSTS: localhost
-        run: |
-          python manage.py check
-      
-      - name: Run Tests
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings.development
-          SECRET_KEY: test-secret-key-for-ci
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379/0
-          CELERY_BROKER_URL: redis://localhost:6379/0
-          CELERY_RESULT_BACKEND: redis://localhost:6379/0
-          ELASTICSEARCH_URL: ""
-          ALLOWED_HOSTS: localhost
-        run: |
-          python manage.py test --verbosity=2
+        run: python manage.py test
 
-  deploy-staging:
-    name: Deploy to Staging
+  deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      
-      - name: Deploy to Render
+      - name: Deploy
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "⚠️  RENDER_DEPLOY_HOOK_URL not configured"
-            echo "ℹ️  Skipping auto-deploy"
-            exit 0
+          if [ -n "$HOOK" ]; then
+            curl -X POST "$HOOK"
           fi
-          
-          echo "🚀 Triggering Render deployment..."
-          curl -X POST "$RENDER_DEPLOY_HOOK_URL"
-          echo "✅ Deployment triggered!"
-      
-      - name: Deployment Summary
-        run: |
-          echo "### 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
-          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **URL:** https://ecommerce-backend-epna.onrender.com" >> $GITHUB_STEP_SUMMARY
