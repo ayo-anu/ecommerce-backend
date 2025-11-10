@@ -14,7 +14,6 @@ jobs:
     name: Run Tests & Security Checks
     runs-on: ubuntu-latest
     
-    # Set default working directory for all run commands
     defaults:
       run:
         working-directory: backend
@@ -63,10 +62,10 @@ jobs:
       
       - name: Run Security Checks
         run: |
-          echo "Running Bandit security scan..."
+          echo "🔐 Running Bandit security scan..."
           bandit -r apps/ config/ -ll || true
           
-          echo "Running Safety dependency check..."
+          echo "🔐 Running Safety dependency check..."
           safety check || true
       
       - name: Run Django System Checks
@@ -94,29 +93,6 @@ jobs:
           ALLOWED_HOSTS: localhost
         run: |
           python manage.py test --verbosity=2
-      
-      - name: Generate Coverage Report
-        if: always()
-        env:
-          DJANGO_SETTINGS_MODULE: config.settings.development
-          SECRET_KEY: test-secret-key-for-ci
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379/0
-          CELERY_BROKER_URL: redis://localhost:6379/0
-          CELERY_RESULT_BACKEND: redis://localhost:6379/0
-          ELASTICSEARCH_URL: ""
-          ALLOWED_HOSTS: localhost
-        run: |
-          coverage run --source='.' manage.py test
-          coverage report
-          coverage html
-      
-      - name: Upload Coverage Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: backend/htmlcov/
 
   deploy-staging:
     name: Deploy to Staging
@@ -133,18 +109,18 @@ jobs:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "RENDER_DEPLOY_HOOK_URL not configured"
-            echo "Skipping auto-deploy"
+            echo "⚠️  RENDER_DEPLOY_HOOK_URL not configured"
+            echo "ℹ️  Skipping auto-deploy"
             exit 0
           fi
           
-          echo "Triggering Render deployment..."
+          echo "🚀 Triggering Render deployment..."
           curl -X POST "$RENDER_DEPLOY_HOOK_URL"
-          echo "Deployment triggered!"
+          echo "✅ Deployment triggered!"
       
       - name: Deployment Summary
         run: |
-          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
