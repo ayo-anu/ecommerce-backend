@@ -1,0 +1,149 @@
+name: Django E-Commerce CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: '3.13'
+
+jobs:
+  # Job 1: Run Tests
+  test:
+    name: Run Tests & Security Checks
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/base.txt
+          pip install -r requirements/dev.txt
+      
+      - name: Run Security Checks
+        run: |
+          echo "Running Bandit security scan..."
+          bandit -r apps/ config/ -ll || true
+          
+          echo "Running Safety dependency check..."
+          safety check || true
+      
+      - name: Run Django System Checks
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.development
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
+          ELASTICSEARCH_URL: ""
+          ALLOWED_HOSTS: localhost
+        run: |
+          python manage.py check
+      
+      - name: Run Tests
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.development
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
+          ELASTICSEARCH_URL: ""
+          ALLOWED_HOSTS: localhost
+        run: |
+          python manage.py test --verbosity=2
+      
+      - name: Generate Coverage Report
+        if: always()
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.development
+          SECRET_KEY: test-secret-key-for-ci
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/0
+          CELERY_RESULT_BACKEND: redis://localhost:6379/0
+          ELASTICSEARCH_URL: ""
+          ALLOWED_HOSTS: localhost
+        run: |
+          pip install coverage
+          coverage run --source='.' manage.py test
+          coverage report
+          coverage html
+      
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  # Job 2: Deploy to Staging (only on main branch)
+  deploy-staging:
+    name: Deploy to Staging
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL not configured"
+            echo "Skipping auto-deploy - will deploy manually"
+            exit 0
+          fi
+          
+          echo "Triggering Render deployment..."
+          curl -X POST "$RENDER_DEPLOY_HOOK_URL"
+          echo "Deployment triggered successfully!"
+      
+      - name: Deployment Summary
+        run: |
+          echo "### Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment:** Staging" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** https://ecommerce-backend-epna.onrender.com" >> $GITHUB_STEP_SUMMARY
