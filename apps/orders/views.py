@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from django.db import transaction
+from django.db.models import Prefetch
 from .models import Order, Cart, CartItem
 from .serializers import (
     OrderListSerializer, OrderDetailSerializer,
