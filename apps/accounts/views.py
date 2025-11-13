@@ -1,5 +1,7 @@
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
@@ -18,6 +20,24 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Custom serializer to include user data in token response"""
+    
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Add user data to response
+        data['user'] = UserSerializer(self.user).data
+        
+        return data
+
+
+class LoginView(TokenObtainPairView):
+    """Login endpoint that returns tokens + user data"""
+    serializer_class = CustomTokenObtainPairSerializer
+    permission_classes = [AllowAny]
 
 
 class UserRegistrationView(generics.CreateAPIView):
