@@ -1,0 +1,20 @@
+{
+  "generated_at": "2025-11-20T11:57:45.209513",
+  "statistics": {
+    "users": 100,
+    "products": 500,
+    "orders": 1000,
+    "interactions": 767,
+    "reviews": 301,
+    "transactions": 1000
+  },
+  "files": {
+    "users": "test_data/users.json",
+    "products": "test_data/products.json",
+    "orders": "test_data/orders.json",
+    "interactions": "test_data/interactions.json",
+    "reviews": "test_data/reviews.json",
+    "fraud_transactions": "test_data/fraud_transactions.json",
+    "images": "test_data/product_images/"
+  }
+}

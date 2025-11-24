@@ -1,0 +1,2350 @@
+[
+  {
+    "user_id": "user_0001",
+    "email": "qglass@example.net",
+    "name": "Victoria White",
+    "phone": "(871)991-9283",
+    "address": {
+      "street": "759 Castro Plains Suite 491",
+      "city": "New Lauren",
+      "state": "Wisconsin",
+      "country": "Mozambique",
+      "zipcode": "85183"
+    },
+    "registration_date": "2025-08-03T11:57:44.864492",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Books",
+        "Toys",
+        "Electronics"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0002",
+    "email": "michaeljackson@example.com",
+    "name": "Lance Neal",
+    "phone": "954.240.0471",
+    "address": {
+      "street": "1844 White Spur Apt. 803",
+      "city": "Kennethberg",
+      "state": "Massachusetts",
+      "country": "Switzerland",
+      "zipcode": "49868"
+    },
+    "registration_date": "2025-07-12T11:57:44.864492",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Books",
+        "Toys",
+        "Clothing"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0003",
+    "email": "ilewis@example.net",
+    "name": "Kelly Cox",
+    "phone": "+1-872-718-6847x06402",
+    "address": {
+      "street": "49863 Alvarez Lake",
+      "city": "Guerreromouth",
+      "state": "Ohio",
+      "country": "Grenada",
+      "zipcode": "58488"
+    },
+    "registration_date": "2025-05-08T11:57:44.864492",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Electronics",
+        "Clothing"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0004",
+    "email": "courtney87@example.net",
+    "name": "Dawn Vasquez",
+    "phone": "001-864-659-2952x7312",
+    "address": {
+      "street": "26624 Jeffrey Extensions Suite 283",
+      "city": "Higginsburgh",
+      "state": "Virginia",
+      "country": "Vietnam",
+      "zipcode": "06415"
+    },
+    "registration_date": "2025-01-06T11:57:44.864492",
+    "preferences": {
+      "categories": [
+        "Food",
+        "Jewelry"
+      ],
+      "price_range": "low",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0005",
+    "email": "adam26@example.net",
+    "name": "Shawn Robbins",
+    "phone": "001-680-882-6183x0924",
+    "address": {
+      "street": "867 Jamie Pine",
+      "city": "East Amanda",
+      "state": "Tennessee",
+      "country": "United States Minor Outlying Islands",
+      "zipcode": "34457"
+    },
+    "registration_date": "2025-06-16T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Beauty"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0006",
+    "email": "greentamara@example.com",
+    "name": "Ryan Perkins",
+    "phone": "(313)579-0498x3303",
+    "address": {
+      "street": "3963 Steven Union Suite 834",
+      "city": "Jacksonville",
+      "state": "Tennessee",
+      "country": "Korea",
+      "zipcode": "06410"
+    },
+    "registration_date": "2025-06-29T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Jewelry",
+        "Sports",
+        "Automotive",
+        "Home & Garden"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0007",
+    "email": "martinezryan@example.com",
+    "name": "James Ellison",
+    "phone": "342-708-6253",
+    "address": {
+      "street": "99404 Jessica Forest Apt. 316",
+      "city": "Brayland",
+      "state": "Florida",
+      "country": "Sao Tome and Principe",
+      "zipcode": "46260"
+    },
+    "registration_date": "2025-09-16T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Toys",
+        "Beauty"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0008",
+    "email": "ilewis@example.net",
+    "name": "Kendra Holder",
+    "phone": "001-862-663-3116",
+    "address": {
+      "street": "042 Garcia Divide Suite 369",
+      "city": "Trevinoland",
+      "state": "Texas",
+      "country": "Canada",
+      "zipcode": "98155"
+    },
+    "registration_date": "2025-08-21T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Books",
+        "Clothing",
+        "Jewelry"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0009",
+    "email": "trodriguez@example.net",
+    "name": "Katrina Pham",
+    "phone": "(377)898-5616",
+    "address": {
+      "street": "6531 Gonzales Rapids Apt. 182",
+      "city": "Yatesside",
+      "state": "Arkansas",
+      "country": "Greece",
+      "zipcode": "11548"
+    },
+    "registration_date": "2024-12-08T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Food",
+        "Sports",
+        "Clothing"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0010",
+    "email": "amber53@example.org",
+    "name": "Adam Stevens",
+    "phone": "859.422.1890x0327",
+    "address": {
+      "street": "041 Thornton Branch",
+      "city": "Warefurt",
+      "state": "Illinois",
+      "country": "Puerto Rico",
+      "zipcode": "78813"
+    },
+    "registration_date": "2025-06-01T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Electronics",
+        "Jewelry",
+        "Sports",
+        "Beauty"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0011",
+    "email": "danamueller@example.org",
+    "name": "Andrea Holland",
+    "phone": "+1-288-618-8718x6775",
+    "address": {
+      "street": "5359 Robert Hollow",
+      "city": "New Carolbury",
+      "state": "Georgia",
+      "country": "Uruguay",
+      "zipcode": "99467"
+    },
+    "registration_date": "2025-07-01T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Books",
+        "Beauty",
+        "Automotive"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0012",
+    "email": "wilsonelizabeth@example.com",
+    "name": "Devon Ramirez",
+    "phone": "(258)579-3918x89401",
+    "address": {
+      "street": "84417 Ford Rapids",
+      "city": "Valeriestad",
+      "state": "Louisiana",
+      "country": "Central African Republic",
+      "zipcode": "75489"
+    },
+    "registration_date": "2024-12-22T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Sports"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0013",
+    "email": "zjenkins@example.com",
+    "name": "Eric Summers",
+    "phone": "226.527.5834",
+    "address": {
+      "street": "786 Sara Ford Apt. 662",
+      "city": "Hartfurt",
+      "state": "Wisconsin",
+      "country": "Saint Kitts and Nevis",
+      "zipcode": "17636"
+    },
+    "registration_date": "2025-02-21T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Food",
+        "Beauty",
+        "Toys",
+        "Electronics",
+        "Jewelry"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0014",
+    "email": "adam92@example.org",
+    "name": "Jessica Thompson",
+    "phone": "+1-704-913-5855x525",
+    "address": {
+      "street": "0931 Christopher Squares",
+      "city": "West Lisaport",
+      "state": "Virginia",
+      "country": "Kenya",
+      "zipcode": "03135"
+    },
+    "registration_date": "2025-10-05T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Beauty"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0015",
+    "email": "jennifer17@example.com",
+    "name": "Ms. Angel Luna",
+    "phone": "(430)610-2916",
+    "address": {
+      "street": "904 Ward Way Apt. 325",
+      "city": "South Emily",
+      "state": "Kentucky",
+      "country": "South Georgia and the South Sandwich Islands",
+      "zipcode": "99050"
+    },
+    "registration_date": "2025-01-31T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Sports",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0016",
+    "email": "carpentergloria@example.org",
+    "name": "Jeffrey Smith",
+    "phone": "+1-860-792-6371x914",
+    "address": {
+      "street": "2726 Amanda Garden",
+      "city": "Bryanberg",
+      "state": "Michigan",
+      "country": "Malta",
+      "zipcode": "05508"
+    },
+    "registration_date": "2025-08-20T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Electronics",
+        "Toys",
+        "Books",
+        "Automotive"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0017",
+    "email": "tmarks@example.org",
+    "name": "Mary Goodwin",
+    "phone": "001-802-964-7503x30943",
+    "address": {
+      "street": "351 Linda Bridge",
+      "city": "New Jeremyport",
+      "state": "Arkansas",
+      "country": "Saint Pierre and Miquelon",
+      "zipcode": "51780"
+    },
+    "registration_date": "2025-05-26T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Toys",
+        "Books",
+        "Beauty",
+        "Electronics"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0018",
+    "email": "robinsonlindsay@example.com",
+    "name": "Gordon Oneill",
+    "phone": "444-484-8601x09911",
+    "address": {
+      "street": "503 Alyssa Lights Apt. 338",
+      "city": "New Robert",
+      "state": "Kentucky",
+      "country": "Mauritius",
+      "zipcode": "60101"
+    },
+    "registration_date": "2025-02-25T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Sports"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0019",
+    "email": "rcarter@example.org",
+    "name": "Jessica Lopez",
+    "phone": "(908)247-7149x328",
+    "address": {
+      "street": "342 King Corners",
+      "city": "Cooperhaven",
+      "state": "Hawaii",
+      "country": "Singapore",
+      "zipcode": "26469"
+    },
+    "registration_date": "2025-01-16T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Food"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0020",
+    "email": "william55@example.org",
+    "name": "Jeffrey Wood",
+    "phone": "+1-427-534-9980x356",
+    "address": {
+      "street": "2468 Franco Trace",
+      "city": "East Erin",
+      "state": "Hawaii",
+      "country": "Sao Tome and Principe",
+      "zipcode": "91315"
+    },
+    "registration_date": "2024-12-05T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Jewelry",
+        "Toys"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0021",
+    "email": "andrew18@example.com",
+    "name": "Michael Rogers",
+    "phone": "783.206.6527x41226",
+    "address": {
+      "street": "113 Duncan Stravenue",
+      "city": "Robertchester",
+      "state": "Washington",
+      "country": "Greece",
+      "zipcode": "23510"
+    },
+    "registration_date": "2025-11-19T11:57:44.871277",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Jewelry",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0022",
+    "email": "vasquezstephanie@example.org",
+    "name": "William Acosta",
+    "phone": "001-816-862-7178",
+    "address": {
+      "street": "85091 Wood Rapid",
+      "city": "Loriland",
+      "state": "New Hampshire",
+      "country": "Svalbard & Jan Mayen Islands",
+      "zipcode": "63624"
+    },
+    "registration_date": "2025-03-23T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Toys",
+        "Electronics",
+        "Sports",
+        "Clothing"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0023",
+    "email": "ashleycharles@example.com",
+    "name": "Connor Reeves",
+    "phone": "001-455-528-9322x063",
+    "address": {
+      "street": "787 Vazquez Union Suite 460",
+      "city": "West Thomas",
+      "state": "Michigan",
+      "country": "Singapore",
+      "zipcode": "56940"
+    },
+    "registration_date": "2024-12-22T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Jewelry",
+        "Clothing"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0024",
+    "email": "ccochran@example.net",
+    "name": "Karen Carroll",
+    "phone": "758-532-7747",
+    "address": {
+      "street": "1010 Joseph Ramp Suite 592",
+      "city": "Parsonsmouth",
+      "state": "Texas",
+      "country": "Saudi Arabia",
+      "zipcode": "99275"
+    },
+    "registration_date": "2025-11-11T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Beauty",
+        "Food",
+        "Electronics",
+        "Jewelry"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0025",
+    "email": "kimberlyblack@example.com",
+    "name": "Michelle Carter",
+    "phone": "(441)974-6016",
+    "address": {
+      "street": "568 Wilkins Avenue Suite 599",
+      "city": "Kellyland",
+      "state": "Wyoming",
+      "country": "Tajikistan",
+      "zipcode": "91435"
+    },
+    "registration_date": "2025-03-20T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Books",
+        "Clothing",
+        "Sports",
+        "Toys"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0026",
+    "email": "alan02@example.net",
+    "name": "William Harvey",
+    "phone": "+1-471-489-4099",
+    "address": {
+      "street": "43090 Hannah Ports Apt. 890",
+      "city": "South Roberta",
+      "state": "Hawaii",
+      "country": "Ukraine",
+      "zipcode": "42282"
+    },
+    "registration_date": "2025-10-07T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Sports",
+        "Beauty",
+        "Automotive"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0027",
+    "email": "grant30@example.net",
+    "name": "Holly Clay",
+    "phone": "001-784-518-8114x556",
+    "address": {
+      "street": "88624 Lauren Ramp",
+      "city": "Stephenville",
+      "state": "Idaho",
+      "country": "Bulgaria",
+      "zipcode": "61014"
+    },
+    "registration_date": "2025-11-01T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Jewelry"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0028",
+    "email": "psmith@example.org",
+    "name": "Courtney Mccoy",
+    "phone": "758-406-4142x5047",
+    "address": {
+      "street": "041 Garcia Ridge",
+      "city": "Jamesborough",
+      "state": "Alabama",
+      "country": "Anguilla",
+      "zipcode": "41358"
+    },
+    "registration_date": "2025-07-24T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Toys"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0029",
+    "email": "kmartin@example.org",
+    "name": "Selena Krause",
+    "phone": "+1-880-792-2579x58825",
+    "address": {
+      "street": "18324 Justin Well Suite 047",
+      "city": "Simpsonberg",
+      "state": "Missouri",
+      "country": "British Indian Ocean Territory (Chagos Archipelago)",
+      "zipcode": "25387"
+    },
+    "registration_date": "2025-03-16T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Jewelry",
+        "Automotive"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0030",
+    "email": "millerglenn@example.net",
+    "name": "Dr. Patricia Hicks",
+    "phone": "(684)870-0381",
+    "address": {
+      "street": "1984 Elizabeth Crossing",
+      "city": "Sallystad",
+      "state": "North Dakota",
+      "country": "Pakistan",
+      "zipcode": "89465"
+    },
+    "registration_date": "2024-12-27T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0031",
+    "email": "bryceshaw@example.org",
+    "name": "Sarah Lewis",
+    "phone": "213-948-4583x340",
+    "address": {
+      "street": "269 Cummings Square",
+      "city": "Port Jennifer",
+      "state": "Arkansas",
+      "country": "Burundi",
+      "zipcode": "34518"
+    },
+    "registration_date": "2025-11-19T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Automotive"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0032",
+    "email": "sanchezalan@example.org",
+    "name": "Amanda Turner",
+    "phone": "796-519-8154x215",
+    "address": {
+      "street": "1367 Carson Port",
+      "city": "East Angela",
+      "state": "Louisiana",
+      "country": "Mayotte",
+      "zipcode": "17923"
+    },
+    "registration_date": "2025-06-17T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Beauty",
+        "Food",
+        "Toys"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0033",
+    "email": "allison35@example.net",
+    "name": "Laura Nunez",
+    "phone": "986.241.2926",
+    "address": {
+      "street": "8134 Tracy Viaduct Suite 722",
+      "city": "West Pamela",
+      "state": "Nevada",
+      "country": "Denmark",
+      "zipcode": "09491"
+    },
+    "registration_date": "2025-07-15T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Clothing",
+        "Toys",
+        "Food"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0034",
+    "email": "mathewolsen@example.org",
+    "name": "David Owen",
+    "phone": "9504145368",
+    "address": {
+      "street": "1089 Joseph Stream Suite 841",
+      "city": "Jenniferton",
+      "state": "North Dakota",
+      "country": "Kenya",
+      "zipcode": "00765"
+    },
+    "registration_date": "2025-03-13T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Automotive",
+        "Food"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0035",
+    "email": "cpatterson@example.com",
+    "name": "Chloe Mcguire",
+    "phone": "581-688-3195x82051",
+    "address": {
+      "street": "3904 Long Spurs Apt. 323",
+      "city": "Clarkmouth",
+      "state": "Missouri",
+      "country": "Tanzania",
+      "zipcode": "65564"
+    },
+    "registration_date": "2025-08-10T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Sports",
+        "Automotive",
+        "Toys",
+        "Home & Garden"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0036",
+    "email": "smithjulie@example.net",
+    "name": "Michelle Mcguire",
+    "phone": "+1-919-535-5661",
+    "address": {
+      "street": "1875 Jeffrey Orchard",
+      "city": "Brittanybury",
+      "state": "South Dakota",
+      "country": "Haiti",
+      "zipcode": "51402"
+    },
+    "registration_date": "2025-06-24T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Home & Garden",
+        "Clothing",
+        "Automotive",
+        "Food"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0037",
+    "email": "sholt@example.net",
+    "name": "John Smith",
+    "phone": "+1-452-879-3470x602",
+    "address": {
+      "street": "997 Steven Dam Apt. 903",
+      "city": "Lake Dillon",
+      "state": "Oregon",
+      "country": "Ethiopia",
+      "zipcode": "80486"
+    },
+    "registration_date": "2025-01-02T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Toys"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0038",
+    "email": "ramirezamy@example.org",
+    "name": "Benjamin Barnes",
+    "phone": "421-577-8390",
+    "address": {
+      "street": "238 Michael Branch",
+      "city": "East Johnfurt",
+      "state": "Kentucky",
+      "country": "Marshall Islands",
+      "zipcode": "48039"
+    },
+    "registration_date": "2025-01-24T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Toys",
+        "Books",
+        "Jewelry"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0039",
+    "email": "fischerdiana@example.com",
+    "name": "Jackson Turner",
+    "phone": "215-203-1728",
+    "address": {
+      "street": "23676 Karen Summit Apt. 057",
+      "city": "Markbury",
+      "state": "Illinois",
+      "country": "Hong Kong",
+      "zipcode": "76091"
+    },
+    "registration_date": "2025-07-29T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Automotive"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0040",
+    "email": "ywalker@example.com",
+    "name": "Christopher Townsend",
+    "phone": "686-291-1445",
+    "address": {
+      "street": "21740 Kennedy Ford Apt. 355",
+      "city": "West Maryville",
+      "state": "Alabama",
+      "country": "Isle of Man",
+      "zipcode": "93906"
+    },
+    "registration_date": "2025-03-13T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Electronics",
+        "Books",
+        "Clothing"
+      ],
+      "price_range": "low",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0041",
+    "email": "justin47@example.org",
+    "name": "Lisa Sharp",
+    "phone": "(264)642-6568x70103",
+    "address": {
+      "street": "16377 Jennifer Village",
+      "city": "North Rachelborough",
+      "state": "Iowa",
+      "country": "Gabon",
+      "zipcode": "95994"
+    },
+    "registration_date": "2025-11-19T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Automotive",
+        "Toys",
+        "Food"
+      ],
+      "price_range": "low",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0042",
+    "email": "gjackson@example.net",
+    "name": "Donna Boyer",
+    "phone": "(606)503-8329x92669",
+    "address": {
+      "street": "28961 Parker Mountains Apt. 590",
+      "city": "South Daniellemouth",
+      "state": "Oklahoma",
+      "country": "Iran",
+      "zipcode": "57778"
+    },
+    "registration_date": "2025-08-25T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Food",
+        "Jewelry",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0043",
+    "email": "elizabeth33@example.net",
+    "name": "Paige Lewis",
+    "phone": "595.799.3301",
+    "address": {
+      "street": "302 Melissa Viaduct",
+      "city": "Davidberg",
+      "state": "North Dakota",
+      "country": "Algeria",
+      "zipcode": "73695"
+    },
+    "registration_date": "2025-11-17T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Toys"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0044",
+    "email": "franconatasha@example.net",
+    "name": "Steve Johnson",
+    "phone": "+1-307-343-3741x240",
+    "address": {
+      "street": "85975 Madison Well Suite 614",
+      "city": "Dawnburgh",
+      "state": "Delaware",
+      "country": "Saint Barthelemy",
+      "zipcode": "56124"
+    },
+    "registration_date": "2025-09-01T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Sports"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0045",
+    "email": "erinoneill@example.com",
+    "name": "David Wise",
+    "phone": "2687305263",
+    "address": {
+      "street": "83622 Schultz Glens Suite 919",
+      "city": "Josephhaven",
+      "state": "Vermont",
+      "country": "Eritrea",
+      "zipcode": "94094"
+    },
+    "registration_date": "2025-07-14T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Electronics"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0046",
+    "email": "gcowan@example.net",
+    "name": "Jason Jones",
+    "phone": "001-335-670-0718x17892",
+    "address": {
+      "street": "1824 Amanda Springs Suite 177",
+      "city": "Lake Jessicaburgh",
+      "state": "West Virginia",
+      "country": "Vanuatu",
+      "zipcode": "16146"
+    },
+    "registration_date": "2025-10-12T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Food",
+        "Clothing",
+        "Jewelry",
+        "Electronics",
+        "Automotive"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0047",
+    "email": "terriwilson@example.org",
+    "name": "Adam Avila",
+    "phone": "001-345-697-0398x897",
+    "address": {
+      "street": "07516 Bryan Pass Apt. 937",
+      "city": "Hamptonfurt",
+      "state": "Florida",
+      "country": "Niue",
+      "zipcode": "82429"
+    },
+    "registration_date": "2025-05-22T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Automotive",
+        "Toys",
+        "Food"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0048",
+    "email": "alison82@example.com",
+    "name": "Monica Rogers",
+    "phone": "790-367-2666",
+    "address": {
+      "street": "77457 Carter Row Apt. 137",
+      "city": "New Bradland",
+      "state": "Arkansas",
+      "country": "Slovakia (Slovak Republic)",
+      "zipcode": "55662"
+    },
+    "registration_date": "2025-04-28T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Home & Garden",
+        "Automotive"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0049",
+    "email": "haley34@example.com",
+    "name": "Rebecca Santiago",
+    "phone": "360.485.0020",
+    "address": {
+      "street": "679 Stevenson Canyon Suite 471",
+      "city": "Sullivanhaven",
+      "state": "New York",
+      "country": "Trinidad and Tobago",
+      "zipcode": "51361"
+    },
+    "registration_date": "2025-07-14T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0050",
+    "email": "stephaniesuarez@example.com",
+    "name": "Tyler Haynes",
+    "phone": "001-439-230-0051x6729",
+    "address": {
+      "street": "37231 Cohen Radial",
+      "city": "Pamton",
+      "state": "Kansas",
+      "country": "El Salvador",
+      "zipcode": "97695"
+    },
+    "registration_date": "2025-03-14T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0051",
+    "email": "porterdavid@example.com",
+    "name": "Kelly Horn",
+    "phone": "+1-873-879-1012x2828",
+    "address": {
+      "street": "066 Wade Creek Apt. 740",
+      "city": "Brianside",
+      "state": "Washington",
+      "country": "Lithuania",
+      "zipcode": "21408"
+    },
+    "registration_date": "2025-03-18T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Clothing",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0052",
+    "email": "andersonjuan@example.org",
+    "name": "Courtney Allen",
+    "phone": "461-959-5960x340",
+    "address": {
+      "street": "174 Cody Bridge Apt. 782",
+      "city": "East Kristine",
+      "state": "Montana",
+      "country": "British Indian Ocean Territory (Chagos Archipelago)",
+      "zipcode": "55517"
+    },
+    "registration_date": "2025-09-17T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Jewelry",
+        "Sports",
+        "Home & Garden",
+        "Books"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0053",
+    "email": "michael05@example.net",
+    "name": "Anna Lewis",
+    "phone": "848.703.4340",
+    "address": {
+      "street": "3069 Perez Cliffs",
+      "city": "West Jessica",
+      "state": "Pennsylvania",
+      "country": "Hungary",
+      "zipcode": "33662"
+    },
+    "registration_date": "2025-05-15T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Books",
+        "Sports",
+        "Automotive",
+        "Jewelry"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0054",
+    "email": "jessica62@example.net",
+    "name": "Joseph Herrera",
+    "phone": "(419)348-1675x081",
+    "address": {
+      "street": "9841 Lee Ports Suite 154",
+      "city": "Snyderville",
+      "state": "Mississippi",
+      "country": "Slovakia (Slovak Republic)",
+      "zipcode": "69659"
+    },
+    "registration_date": "2025-01-21T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Food"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0055",
+    "email": "fletcherdonna@example.com",
+    "name": "Kaitlyn Alvarez DDS",
+    "phone": "969-907-8237x14319",
+    "address": {
+      "street": "615 Scott Pike Suite 299",
+      "city": "West Caitlinmouth",
+      "state": "New Jersey",
+      "country": "Central African Republic",
+      "zipcode": "04851"
+    },
+    "registration_date": "2024-12-23T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Sports",
+        "Clothing"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0056",
+    "email": "williamstoni@example.com",
+    "name": "Lisa Franco",
+    "phone": "6722389556",
+    "address": {
+      "street": "9517 Adrian Place",
+      "city": "Payneton",
+      "state": "Idaho",
+      "country": "Wallis and Futuna",
+      "zipcode": "08139"
+    },
+    "registration_date": "2025-09-02T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Home & Garden",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0057",
+    "email": "fleonard@example.com",
+    "name": "Abigail Harris",
+    "phone": "729.218.7724",
+    "address": {
+      "street": "38649 Patel Stravenue",
+      "city": "Donaldbury",
+      "state": "Oklahoma",
+      "country": "New Caledonia",
+      "zipcode": "59096"
+    },
+    "registration_date": "2025-08-14T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Food",
+        "Jewelry",
+        "Sports",
+        "Home & Garden"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0058",
+    "email": "scotthampton@example.org",
+    "name": "Nicole Edwards",
+    "phone": "295.761.6911x2537",
+    "address": {
+      "street": "038 Klein Avenue Suite 252",
+      "city": "North Ronald",
+      "state": "Alabama",
+      "country": "South Africa",
+      "zipcode": "92434"
+    },
+    "registration_date": "2025-09-04T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Food",
+        "Electronics",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0059",
+    "email": "jessicabrown@example.com",
+    "name": "Angela Rivera",
+    "phone": "(621)818-3557",
+    "address": {
+      "street": "7520 Lisa Alley Apt. 586",
+      "city": "Davischester",
+      "state": "Massachusetts",
+      "country": "Central African Republic",
+      "zipcode": "31220"
+    },
+    "registration_date": "2025-10-07T11:57:44.878387",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Food",
+        "Home & Garden",
+        "Automotive",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0060",
+    "email": "tcameron@example.org",
+    "name": "Christopher Rosales",
+    "phone": "624.953.5936x1638",
+    "address": {
+      "street": "315 Williams Well Apt. 628",
+      "city": "Lake Matthew",
+      "state": "New Mexico",
+      "country": "Turkmenistan",
+      "zipcode": "79433"
+    },
+    "registration_date": "2024-12-06T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Automotive",
+        "Toys",
+        "Jewelry",
+        "Clothing"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0061",
+    "email": "uharris@example.org",
+    "name": "Mr. Joseph Jenkins",
+    "phone": "791.567.0722x0895",
+    "address": {
+      "street": "337 Andrews Overpass Suite 533",
+      "city": "Brendanhaven",
+      "state": "North Carolina",
+      "country": "Liberia",
+      "zipcode": "11663"
+    },
+    "registration_date": "2025-10-17T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Food",
+        "Home & Garden",
+        "Electronics"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0062",
+    "email": "chodge@example.com",
+    "name": "Brittany Freeman",
+    "phone": "001-565-533-9972x166",
+    "address": {
+      "street": "42518 Tyler Brook Suite 606",
+      "city": "Alyssachester",
+      "state": "Hawaii",
+      "country": "Thailand",
+      "zipcode": "67697"
+    },
+    "registration_date": "2025-10-18T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0063",
+    "email": "hansenjanice@example.com",
+    "name": "Kristina Hawkins",
+    "phone": "+1-677-448-2632x20084",
+    "address": {
+      "street": "227 Mccarthy Mill",
+      "city": "Johnsonburgh",
+      "state": "Maryland",
+      "country": "Cote d'Ivoire",
+      "zipcode": "51140"
+    },
+    "registration_date": "2025-09-11T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Automotive"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0064",
+    "email": "harriserik@example.com",
+    "name": "Veronica Johnson",
+    "phone": "001-656-299-7085",
+    "address": {
+      "street": "84214 Ryan Spur",
+      "city": "Aaronport",
+      "state": "Florida",
+      "country": "Algeria",
+      "zipcode": "74684"
+    },
+    "registration_date": "2025-02-10T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Jewelry"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0065",
+    "email": "xhopkins@example.org",
+    "name": "Amanda Shaffer",
+    "phone": "001-917-476-8570x6526",
+    "address": {
+      "street": "42298 Stephanie Prairie Suite 279",
+      "city": "Kylieborough",
+      "state": "New Mexico",
+      "country": "Thailand",
+      "zipcode": "09048"
+    },
+    "registration_date": "2024-12-03T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Toys",
+        "Home & Garden",
+        "Clothing"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0066",
+    "email": "johnvalenzuela@example.org",
+    "name": "Patricia David",
+    "phone": "6153273745",
+    "address": {
+      "street": "53628 Dominguez Walks",
+      "city": "Boyerberg",
+      "state": "New Jersey",
+      "country": "Qatar",
+      "zipcode": "75658"
+    },
+    "registration_date": "2025-07-26T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Books"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0067",
+    "email": "johnsonlaura@example.org",
+    "name": "Taylor Hatfield",
+    "phone": "+1-872-520-3847x22020",
+    "address": {
+      "street": "42428 Randall Harbor",
+      "city": "Carriemouth",
+      "state": "Iowa",
+      "country": "Costa Rica",
+      "zipcode": "29419"
+    },
+    "registration_date": "2025-06-25T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Automotive",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0068",
+    "email": "christianeric@example.org",
+    "name": "Scott Patel",
+    "phone": "001-716-696-3475",
+    "address": {
+      "street": "662 Kathleen Estates",
+      "city": "Christopherburgh",
+      "state": "Arkansas",
+      "country": "Jersey",
+      "zipcode": "71587"
+    },
+    "registration_date": "2025-09-29T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Beauty",
+        "Home & Garden",
+        "Food",
+        "Jewelry"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0069",
+    "email": "elizabethwallace@example.org",
+    "name": "Courtney Anderson",
+    "phone": "494.627.1410x7506",
+    "address": {
+      "street": "123 Amanda Shores",
+      "city": "North Dawn",
+      "state": "Missouri",
+      "country": "Bhutan",
+      "zipcode": "39285"
+    },
+    "registration_date": "2025-07-13T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Clothing",
+        "Beauty"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0070",
+    "email": "marissabrown@example.com",
+    "name": "James Williams",
+    "phone": "(438)472-9185",
+    "address": {
+      "street": "58596 Robert Forks Apt. 465",
+      "city": "Grantmouth",
+      "state": "Kansas",
+      "country": "Chile",
+      "zipcode": "86149"
+    },
+    "registration_date": "2024-11-25T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Clothing",
+        "Jewelry",
+        "Automotive",
+        "Home & Garden"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0071",
+    "email": "ryan93@example.com",
+    "name": "Tamara Ramirez",
+    "phone": "(891)379-3382",
+    "address": {
+      "street": "5174 Adams Harbor Suite 507",
+      "city": "Simpsonbury",
+      "state": "Pennsylvania",
+      "country": "Romania",
+      "zipcode": "44584"
+    },
+    "registration_date": "2025-08-16T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Clothing",
+        "Jewelry",
+        "Beauty",
+        "Electronics"
+      ],
+      "price_range": "low",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0072",
+    "email": "charlespierce@example.net",
+    "name": "Patrick Harris",
+    "phone": "+1-745-516-8375",
+    "address": {
+      "street": "08843 Mason Club",
+      "city": "Longside",
+      "state": "Missouri",
+      "country": "Burkina Faso",
+      "zipcode": "20532"
+    },
+    "registration_date": "2025-01-23T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Toys",
+        "Food"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0073",
+    "email": "monicaparker@example.org",
+    "name": "Robert Todd",
+    "phone": "273.779.2700x6758",
+    "address": {
+      "street": "357 Wilson Unions",
+      "city": "Hensonmouth",
+      "state": "California",
+      "country": "Switzerland",
+      "zipcode": "55474"
+    },
+    "registration_date": "2025-02-22T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Toys"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0074",
+    "email": "pearsonamy@example.net",
+    "name": "Ashley Walton",
+    "phone": "907.992.2623x492",
+    "address": {
+      "street": "32470 Diana Divide",
+      "city": "Toddmouth",
+      "state": "Colorado",
+      "country": "Bangladesh",
+      "zipcode": "44924"
+    },
+    "registration_date": "2024-12-31T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Books",
+        "Automotive",
+        "Toys"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0075",
+    "email": "christinathomas@example.com",
+    "name": "Michael Rivera",
+    "phone": "728.734.7256x80634",
+    "address": {
+      "street": "3072 Harris Center Apt. 089",
+      "city": "New Rachelport",
+      "state": "New Hampshire",
+      "country": "Belize",
+      "zipcode": "38771"
+    },
+    "registration_date": "2025-02-14T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Jewelry",
+        "Books",
+        "Home & Garden",
+        "Beauty"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0076",
+    "email": "qwilliams@example.org",
+    "name": "Brian Sanchez",
+    "phone": "637-703-9656x24292",
+    "address": {
+      "street": "5643 Anthony Mountain Apt. 155",
+      "city": "Henrystad",
+      "state": "New Jersey",
+      "country": "Sudan",
+      "zipcode": "18886"
+    },
+    "registration_date": "2025-10-06T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Books",
+        "Electronics"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0077",
+    "email": "michaelramirez@example.org",
+    "name": "Jason Yates",
+    "phone": "+1-770-942-0092x4393",
+    "address": {
+      "street": "10656 Cindy Stravenue",
+      "city": "Nicoleton",
+      "state": "Nevada",
+      "country": "Madagascar",
+      "zipcode": "92563"
+    },
+    "registration_date": "2025-06-29T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Sports",
+        "Electronics",
+        "Jewelry"
+      ],
+      "price_range": "low",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0078",
+    "email": "uriley@example.org",
+    "name": "Frederick Willis",
+    "phone": "256-788-3434x80061",
+    "address": {
+      "street": "767 Jacobs Loaf Suite 304",
+      "city": "South David",
+      "state": "Delaware",
+      "country": "French Polynesia",
+      "zipcode": "18634"
+    },
+    "registration_date": "2025-11-14T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Electronics",
+        "Home & Garden"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0079",
+    "email": "ynavarro@example.com",
+    "name": "Peter Alvarez",
+    "phone": "(739)236-1548",
+    "address": {
+      "street": "536 Stephen Mission Suite 866",
+      "city": "New Stephentown",
+      "state": "Wyoming",
+      "country": "Chile",
+      "zipcode": "74672"
+    },
+    "registration_date": "2025-11-03T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Jewelry",
+        "Toys"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0080",
+    "email": "mathewjohnson@example.com",
+    "name": "Frank Brown",
+    "phone": "312-749-2044x1034",
+    "address": {
+      "street": "687 Ayala Corner Suite 555",
+      "city": "Kellyfort",
+      "state": "Indiana",
+      "country": "Antarctica (the territory South of 60 deg S)",
+      "zipcode": "88630"
+    },
+    "registration_date": "2025-08-04T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Home & Garden",
+        "Books"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0081",
+    "email": "gtucker@example.com",
+    "name": "Sarah Bass",
+    "phone": "447.875.2422x756",
+    "address": {
+      "street": "38666 Mills Rest Apt. 114",
+      "city": "Port Kristenmouth",
+      "state": "New Mexico",
+      "country": "Niger",
+      "zipcode": "23720"
+    },
+    "registration_date": "2025-08-26T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Home & Garden",
+        "Toys"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0082",
+    "email": "carrwillie@example.net",
+    "name": "Annette Riley",
+    "phone": "+1-415-706-3927x087",
+    "address": {
+      "street": "81891 Howell Harbor Apt. 364",
+      "city": "South Joshuaborough",
+      "state": "Montana",
+      "country": "Niue",
+      "zipcode": "15851"
+    },
+    "registration_date": "2025-07-27T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Jewelry",
+        "Books"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0083",
+    "email": "cody96@example.com",
+    "name": "Raymond Cunningham",
+    "phone": "(752)585-9110x063",
+    "address": {
+      "street": "306 Harris Ways",
+      "city": "New Katelyn",
+      "state": "Tennessee",
+      "country": "Uganda",
+      "zipcode": "52921"
+    },
+    "registration_date": "2024-11-29T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Books",
+        "Automotive"
+      ],
+      "price_range": "high",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0084",
+    "email": "maryschneider@example.com",
+    "name": "Jason Mays",
+    "phone": "(750)640-4153x7366",
+    "address": {
+      "street": "292 Callahan Mission Apt. 289",
+      "city": "Joshuaview",
+      "state": "Pennsylvania",
+      "country": "Malawi",
+      "zipcode": "62841"
+    },
+    "registration_date": "2025-02-12T11:57:44.894549",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Food",
+        "Beauty",
+        "Home & Garden",
+        "Automotive"
+      ],
+      "price_range": "low",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0085",
+    "email": "zsparks@example.com",
+    "name": "Jeffery Warren",
+    "phone": "998.638.5960x47194",
+    "address": {
+      "street": "2063 Jackson Ridge Suite 765",
+      "city": "Lake Jacquelineside",
+      "state": "Wyoming",
+      "country": "Saint Martin",
+      "zipcode": "03806"
+    },
+    "registration_date": "2025-03-04T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Electronics"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0086",
+    "email": "dmorales@example.com",
+    "name": "Casey Richardson",
+    "phone": "001-567-533-5470x8607",
+    "address": {
+      "street": "4017 Durham Prairie",
+      "city": "West Ronaldfurt",
+      "state": "Oklahoma",
+      "country": "Qatar",
+      "zipcode": "57198"
+    },
+    "registration_date": "2025-04-01T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Jewelry",
+        "Home & Garden",
+        "Books",
+        "Sports"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0087",
+    "email": "wernerandrew@example.net",
+    "name": "Laura Navarro",
+    "phone": "001-467-570-4547x7479",
+    "address": {
+      "street": "46395 Leonard Stream",
+      "city": "Gutierrezberg",
+      "state": "California",
+      "country": "Belize",
+      "zipcode": "97250"
+    },
+    "registration_date": "2025-02-20T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Automotive",
+        "Beauty",
+        "Toys",
+        "Clothing"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0088",
+    "email": "qmurray@example.com",
+    "name": "Victor Price",
+    "phone": "001-334-680-5594x298",
+    "address": {
+      "street": "3706 Kimberly Camp Apt. 555",
+      "city": "Gutierrezborough",
+      "state": "North Dakota",
+      "country": "Brazil",
+      "zipcode": "00807"
+    },
+    "registration_date": "2025-01-04T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Beauty",
+        "Sports",
+        "Home & Garden"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0089",
+    "email": "edwardskaitlyn@example.com",
+    "name": "Debra Jones",
+    "phone": "(270)444-6212",
+    "address": {
+      "street": "549 Suzanne Coves Apt. 071",
+      "city": "Lake Dianeborough",
+      "state": "New Mexico",
+      "country": "Isle of Man",
+      "zipcode": "10199"
+    },
+    "registration_date": "2025-10-05T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Sports",
+        "Books",
+        "Automotive",
+        "Home & Garden"
+      ],
+      "price_range": "high",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0090",
+    "email": "christopher65@example.org",
+    "name": "Dana Randall",
+    "phone": "(578)255-7198x33781",
+    "address": {
+      "street": "579 Andrea Divide Apt. 633",
+      "city": "Lake Micheal",
+      "state": "Delaware",
+      "country": "Pitcairn Islands",
+      "zipcode": "61273"
+    },
+    "registration_date": "2025-04-08T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Sports",
+        "Clothing",
+        "Beauty"
+      ],
+      "price_range": "medium",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0091",
+    "email": "adam09@example.com",
+    "name": "Linda Bell",
+    "phone": "001-622-865-0386x6709",
+    "address": {
+      "street": "52053 Evan Mountain",
+      "city": "Port John",
+      "state": "South Dakota",
+      "country": "Indonesia",
+      "zipcode": "49815"
+    },
+    "registration_date": "2025-07-04T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Food",
+        "Books",
+        "Jewelry",
+        "Automotive"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0092",
+    "email": "catherine17@example.com",
+    "name": "Scott Hunt",
+    "phone": "001-605-517-2110x15501",
+    "address": {
+      "street": "409 Freeman Viaduct",
+      "city": "East Elizabeth",
+      "state": "Ohio",
+      "country": "Samoa",
+      "zipcode": "64309"
+    },
+    "registration_date": "2024-12-17T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Beauty",
+        "Food",
+        "Jewelry",
+        "Automotive"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0093",
+    "email": "fernandezelizabeth@example.net",
+    "name": "Karen Rhodes",
+    "phone": "001-385-228-7496x34983",
+    "address": {
+      "street": "475 Bishop Rapids",
+      "city": "Ryantown",
+      "state": "Idaho",
+      "country": "Mozambique",
+      "zipcode": "65427"
+    },
+    "registration_date": "2025-06-01T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Clothing",
+        "Jewelry",
+        "Sports",
+        "Books"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  },
+  {
+    "user_id": "user_0094",
+    "email": "zcampbell@example.org",
+    "name": "Donna Gillespie",
+    "phone": "729.314.5869x0304",
+    "address": {
+      "street": "7345 Robinson Ports Apt. 105",
+      "city": "North Sara",
+      "state": "North Dakota",
+      "country": "Ecuador",
+      "zipcode": "02366"
+    },
+    "registration_date": "2025-07-15T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Sports",
+        "Clothing",
+        "Home & Garden",
+        "Jewelry",
+        "Books"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0095",
+    "email": "javila@example.net",
+    "name": "Jeanette Good",
+    "phone": "+1-621-943-1818x1757",
+    "address": {
+      "street": "7130 Ford Ford Suite 465",
+      "city": "Emilyborough",
+      "state": "Oregon",
+      "country": "Monaco",
+      "zipcode": "73039"
+    },
+    "registration_date": "2025-07-24T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Clothing",
+        "Jewelry"
+      ],
+      "price_range": "high",
+      "frequency": "occasional"
+    }
+  },
+  {
+    "user_id": "user_0096",
+    "email": "jennifer25@example.org",
+    "name": "Travis Johnson",
+    "phone": "(456)704-5323",
+    "address": {
+      "street": "2088 Chavez Isle",
+      "city": "South Leslieville",
+      "state": "Rhode Island",
+      "country": "Puerto Rico",
+      "zipcode": "51033"
+    },
+    "registration_date": "2025-05-20T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Toys",
+        "Clothing",
+        "Electronics",
+        "Home & Garden",
+        "Jewelry"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0097",
+    "email": "nicholsthomas@example.net",
+    "name": "Ryan Mendoza",
+    "phone": "+1-545-655-2943x6931",
+    "address": {
+      "street": "4350 Campbell Prairie Apt. 373",
+      "city": "Derekberg",
+      "state": "Oklahoma",
+      "country": "Brunei Darussalam",
+      "zipcode": "18135"
+    },
+    "registration_date": "2025-01-11T11:57:44.905208",
+    "preferences": {
+      "categories": [
+        "Electronics",
+        "Automotive"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0098",
+    "email": "ccopeland@example.org",
+    "name": "Melissa Werner",
+    "phone": "961.642.5122x89154",
+    "address": {
+      "street": "461 Riley Vista Suite 269",
+      "city": "New Lisaland",
+      "state": "Texas",
+      "country": "Palau",
+      "zipcode": "21513"
+    },
+    "registration_date": "2025-01-30T11:57:44.910497",
+    "preferences": {
+      "categories": [
+        "Food",
+        "Toys",
+        "Books"
+      ],
+      "price_range": "medium",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0099",
+    "email": "sherrismith@example.org",
+    "name": "Elizabeth Jacobs",
+    "phone": "001-344-393-5661x426",
+    "address": {
+      "street": "7736 Wilkinson Village",
+      "city": "Danielleport",
+      "state": "South Dakota",
+      "country": "Jordan",
+      "zipcode": "45613"
+    },
+    "registration_date": "2024-12-07T11:57:44.910497",
+    "preferences": {
+      "categories": [
+        "Clothing",
+        "Books",
+        "Food"
+      ],
+      "price_range": "low",
+      "frequency": "regular"
+    }
+  },
+  {
+    "user_id": "user_0100",
+    "email": "tammy39@example.com",
+    "name": "Scott Torres",
+    "phone": "+1-459-287-5948",
+    "address": {
+      "street": "741 Watson Greens",
+      "city": "New Christophertown",
+      "state": "Kentucky",
+      "country": "Mongolia",
+      "zipcode": "69130"
+    },
+    "registration_date": "2025-05-31T11:57:44.910497",
+    "preferences": {
+      "categories": [
+        "Books",
+        "Jewelry",
+        "Sports",
+        "Food"
+      ],
+      "price_range": "medium",
+      "frequency": "frequent"
+    }
+  }
+]

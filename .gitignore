@@ -1,0 +1,68 @@
+# Create .gitignore in the root
+@"
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+*.egg-info/
+
+# Django
+*.log
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+backend/staticfiles/
+backend/media/
+
+# FastAPI / AI Services
+*.h5
+*.pkl
+*.pickle
+*.joblib
+models/weights/
+ai-services/*/models/weights/
+ai-services/*/data/
+
+# Environment variables
+.env
+*.env
+.env.*
+!.env.example
+backend/.env
+ai-services/*/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+postgres-data/
+
+# Redis
+dump.rdb
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+backend_git_backup/
+backend_patches/
+backend.bundle
+backend_history.patch
+backend_remote_url.txt
+"@ | Out-File -FilePath .gitignore -Encoding UTF8
