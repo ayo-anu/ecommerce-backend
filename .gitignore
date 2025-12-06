@@ -40,11 +40,12 @@ ai-services/*/data/
 backend/.env
 ai-services/*/.env
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/build/
-frontend/.env
+# Frontend - EXCLUDED FROM MONOREPO
+frontend/
+# Uncomment if you want to include frontend in git:
+# !frontend/src/
+# !frontend/package.json
+# !frontend/README.md
 
 # IDE
 .vscode/
@@ -71,3 +72,40 @@ backend.bundle
 backend_history.patch
 backend_remote_url.txt
 "@ | Out-File -FilePath .gitignore -Encoding UTF8
+# ==============================================================================
+# Production Infrastructure
+# ==============================================================================
+
+# Database Backups
+backups/
+*.sql
+*.sql.gz
+
+# SSL/TLS Certificates
+infrastructure/docker/certbot/conf/
+infrastructure/docker/certbot/www/
+infrastructure/docker/certbot/logs/
+infrastructure/docker/nginx/ssl/
+*.pem
+*.key
+*.crt
+
+# PgBouncer
+infrastructure/docker/pgbouncer/userlist.txt
+
+# Load Testing Reports
+tests/load/reports/
+*.html
+*_stats.csv
+*_failures.csv
+*_exceptions.csv
+
+# Logs
+*.log
+/var/log/
+
+# Environment-specific configs
+infrastructure/env/.env.production
+infrastructure/env/.env.staging
+scripts/run_backup.sh
+
