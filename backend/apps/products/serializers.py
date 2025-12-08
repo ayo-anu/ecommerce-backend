@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.cache import cache
-from .models import Product, ProductImage, Category, ProductVariant
+from .models import Product, ProductImage, Category, ProductVariant, ProductReview, ReviewHelpful, Wishlist, WishlistItem
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -112,5 +112,73 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         
         # Invalidate cache
         cache.delete(f'product_detail_{instance.id}')
-        
+
         return instance
+
+
+class ProductReviewSerializer(serializers.ModelSerializer):
+    """Serializer for product reviews"""
+    user_name = serializers.SerializerMethodField()
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model = ProductReview
+        fields = [
+            'id', 'product', 'product_name', 'user', 'user_name', 'user_email',
+            'rating', 'title', 'comment', 'is_verified_purchase',
+            'is_approved', 'helpful_count', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['user', 'is_verified_purchase', 'helpful_count', 'is_approved']
+
+    def get_user_name(self, obj):
+        return obj.user.get_full_name() or obj.user.username
+
+
+class CreateReviewSerializer(serializers.ModelSerializer):
+    """Serializer for creating product reviews"""
+
+    class Meta:
+        model = ProductReview
+        fields = ['product', 'rating', 'title', 'comment']
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5")
+        return value
+
+    def validate(self, data):
+        # Check if user already reviewed this product
+        user = self.context['request'].user
+        product = data.get('product')
+
+        if ProductReview.objects.filter(user=user, product=product).exists():
+            raise serializers.ValidationError("You have already reviewed this product")
+
+        return data
+
+
+class WishlistItemSerializer(serializers.ModelSerializer):
+    """Serializer for wishlist items"""
+    product = ProductListSerializer(read_only=True)
+    product_id = serializers.UUIDField(write_only=True)
+    variant_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+
+    class Meta:
+        model = WishlistItem
+        fields = ['id', 'product', 'product_id', 'variant', 'variant_id', 'added_at', 'notes']
+        read_only_fields = ['added_at']
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    """Serializer for wishlist"""
+    items = WishlistItemSerializer(many=True, read_only=True)
+    item_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'user', 'items', 'item_count', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']
+
+    def get_item_count(self, obj):
+        return obj.items.count()

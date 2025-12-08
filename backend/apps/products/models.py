@@ -1,8 +1,9 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.text import slugify
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
+from django.conf import settings
 import uuid
 
 class Category(models.Model):
@@ -146,11 +147,101 @@ class ProductVariant(models.Model):
 class Tag(models.Model):
     name = models.CharField(max_length=50, unique=True)
     slug = models.SlugField(unique=True)
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return self.name
+
+
+class ProductReview(models.Model):
+    """Customer reviews for products"""
+    RATING_CHOICES = [(i, i) for i in range(1, 6)]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='product_reviews')
+    rating = models.IntegerField(choices=RATING_CHOICES, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    title = models.CharField(max_length=200)
+    comment = models.TextField()
+
+    # Moderation
+    is_verified_purchase = models.BooleanField(default=False, help_text="User purchased this product")
+    is_approved = models.BooleanField(default=True, help_text="Admin approved this review")
+
+    # Helpfulness
+    helpful_count = models.IntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['product', 'user']
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['product', '-created_at']),
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['is_approved', '-helpful_count']),
+            models.Index(fields=['product', 'is_approved', '-created_at']),
+        ]
+        verbose_name = 'Product Review'
+        verbose_name_plural = 'Product Reviews'
+
+    def __str__(self):
+        return f"{self.user.get_full_name() or self.user.username} - {self.product.name} ({self.rating}★)"
+
+
+class ReviewHelpful(models.Model):
+    """Track which users found a review helpful"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    review = models.ForeignKey(ProductReview, on_delete=models.CASCADE, related_name='helpful_votes')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['review', 'user']
+        verbose_name = 'Review Helpful Vote'
+        verbose_name_plural = 'Review Helpful Votes'
+
+    def __str__(self):
+        return f"{self.user.username} found review {self.review.id} helpful"
+
+
+class Wishlist(models.Model):
+    """User wishlist"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wishlist')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Wishlist'
+        verbose_name_plural = 'Wishlists'
+
+    def __str__(self):
+        return f"{self.user.username}'s Wishlist"
+
+
+class WishlistItem(models.Model):
+    """Items in user wishlist"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, null=True, blank=True)
+    added_at = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, help_text="Private notes about this item")
+
+    class Meta:
+        unique_together = ['wishlist', 'product', 'variant']
+        ordering = ['-added_at']
+        indexes = [
+            models.Index(fields=['wishlist', '-added_at']),
+        ]
+        verbose_name = 'Wishlist Item'
+        verbose_name_plural = 'Wishlist Items'
+
+    def __str__(self):
+        return f"{self.product.name} in {self.wishlist.user.username}'s wishlist"
