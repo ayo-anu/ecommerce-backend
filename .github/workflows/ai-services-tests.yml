@@ -81,7 +81,7 @@ jobs:
           fi
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           file: ./ai-services/services/${{ matrix.service }}/coverage.xml
@@ -116,7 +116,7 @@ jobs:
           fi
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           file: ./ai-services/api_gateway/coverage.xml

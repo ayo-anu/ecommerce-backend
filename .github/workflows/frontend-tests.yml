@@ -47,7 +47,7 @@ jobs:
           npm test -- --coverage --watchAll=false
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           file: ./frontend/coverage/coverage-final.json
           flags: frontend
