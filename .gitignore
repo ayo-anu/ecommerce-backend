@@ -57,6 +57,10 @@ frontend/
 .dockerignore
 postgres-data/
 
+# Docker Compose - use infrastructure/ directory only (root configs removed)
+/docker-compose.yml
+/docker-compose.override.yml
+
 # Redis
 dump.rdb
 
