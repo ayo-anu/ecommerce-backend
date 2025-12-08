@@ -227,7 +227,7 @@ jobs:
 
       - name: Build backend
         if: matrix.service == 'backend'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: backend
           file: backend/Dockerfile
@@ -238,7 +238,7 @@ jobs:
 
       - name: Build API Gateway
         if: matrix.service == 'api-gateway'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ai-services
           file: ai-services/api_gateway/Dockerfile
