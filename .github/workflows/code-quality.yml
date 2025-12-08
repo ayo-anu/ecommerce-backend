@@ -1,0 +1,289 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  # ==============================================================================
+  # Python Linting and Type Checking
+  # ==============================================================================
+  python-quality:
+    name: Python Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install linting tools
+        run: |
+          pip install --upgrade pip
+          pip install black flake8 isort mypy pylint bandit safety ruff
+
+      - name: Run Black (code formatter check)
+        run: |
+          echo "🎨 Checking code formatting with Black..."
+          black --check --line-length=100 backend/apps backend/config backend/core ai-services/ || {
+            echo "❌ Black formatting check failed"
+            echo "Run: black --line-length=100 backend/apps backend/config backend/core ai-services/"
+            exit 1
+          }
+
+      - name: Run isort (import sorting)
+        run: |
+          echo "📦 Checking import sorting with isort..."
+          isort --check-only --profile black --line-length 100 backend/apps backend/config backend/core ai-services/ || {
+            echo "❌ isort check failed"
+            echo "Run: isort --profile black --line-length 100 backend/apps backend/config backend/core ai-services/"
+            exit 1
+          }
+
+      - name: Run Flake8 (linting)
+        run: |
+          echo "🔍 Running Flake8 linting..."
+          flake8 backend/apps backend/config backend/core ai-services/ \
+            --max-line-length=100 \
+            --extend-ignore=E203,E501,W503 \
+            --max-complexity=15 \
+            --exclude=migrations,__pycache__,.venv,venv,node_modules \
+            --statistics \
+            --count || {
+            echo "❌ Flake8 linting failed"
+            exit 1
+          }
+
+      - name: Run Ruff (fast Python linter)
+        run: |
+          echo "⚡ Running Ruff linting..."
+          ruff check backend/apps backend/config backend/core ai-services/ \
+            --line-length=100 || {
+            echo "❌ Ruff linting failed"
+            exit 1
+          }
+
+      - name: Run mypy (type checking)
+        run: |
+          echo "🔎 Running mypy type checking..."
+          mypy backend/apps backend/config backend/core \
+            --ignore-missing-imports \
+            --no-strict-optional \
+            --warn-redundant-casts \
+            --warn-unused-ignores || {
+            echo "⚠️ mypy type checking found issues (non-blocking)"
+          }
+        continue-on-error: true
+
+      - name: Run pylint (advanced linting)
+        run: |
+          echo "🔬 Running pylint..."
+          pylint backend/apps backend/config backend/core \
+            --max-line-length=100 \
+            --disable=C0111,C0103,R0903,W0212 \
+            --fail-under=7.0 \
+            --output-format=colorized \
+            --reports=y || {
+            echo "⚠️ pylint found issues (non-blocking)"
+          }
+        continue-on-error: true
+
+  # ==============================================================================
+  # Security Scanning
+  # ==============================================================================
+  security-scan:
+    name: Security Code Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: |
+          pip install --upgrade pip
+          pip install bandit safety
+
+      - name: Run Bandit (security issues)
+        run: |
+          echo "🔒 Running Bandit security scan..."
+          bandit -r backend/apps backend/config backend/core ai-services/ \
+            -f json -o bandit-report.json \
+            --severity-level medium \
+            --confidence-level medium \
+            --exclude */migrations/*,*/tests/*,*_test.py,test_*.py || {
+            echo "⚠️ Bandit found security issues"
+          }
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bandit-report
+          path: bandit-report.json
+
+      - name: Run Safety (dependency vulnerabilities)
+        run: |
+          echo "🛡️ Checking for vulnerable dependencies..."
+          safety check --json --output safety-report.json || {
+            echo "⚠️ Safety found vulnerable dependencies"
+          }
+        continue-on-error: true
+
+      - name: Upload Safety report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safety-report
+          path: safety-report.json
+
+  # ==============================================================================
+  # Documentation Quality
+  # ==============================================================================
+  documentation-quality:
+    name: Documentation Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Markdown files
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: "*.md docs/*.md"
+          config_file: ".markdownlint.json"
+        continue-on-error: true
+
+      - name: Check for broken links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          config-file: '.markdown-link-check.json'
+          use-quiet-mode: 'yes'
+        continue-on-error: true
+
+  # ==============================================================================
+  # Complexity Analysis
+  # ==============================================================================
+  complexity-analysis:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install analysis tools
+        run: |
+          pip install radon mccabe
+
+      - name: Run complexity analysis
+        run: |
+          echo "📊 Analyzing code complexity..."
+
+          echo "=== Cyclomatic Complexity ==="
+          radon cc backend/apps backend/config backend/core ai-services/ \
+            --min B \
+            --show-complexity \
+            --total-average || true
+
+          echo "=== Maintainability Index ==="
+          radon mi backend/apps backend/config backend/core ai-services/ \
+            --min B \
+            --show || true
+
+          echo "=== Raw Metrics ==="
+          radon raw backend/apps backend/config backend/core ai-services/ \
+            --summary || true
+
+  # ==============================================================================
+  # Code Quality Summary
+  # ==============================================================================
+  quality-summary:
+    name: Code Quality Summary
+    runs-on: ubuntu-latest
+    needs: [python-quality, security-scan, documentation-quality, complexity-analysis]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          # 📊 Code Quality Report
+
+          ## Checks Performed
+
+          ### ✅ Code Style
+          - Black formatting
+          - isort import sorting
+          - Flake8 linting
+          - Ruff fast linting
+
+          ### 🔎 Type Checking
+          - mypy static type analysis
+
+          ### 🔒 Security
+          - Bandit security vulnerability scan
+          - Safety dependency vulnerability check
+
+          ### 📝 Documentation
+          - Markdown linting
+          - Broken link checking
+
+          ### 📊 Complexity
+          - Cyclomatic complexity analysis
+          - Maintainability index
+          - Raw code metrics
+
+          ## Quality Standards
+
+          - Line length: 100 characters
+          - Complexity limit: 15
+          - Pylint score: ≥ 7.0/10
+          - Black + isort for consistent formatting
+
+          ## How to Fix Issues Locally
+
+          ```bash
+          # Install pre-commit hooks
+          pip install pre-commit
+          pre-commit install
+
+          # Run all hooks
+          pre-commit run --all-files
+
+          # Auto-fix formatting
+          black --line-length=100 .
+          isort --profile black --line-length=100 .
+          ```
+
+          EOF
+
+      - name: Check if quality gate passed
+        run: |
+          if [ "${{ needs.python-quality.result }}" == "failure" ]; then
+            echo "❌ Python quality checks failed"
+            exit 1
+          fi
+
+          echo "✅ Code quality gate passed"

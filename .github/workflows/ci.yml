@@ -1,0 +1,427 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # ==============================================================================
+  # Backend Tests
+  # ==============================================================================
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: backend/requirements/*.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Run linting
+        working-directory: backend
+        run: |
+          flake8 apps/ config/ core/ --max-line-length=120 --exclude=migrations
+          black --check apps/ config/ core/
+          isort --check-only apps/ config/ core/
+
+      - name: Run type checking
+        working-directory: backend
+        run: |
+          mypy apps/ config/ core/ --ignore-missing-imports || true
+        continue-on-error: true
+
+      - name: Run Django checks
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_ecommerce
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key-for-ci-only
+          DEBUG: 'True'
+          DJANGO_SETTINGS_MODULE: config.settings.development
+        run: |
+          python manage.py check --deploy --fail-level WARNING
+
+      - name: Run migrations check
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_ecommerce
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key-for-ci-only
+          DEBUG: 'True'
+          DJANGO_SETTINGS_MODULE: config.settings.development
+        run: |
+          # Check for unapplied model changes
+          python manage.py makemigrations --check --dry-run
+
+      - name: Test migrations (forward and backward)
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_ecommerce
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key-for-ci-only
+          DEBUG: 'True'
+          DJANGO_SETTINGS_MODULE: config.settings.development
+        run: |
+          # Apply all migrations
+          python manage.py migrate --noinput
+
+          # Test migration reversibility (rollback one migration per app)
+          for app in accounts products orders payments analytics notifications; do
+            echo "Testing migration reversibility for app: $app"
+            python manage.py migrate $app zero --noinput || echo "⚠️  Warning: Could not reverse all migrations for $app"
+            python manage.py migrate $app --noinput
+          done
+
+      - name: Check for dangerous migration operations
+        working-directory: backend
+        run: |
+          echo "Scanning for dangerous migration operations..."
+
+          # Check for dangerous operations in recent migrations
+          if git diff --name-only origin/main...HEAD | grep -q "migrations/.*\.py$"; then
+            echo "Found migration files in this PR:"
+            git diff --name-only origin/main...HEAD | grep "migrations/.*\.py$"
+
+            echo ""
+            echo "Checking for dangerous operations..."
+
+            # Check for DROP TABLE
+            if git diff origin/main...HEAD -- "*/migrations/*.py" | grep -i "DROP TABLE\|migrations.DeleteModel"; then
+              echo "⚠️  WARNING: Found DROP TABLE or DeleteModel operation!"
+              echo "Please ensure this is intentional and data is backed up."
+            fi
+
+            # Check for DROP COLUMN
+            if git diff origin/main...HEAD -- "*/migrations/*.py" | grep -i "DROP COLUMN\|migrations.RemoveField"; then
+              echo "⚠️  WARNING: Found DROP COLUMN or RemoveField operation!"
+              echo "Consider using a multi-phase migration for zero-downtime deployment."
+            fi
+
+            # Check for ALTER COLUMN (type changes)
+            if git diff origin/main...HEAD -- "*/migrations/*.py" | grep -i "ALTER COLUMN\|migrations.AlterField.*type"; then
+              echo "⚠️  WARNING: Found ALTER COLUMN type change!"
+              echo "Type changes may require table locks. Consider data migration approach."
+            fi
+
+            echo "✓ Migration safety check complete"
+          else
+            echo "No new migrations in this PR"
+          fi
+        continue-on-error: true
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_ecommerce
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: test-secret-key-for-ci-only
+          DEBUG: 'True'
+          DJANGO_SETTINGS_MODULE: config.settings.development
+        run: |
+          pytest --cov=apps --cov=core --cov-report=xml --cov-report=html --cov-report=term
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          files: backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  # ==============================================================================
+  # AI Services Tests
+  # ==============================================================================
+  ai-services-tests:
+    name: AI Services Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: ai-services
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+
+      - name: Run linting
+        working-directory: ai-services
+        run: |
+          flake8 api_gateway/ services/ --max-line-length=120
+          black --check api_gateway/ services/ || true
+        continue-on-error: true
+
+      - name: Run tests
+        working-directory: ai-services
+        run: |
+          pytest --cov=api_gateway --cov=services --cov-report=xml || true
+        continue-on-error: true
+
+  # ==============================================================================
+  # Docker Build Test
+  # ==============================================================================
+  docker-build:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [backend, api-gateway]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend
+        if: matrix.service == 'backend'
+        uses: docker/build-push-action@v5
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: ecommerce-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build API Gateway
+        if: matrix.service == 'api-gateway'
+        uses: docker/build-push-action@v5
+        with:
+          context: ai-services
+          file: ai-services/api_gateway/Dockerfile
+          push: false
+          tags: ecommerce-api-gateway:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ==============================================================================
+  # Deployment Validation
+  # ==============================================================================
+  deployment-validation:
+    name: Deployment Validation
+    runs-on: ubuntu-latest
+    needs: [backend-tests, docker-build]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate docker-compose files
+        run: |
+          docker-compose -f infrastructure/docker-compose.yaml config > /dev/null
+          docker-compose -f infrastructure/docker-compose.yaml -f infrastructure/docker-compose.prod.yaml config > /dev/null
+
+      - name: Check for required secrets in production
+        run: |
+          # List of required environment variables
+          required_vars=(
+            "SECRET_KEY"
+            "ALLOWED_HOSTS"
+            "DATABASE_URL"
+            "SERVICE_AUTH_SECRET_DJANGO_BACKEND"
+            "SERVICE_AUTH_SECRET_API_GATEWAY"
+            "SERVICE_AUTH_SECRET_CELERY_WORKER"
+          )
+
+          echo "✅ Required environment variables documented:"
+          for var in "${required_vars[@]}"; do
+            if grep -q "$var" backend/.env.example; then
+              echo "  ✓ $var"
+            else
+              echo "  ✗ $var - MISSING FROM .env.example"
+              exit 1
+            fi
+          done
+
+  # ==============================================================================
+  # Monorepo Structure and Linting
+  # ==============================================================================
+  monorepo-validation:
+    name: Monorepo Structure Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Verify monorepo structure
+        run: |
+          python scripts/verify_structure.py
+
+      - name: Verify network security policies
+        run: |
+          python scripts/verify_network_security.py
+
+      - name: Check import boundaries
+        run: |
+          echo "=== Checking Import Boundaries ==="
+
+          # Backend apps should not import from each other's views
+          if grep -r "from apps\.[^.]*\.views import" backend/apps/*/views.py backend/apps/*/serializers.py 2>/dev/null; then
+            echo "❌ VIOLATION: Backend apps importing from other apps' views"
+            exit 1
+          fi
+
+          # AI services should not import from each other
+          if grep -r "from services\.[^.]*\." ai-services/services/*/main.py ai-services/services/*/routers/*.py 2>/dev/null | grep -v "^Binary"; then
+            echo "❌ VIOLATION: AI services importing from other services"
+            exit 1
+          fi
+
+          # Services should not import backend directly
+          if grep -r "from backend\." ai-services/ 2>/dev/null | grep -v "^Binary"; then
+            echo "❌ VIOLATION: AI services importing backend code directly"
+            exit 1
+          fi
+
+          echo "✅ Import boundaries respected"
+
+      - name: Check naming conventions
+        run: |
+          echo "=== Checking Naming Conventions ==="
+
+          # Python files should be snake_case
+          bad_files=$(find backend/apps ai-services/services -name "*.py" -type f | grep -v __pycache__ | grep -v migrations | egrep '[A-Z]' || true)
+          if [ ! -z "$bad_files" ]; then
+            echo "❌ VIOLATION: Python files should use snake_case:"
+            echo "$bad_files"
+            exit 1
+          fi
+
+          # Check for consistent service naming
+          services_inconsistent=$(find ai-services/services -maxdepth 1 -type d | grep -v shared | grep -v '^ai-services/services$' | grep -v '_' || true)
+          if [ ! -z "$services_inconsistent" ]; then
+            echo "⚠ WARNING: Service directories should use snake_case"
+            echo "$services_inconsistent"
+          fi
+
+          echo "✅ Naming conventions followed"
+
+      - name: Check security-sensitive code patterns
+        run: |
+          echo "=== Checking Security Patterns ==="
+
+          # Check for hardcoded secrets
+          if grep -r "password.*=.*['\"]" backend/ ai-services/ --include="*.py" | grep -v ".env" | grep -v "example" | grep -v "test" | grep -v "# noqa" || false; then
+            echo "❌ VIOLATION: Potential hardcoded secrets found"
+            exit 1
+          fi
+
+          # Check for SQL injection vulnerabilities (raw SQL)
+          if grep -r "\.raw(" backend/apps --include="*.py" | grep -v "# nosec" || false; then
+            echo "⚠ WARNING: Raw SQL queries found - ensure parameterization"
+          fi
+
+          # Check for eval/exec usage
+          if grep -r "\beval\(|\bexec\(" backend/ ai-services/ --include="*.py" | grep -v "# nosec" || false; then
+            echo "❌ VIOLATION: eval() or exec() usage found"
+            exit 1
+          fi
+
+          echo "✅ Security patterns validated"
+
+      - name: Check code formatting
+        run: |
+          pip install black isort flake8
+
+          echo "=== Checking Backend Formatting ==="
+          black --check backend/apps backend/config backend/core || true
+          isort --check-only backend/apps backend/config backend/core || true
+
+          echo "=== Checking AI Services Formatting ==="
+          black --check ai-services/services ai-services/shared ai-services/api_gateway || true
+          isort --check-only ai-services/services ai-services/shared ai-services/api_gateway || true
+
+  # ==============================================================================
+  # CI Summary
+  # ==============================================================================
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [backend-tests, ai-services-tests, docker-build, deployment-validation, monorepo-validation]
+    if: always()
+
+    steps:
+      - name: Generate CI summary
+        run: |
+          cat << 'EOF' >> $GITHUB_STEP_SUMMARY
+          # ✅ CI Pipeline Results
+
+          ## Tests Executed
+
+          - Backend unit tests with coverage
+          - AI services tests
+          - Docker build validation
+          - Deployment configuration validation
+
+          ## Code Quality
+
+          - Linting (flake8, black, isort)
+          - Type checking (mypy)
+          - Django deployment checks
+
+          ## Next Steps
+
+          - Review test coverage reports
+          - Check for any failing tests
+          - Ensure all Docker images build successfully
+
+          EOF

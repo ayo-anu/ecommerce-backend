@@ -1,0 +1,159 @@
+name: AI Services Tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'ai-services/**'
+      - '.github/workflows/ai-services-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ai-services/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - recommendation_engine
+          - search_engine
+          - pricing_engine
+          - chatbot_rag
+          - fraud_detection
+          - demand_forecasting
+          - visual_recognition
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ecommerce_ai_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: ai-services/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r ai-services/requirements.txt
+          pip install pytest pytest-asyncio pytest-cov
+
+      - name: Run tests for ${{ matrix.service }}
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ecommerce_ai_test
+          REDIS_URL: redis://localhost:6379/0
+          LOG_LEVEL: INFO
+        run: |
+          cd ai-services/services/${{ matrix.service }}
+          if [ -d "tests" ]; then
+            pytest tests/ -v --cov=. --cov-report=xml
+          else
+            echo "No tests found for ${{ matrix.service }}"
+          fi
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./ai-services/services/${{ matrix.service }}/coverage.xml
+          flags: ai-${{ matrix.service }}
+          name: ${{ matrix.service }}-coverage
+
+  api-gateway-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r ai-services/requirements.txt
+          pip install pytest pytest-asyncio pytest-cov
+
+      - name: Run API Gateway tests
+        env:
+          REDIS_URL: redis://localhost:6379/0
+          LOG_LEVEL: INFO
+        run: |
+          cd ai-services/api_gateway
+          if [ -d "tests" ]; then
+            pytest tests/ -v --cov=. --cov-report=xml
+          fi
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./ai-services/api_gateway/coverage.xml
+          flags: api-gateway
+          name: api-gateway-coverage
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: |
+          pip install flake8 black isort mypy
+
+      - name: Run flake8
+        run: |
+          cd ai-services
+          flake8 services/ api_gateway/ common/ --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Check black formatting
+        run: |
+          cd ai-services
+          black --check services/ api_gateway/ common/
+
+      - name: Check import sorting
+        run: |
+          cd ai-services
+          isort --check-only services/ api_gateway/ common/
+
+      - name: Run type checking
+        run: |
+          cd ai-services
+          mypy services/ api_gateway/ common/ --ignore-missing-imports || true

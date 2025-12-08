@@ -1,0 +1,203 @@
+# ==============================================================================
+# Dependabot Configuration
+# ==============================================================================
+# Automated dependency updates for security patches and version upgrades
+#
+# Features:
+# - Weekly security updates
+# - Grouped updates by ecosystem
+# - Auto-merge for patch updates (optional)
+# - Custom labels for tracking
+# ==============================================================================
+
+version: 2
+
+updates:
+  # ============================================================================
+  # Backend Python Dependencies
+  # ============================================================================
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "backend-team"
+    labels:
+      - "dependencies"
+      - "backend"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+    # Group minor and patch updates
+    groups:
+      django-ecosystem:
+        patterns:
+          - "django*"
+          - "djangorestframework*"
+      testing:
+        patterns:
+          - "pytest*"
+          - "coverage"
+      security:
+        patterns:
+          - "cryptography"
+          - "pyjwt"
+    ignore:
+      # Ignore major version updates (require manual review)
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ============================================================================
+  # AI Services Python Dependencies
+  # ============================================================================
+  - package-ecosystem: "pip"
+    directory: "/ai-services"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    groups:
+      fastapi-ecosystem:
+        patterns:
+          - "fastapi"
+          - "uvicorn"
+          - "pydantic*"
+      ml-libraries:
+        patterns:
+          - "scikit-learn"
+          - "numpy"
+          - "pandas"
+          - "tensorflow*"
+          - "torch*"
+
+  # ============================================================================
+  # GitHub Actions
+  # ============================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+
+  # ============================================================================
+  # Docker Base Images
+  # ============================================================================
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "backend"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/ai-services/api_gateway"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "03:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/ai-services/services/recommendation_engine"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "04:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+
+  - package-ecosystem: "docker"
+    directory: "/ai-services/services/fraud_detection"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "05:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+
+  # ============================================================================
+  # Infrastructure Docker Compose
+  # ============================================================================
+  - package-ecosystem: "docker"
+    directory: "/infrastructure"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "02:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "infrastructure"
+    commit-message:
+      prefix: "chore(infra)"
+
+# ==============================================================================
+# Security Updates Strategy
+# ==============================================================================
+# Dependabot will automatically:
+# 1. Create PRs for security vulnerabilities (priority)
+# 2. Group related dependencies for easier review
+# 3. Run CI checks on all dependency updates
+# 4. Label PRs for easy filtering
+#
+# Recommended Workflow:
+# 1. Review security updates IMMEDIATELY (labeled "security")
+# 2. Review and merge patch updates within 48 hours
+# 3. Review minor updates weekly
+# 4. Plan major updates quarterly
+#
+# Auto-merge (optional):
+# To enable auto-merge for patch updates, add this to repo settings:
+# - Enable "Allow auto-merge"
+# - Add branch protection rule requiring CI to pass
+# - Use GitHub CLI or bot to auto-approve dependabot PRs:
+#   gh pr review --approve "PR_NUMBER"
+# ==============================================================================
