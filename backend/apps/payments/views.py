@@ -166,10 +166,9 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
         )
         
         return customer.id
-    
 
-        """Handle successful payment"""
     def _handle_successful_payment(self, payment, intent):
+        """Handle successful payment"""
         from django.utils import timezone
         
         with db_transaction.atomic():
@@ -213,9 +212,8 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
             pass
 
 
-
-        """Webhook: Handle failed payment intent"""
     def _handle_payment_intent_failed(self, payment_intent):
+        """Webhook: Handle failed payment intent"""
         try:
             payment = Payment.objects.get(stripe_payment_intent_id=payment_intent.id)
             payment.status = 'failed'
