@@ -3,43 +3,24 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
-from django.http import JsonResponse
-from django.db import connection
-
-
-def health_check(request):
-    """Enhanced health check endpoint with database verification"""
-    checks = {
-        'status': 'healthy',
-        'environment': settings.ENVIRONMENT if hasattr(settings, 'ENVIRONMENT') else 'unknown',
-        'checks': {}
-    }
-    
-    # Check database connection
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-        checks['checks']['database'] = 'ok'
-    except Exception as e:
-        checks['checks']['database'] = 'error'
-        checks['status'] = 'unhealthy'
-    
-    status_code = 200 if checks['status'] == 'healthy' else 503
-    return JsonResponse(checks, status=status_code)
+from core.jwks import JWKSView
 
 
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
-    
-    # Health check
-    path('health/', health_check, name='health'),
-    
+
+    # Health checks (for Kubernetes probes)
+    path('health/', include('apps.health.urls')),
+
+    # JWKS endpoint for service authentication (RS256 public keys)
+    path('.well-known/jwks.json', JWKSView.as_view(), name='jwks'),
+
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/docs/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    
+
     # API endpoints
     path('api/auth/', include('apps.accounts.urls')),
     path('api/products/', include('apps.products.urls')),
