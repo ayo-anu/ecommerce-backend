@@ -81,7 +81,6 @@ marshmallow==4.1.0
 matplotlib-inline==0.2.1
 mccabe==0.7.0
 mdurl==0.1.2
-nltk==3.9.2
 packaging==25.0
 parso==0.8.5
 pathspec==0.12.1
@@ -151,3 +150,15 @@ wcwidth==0.2.14
 webencodings==0.5.1
 wheel==0.45.1
 whitenoise==6.6.0
+
+# OpenTelemetry for Distributed Tracing
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-instrumentation==0.42b0
+opentelemetry-instrumentation-django==0.42b0
+opentelemetry-instrumentation-psycopg2==0.42b0
+opentelemetry-instrumentation-redis==0.42b0
+opentelemetry-instrumentation-requests==0.42b0
+opentelemetry-instrumentation-celery==0.42b0
+opentelemetry-exporter-jaeger==1.21.0
+opentelemetry-exporter-otlp==1.21.0
