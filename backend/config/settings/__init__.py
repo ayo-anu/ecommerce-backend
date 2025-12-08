@@ -9,3 +9,7 @@ elif ENVIRONMENT == 'staging':
     from .staging import *
 else:
     from .development import *
+
+# Initialize OpenTelemetry tracing
+from core.tracing import setup_tracing
+setup_tracing()

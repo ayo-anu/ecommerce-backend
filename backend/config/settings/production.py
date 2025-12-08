@@ -2,9 +2,100 @@ import dj_database_url
 from .base import *
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
+from django.core.exceptions import ImproperlyConfigured
+import sys
 
 DEBUG = False
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*').split(',')
+
+# ==============================================================================
+# CRITICAL: ALLOWED_HOSTS validation
+# ==============================================================================
+# SECURITY: NEVER use '*' in production. This prevents host header injection attacks.
+# Explicitly list all allowed domains.
+_allowed_hosts = config('ALLOWED_HOSTS', default='')
+if not _allowed_hosts or _allowed_hosts == '*':
+    raise ImproperlyConfigured(
+        "ALLOWED_HOSTS must be explicitly configured in production. "
+        "Set ALLOWED_HOSTS environment variable with comma-separated domains. "
+        "Example: ALLOWED_HOSTS=example.com,www.example.com,api.example.com"
+    )
+ALLOWED_HOSTS = [host.strip() for host in _allowed_hosts.split(',') if host.strip()]
+
+# ==============================================================================
+# Startup validation for critical secrets
+# ==============================================================================
+def validate_required_settings():
+    """
+    Validate that all required settings are configured before startup.
+
+    Fails fast to prevent misconfigured production deployments.
+    """
+    required_settings = {
+        'SECRET_KEY': config('SECRET_KEY', default=''),
+        'ALLOWED_HOSTS': _allowed_hosts,
+        'DATABASE_URL': config('DATABASE_URL', default=''),
+    }
+
+    # Validate required service auth keys
+    required_service_keys = [
+        'SERVICE_AUTH_SECRET_DJANGO_BACKEND',
+        'SERVICE_AUTH_SECRET_API_GATEWAY',
+        'SERVICE_AUTH_SECRET_CELERY_WORKER',
+    ]
+
+    missing_settings = []
+    insecure_settings = []
+
+    # Check required settings
+    for setting_name, setting_value in required_settings.items():
+        if not setting_value:
+            missing_settings.append(setting_name)
+
+    # Check SECRET_KEY is not insecure
+    secret_key = required_settings['SECRET_KEY']
+    if secret_key and ('insecure' in secret_key.lower() or
+                       'change' in secret_key.lower() or
+                       'django-secret' in secret_key.lower()):
+        insecure_settings.append('SECRET_KEY (contains insecure placeholder)')
+
+    # Check service auth keys
+    for key_name in required_service_keys:
+        key_value = config(key_name, default='')
+        if not key_value:
+            missing_settings.append(key_name)
+        elif 'CHANGE_ME' in key_value or len(key_value) < 32:
+            insecure_settings.append(f'{key_name} (placeholder or too short)')
+
+    # Report errors
+    errors = []
+
+    if missing_settings:
+        errors.append(
+            f"Missing required environment variables:\n" +
+            '\n'.join(f"  - {s}" for s in missing_settings)
+        )
+
+    if insecure_settings:
+        errors.append(
+            f"Insecure configuration detected:\n" +
+            '\n'.join(f"  - {s}" for s in insecure_settings)
+        )
+
+    if errors:
+        error_message = (
+            "\n" + "=" * 80 + "\n" +
+            "PRODUCTION CONFIGURATION ERROR\n" +
+            "=" * 80 + "\n" +
+            '\n\n'.join(errors) + "\n" +
+            "=" * 80 + "\n" +
+            "Application startup aborted to prevent insecure production deployment.\n" +
+            "=" * 80 + "\n"
+        )
+        raise ImproperlyConfigured(error_message)
+
+# Run validation during settings load (not during migrations or other management commands)
+if 'runserver' in sys.argv or 'gunicorn' in sys.argv[0] or 'daphne' in sys.argv[0]:
+    validate_required_settings()
 
 
 if config('DATABASE_URL', default=''):
@@ -63,6 +154,10 @@ CELERY_RESULT_BACKEND = REDIS_URL
 
 CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000').split(',')
 CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='http://localhost:3000').split(',')
+CSRF_COOKIE_HTTPONLY = False  # Must be False for JavaScript to read CSRF token
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
