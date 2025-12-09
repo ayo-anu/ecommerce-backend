@@ -16,6 +16,7 @@ from shared.logger import setup_logging
 from shared.redis_client import redis_client
 from shared.vector_db import vector_db_client
 from shared.monitoring import service_up
+from shared.tracing import setup_tracing
 from .middleware import setup_middlewares
 from .auth import (
     Token,
@@ -23,6 +24,15 @@ from .auth import (
     get_current_active_user,
     User
 )
+from .resilient_proxy import (
+    proxy_registry,
+    CircuitBreakerConfig,
+    RetryConfig,
+    TimeoutConfig,
+)
+from .circuit_breaker import circuit_breaker_registry
+from enhanced_middleware import TraceMiddleware
+
 
 # Setup logging
 setup_logging()
@@ -76,7 +86,25 @@ app = FastAPI(
 
 # Setup middlewares
 setup_middlewares(app)
+app.add_middleware(TraceMiddleware)
 
+# Setup distributed tracing
+tracer = setup_tracing(app, "api-gateway")
+
+# Include gateway routes (central routing table)
+from . import gateway_routes
+app.include_router(gateway_routes.router, prefix="", tags=["gateway"])
+logger.info("✅ Gateway routing table initialized")
+
+# Include standardized health checks with dependency validation
+from shared.health import create_health_router
+health_router = create_health_router(
+    service_name="api-gateway",
+    version="1.0.0",
+    dependencies=["redis", "qdrant"]
+)
+app.include_router(health_router)
+logger.info("✅ Standardized health checks enabled (/health/live, /health/ready)")
 
 # Exception handlers
 @app.exception_handler(RequestValidationError)
@@ -99,38 +127,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Internal server error"}
     )
-
-
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    checks = {
-        "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
-        "service": "api_gateway",
-        "checks": {}
-    }
-    
-    # Check Redis
-    try:
-        await redis_client.redis.ping()
-        checks["checks"]["redis"] = "ok"
-    except:
-        checks["checks"]["redis"] = "error"
-        checks["status"] = "degraded"
-    
-    # Check Qdrant
-    try:
-        vector_db_client.client.get_collections()
-        checks["checks"]["qdrant"] = "ok"
-    except:
-        checks["checks"]["qdrant"] = "error"
-        checks["status"] = "degraded"
-    
-    status_code = 200 if checks["status"] == "healthy" else 503
-    return JSONResponse(content=checks, status_code=status_code)
-
 
 # Metrics endpoint for Prometheus
 metrics_app = make_asgi_app()
@@ -195,7 +191,11 @@ async def proxy_recommendations(
 ):
     """Proxy requests to recommendation service"""
     url = f"{settings.RECOMMENDATION_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "recommendation-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_RECOMMENDATION_ENGINE
+    )
+    return await proxy.proxy_request(request, url)
 
 
 @app.api_route(
@@ -209,7 +209,11 @@ async def proxy_search(
 ):
     """Proxy requests to search service"""
     url = f"{settings.SEARCH_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "search-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_SEARCH_ENGINE
+    )
+    return await proxy.proxy_request(request, url)
 
 
 @app.api_route(
@@ -223,7 +227,11 @@ async def proxy_pricing(
 ):
     """Proxy requests to pricing service"""
     url = f"{settings.PRICING_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "pricing-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_PRICING_ENGINE
+    )
+    return await proxy.proxy_request(request, url)
 
 
 @app.api_route(
@@ -237,7 +245,11 @@ async def proxy_chatbot(
 ):
     """Proxy requests to chatbot service"""
     url = f"{settings.CHATBOT_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "chatbot-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_CHATBOT_RAG
+    )
+    return await proxy.proxy_request(request, url)
 
 
 @app.api_route(
@@ -251,7 +263,11 @@ async def proxy_fraud(
 ):
     """Proxy requests to fraud detection service"""
     url = f"{settings.FRAUD_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "fraud-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_FRAUD_DETECTION
+    )
+    return await proxy.proxy_request(request, url)
 
 
 @app.api_route(
@@ -265,7 +281,11 @@ async def proxy_forecast(
 ):
     """Proxy requests to forecasting service"""
     url = f"{settings.FORECAST_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "forecasting-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_FORECASTING
+    )
+    return await proxy.proxy_request(request, url)
 
 
 @app.api_route(
@@ -279,39 +299,83 @@ async def proxy_vision(
 ):
     """Proxy requests to visual recognition service"""
     url = f"{settings.VISION_SERVICE_URL}/{path}"
-    return await proxy_request(request, url)
+    proxy = proxy_registry.get_proxy(
+        "vision-service",
+        service_auth_secret=settings.SERVICE_AUTH_SECRET_VISUAL_RECOGNITION
+    )
+    return await proxy.proxy_request(request, url)
 
 
-async def proxy_request(request: Request, url: str):
+@app.get("/api/v1/circuit-breakers")
+async def get_circuit_breaker_states(
+    current_user: User = Depends(get_current_active_user)
+):
     """
-    Generic proxy function to forward requests to microservices
+    Get current state of all circuit breakers.
+
+    Requires authentication.
     """
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        # Get request body
-        body = await request.body()
-        
-        # Forward request
-        try:
-            response = await client.request(
-                method=request.method,
-                url=url,
-                content=body,
-                headers=dict(request.headers),
-                params=dict(request.query_params)
-            )
-            
-            return JSONResponse(
-                content=response.json() if response.text else {},
-                status_code=response.status_code,
-                headers=dict(response.headers)
-            )
-            
-        except httpx.RequestError as e:
-            logger.error(f"Proxy request failed: {e}")
-            return JSONResponse(
-                status_code=503,
-                content={"detail": "Service temporarily unavailable"}
-            )
+    states = circuit_breaker_registry.get_all_states()
+    proxy_states = proxy_registry.get_all_circuit_states()
+
+    return {
+        "circuit_breakers": states,
+        "proxy_circuits": proxy_states,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+@app.post("/api/v1/circuit-breakers/{service_name}/reset")
+async def reset_circuit_breaker(
+    service_name: str,
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Manually reset a circuit breaker.
+
+    Requires authentication. Use with caution.
+    """
+    circuit_breaker_registry.reset_breaker(service_name)
+
+    return {
+        "message": f"Circuit breaker '{service_name}' has been reset",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+async def check_service(url: str, timeout: float = 3.0):
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            r = await client.get(url)
+        return r.status_code == 200
+    except Exception:
+        return False
+
+@app.get("/health")
+async def health():
+    # Liveness: is the gateway alive?
+    return {"status": "ok", "service": "gateway"}
+
+@app.get("/readiness")
+async def readiness():
+    results = {
+        "gateway": True,
+        "backend": await check_service("http://backend:8000/health"),
+        "recommender": await check_service("http://recommender:8001/health"),
+        "search": await check_service("http://search:8002/health"),
+        "pricing": await check_service("http://pricing:8003/health"),
+        "chatbot": await check_service("http://chatbot:8004/health"),
+        "fraud": await check_service("http://fraud:8005/health"),
+        "forecasting": await check_service("http://forecasting:8006/health"),
+        "vision": await check_service("http://vision:8007/health")
+    }
+
+    overall = all(results.values())
+    return JSONResponse(
+        status_code=200 if overall else 503,
+        content={"ok": overall, "services": results}
+    )
+
+
 
 
 if __name__ == "__main__":
