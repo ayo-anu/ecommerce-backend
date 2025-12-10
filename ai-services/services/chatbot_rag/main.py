@@ -5,6 +5,7 @@ Port: 8004
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import logging
 import sys
 from pathlib import Path
@@ -13,11 +14,42 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from .routers import chat
-from shared.monitoring import setup_monitoring
+from shared.monitoring import setup_monitoring, service_up
 from shared.logger import setup_logger
+from shared.health import create_health_router
+from shared.exceptions import setup_exception_handlers
+from shared.validation import InputValidationMiddleware
+from shared.config import get_settings
+from shared.service_auth_middleware import ServiceAuthMiddleware
 
 # Setup logging
 logger = setup_logger("chatbot_rag")
+settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events"""
+    # Startup
+    logger.info("🤖 Chatbot RAG Service starting up...")
+    logger.info("Capabilities:")
+    logger.info("  - Conversational AI with context")
+    logger.info("  - Retrieval-Augmented Generation (RAG)")
+    logger.info("  - Vector-based knowledge search")
+    logger.info("  - Intent detection & classification")
+    logger.info("  - Multi-turn conversations")
+    logger.info("  - Product Q&A, order tracking, support")
+
+    # Mark service as up
+    service_up.labels(service_name="chatbot_rag").set(1)
+    logger.info("✅ Chatbot RAG Service ready on port 8004")
+
+    yield
+
+    # Shutdown
+    logger.info("Chatbot RAG Service shutting down...")
+    service_up.labels(service_name="chatbot_rag").set(0)
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -25,7 +57,8 @@ app = FastAPI(
     description="Intelligent conversational AI with knowledge retrieval for customer support",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS middleware
@@ -37,31 +70,34 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Setup monitoring
+# ============================================================
+# ZERO-TRUST: Add service authentication middleware
+# ============================================================
+app.add_middleware(ServiceAuthMiddleware, settings=settings)
+logger.info("✅ Service authentication middleware enabled (zero-trust)")
+
+# Setup global exception handlers
+setup_exception_handlers(app)
+logger.info("✅ Exception handlers registered")
+
+# Add input validation middleware
+app.add_middleware(InputValidationMiddleware)
+logger.info("✅ Input validation middleware enabled")
+
+# Setup monitoring (adds /metrics endpoint)
 setup_monitoring(app, "chatbot_rag")
+
+# Include standardized health checks
+health_router = create_health_router(
+    service_name="chatbot_rag",
+    version="1.0.0",
+    dependencies=["qdrant", "postgres"]  # Chatbot uses Qdrant for vector DB
+)
+app.include_router(health_router)
+logger.info("✅ Health checks enabled (/health, /health/live, /health/ready)")
 
 # Include routers
 app.include_router(chat.router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize service on startup"""
-    logger.info("🤖 Chatbot RAG Service starting up...")
-    logger.info("Capabilities:")
-    logger.info("  - Conversational AI with context")
-    logger.info("  - Retrieval-Augmented Generation (RAG)")
-    logger.info("  - Vector-based knowledge search")
-    logger.info("  - Intent detection & classification")
-    logger.info("  - Multi-turn conversations")
-    logger.info("  - Product Q&A, order tracking, support")
-    logger.info("Service ready on port 8004")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    logger.info("Chatbot RAG Service shutting down...")
 
 
 @app.get("/")
