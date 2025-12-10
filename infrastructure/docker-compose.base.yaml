@@ -1,0 +1,529 @@
+# ==============================================================================
+# E-Commerce Platform - Base Docker Compose Configuration
+# ==============================================================================
+# This is the BASE configuration for all environments.
+# Use docker-compose.dev.yaml for development
+# Use docker-compose.prod.yaml for production
+# ==============================================================================
+
+version: '3.8'
+
+# ==============================================================================
+# NETWORKS - Proper Segmentation
+# ==============================================================================
+networks:
+  # Public-facing network (Nginx, API Gateway)
+  frontend_network:
+    driver: bridge
+    internal: false
+
+  # Internal services network (NOT accessible from outside)
+  internal_network:
+    driver: bridge
+    internal: true
+
+  # Monitoring network (isolated)
+  monitoring_network:
+    driver: bridge
+    internal: false
+
+# ==============================================================================
+# VOLUMES
+# ==============================================================================
+volumes:
+  postgres_data:
+  postgres_ai_data:
+  redis_data:
+  elasticsearch_data:
+  qdrant_data:
+  rabbitmq_data:
+  prometheus_data:
+  grafana_data:
+  jaeger_data:
+  backend_media:
+  backend_static:
+
+# ==============================================================================
+# SERVICES
+# ==============================================================================
+services:
+
+  # ============================================================================
+  # DATABASE LAYER (Internal Network Only)
+  # ============================================================================
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecommerce_postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres_ai:
+    image: postgres:15-alpine
+    container_name: ecommerce_postgres_ai
+    restart: unless-stopped
+    volumes:
+      - postgres_ai_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_AI_DB:-ecommerce_ai}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: ecommerce_elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: ecommerce_qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: ecommerce_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ============================================================================
+  # APPLICATION LAYER (Internal Network Only)
+  # ============================================================================
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ecommerce_backend
+    restart: unless-stopped
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120
+    volumes:
+      - backend_media:/app/media
+      - backend_static:/app/staticfiles
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-key-change-in-production}
+      - DEBUG=False
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,backend,api-gateway}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      - OTEL_SERVICE_NAME=ecommerce-backend
+      - OTEL_TRACES_EXPORTER=jaeger
+    networks:
+      - internal_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  celery_worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ecommerce_celery_worker
+    restart: unless-stopped
+    command: celery -A config worker -l info --concurrency=4
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-key-change-in-production}
+    networks:
+      - internal_network
+    depends_on:
+      - backend
+      - redis
+
+  celery_beat:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: ecommerce_celery_beat
+    restart: unless-stopped
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-key-change-in-production}
+    networks:
+      - internal_network
+    depends_on:
+      - backend
+      - redis
+
+  # ============================================================================
+  # API GATEWAY - Bridge between Frontend and Internal Services
+  # ============================================================================
+
+  api_gateway:
+    build:
+      context: ../ai-services
+      dockerfile: api_gateway/Dockerfile
+    container_name: ecommerce_api_gateway
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8080 --workers 4
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/2
+      - RECOMMENDER_URL=http://recommender:8001
+      - SEARCH_URL=http://search:8002
+      - PRICING_URL=http://pricing:8003
+      - CHATBOT_URL=http://chatbot:8004
+      - FRAUD_URL=http://fraud:8005
+      - FORECASTING_URL=http://forecasting:8006
+      - VISION_URL=http://vision:8007
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      - OTEL_SERVICE_NAME=api-gateway
+      - OTEL_TRACES_EXPORTER=jaeger
+    networks:
+      - frontend_network  # Can talk to Nginx
+      - internal_network  # Can talk to all services
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # AI MICROSERVICES (Internal Network Only)
+  # ============================================================================
+
+  recommender:
+    build:
+      context: ../ai-services
+      dockerfile: services/recommendation_engine/Dockerfile
+    container_name: ecommerce_recommender
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8001
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/3
+      - MODEL_PATH=/models/recommendation
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  search:
+    build:
+      context: ../ai-services
+      dockerfile: services/search_engine/Dockerfile
+    container_name: ecommerce_search
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8002
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/4
+      - QDRANT_URL=http://qdrant:6333
+      - MODEL_PATH=/models/search
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  pricing:
+    build:
+      context: ../ai-services
+      dockerfile: services/pricing_engine/Dockerfile
+    container_name: ecommerce_pricing
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8003
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/5
+      - MODEL_PATH=/models/pricing
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  chatbot:
+    build:
+      context: ../ai-services
+      dockerfile: services/chatbot_rag/Dockerfile
+    container_name: ecommerce_chatbot
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8004
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/6
+      - QDRANT_URL=http://qdrant:6333
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_PATH=/models/chatbot
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  fraud:
+    build:
+      context: ../ai-services
+      dockerfile: services/fraud_detection/Dockerfile
+    container_name: ecommerce_fraud
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8005
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/7
+      - MODEL_PATH=/models/fraud
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  forecasting:
+    build:
+      context: ../ai-services
+      dockerfile: services/demand_forecasting/Dockerfile
+    container_name: ecommerce_forecasting
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8006
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/8
+      - MODEL_PATH=/models/forecasting
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  vision:
+    build:
+      context: ../ai-services
+      dockerfile: services/visual_recognition/Dockerfile
+    container_name: ecommerce_vision
+    restart: unless-stopped
+    command: uvicorn main:app --host 0.0.0.0 --port 8007
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/9
+      - QDRANT_URL=http://qdrant:6333
+      - MODEL_PATH=/models/vision
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - internal_network
+    depends_on:
+      postgres_ai:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ============================================================================
+  # MONITORING STACK (Monitoring Network)
+  # ============================================================================
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ecommerce_prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring_network
+      - internal_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ecommerce_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ../monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - monitoring_network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    container_name: ecommerce_jaeger
+    restart: unless-stopped
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    volumes:
+      - jaeger_data:/badger
+    networks:
+      - monitoring_network
+      - internal_network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

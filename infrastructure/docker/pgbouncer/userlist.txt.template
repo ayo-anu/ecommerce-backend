@@ -1,0 +1,12 @@
+;; ==============================================================================
+;; PgBouncer User List Template
+;; ==============================================================================
+;; This file contains usernames and passwords for PgBouncer authentication
+;;
+;; Format: "username" "password"
+;; For SCRAM-SHA-256, use: "username" "SCRAM-SHA-256$<iterations>:<salt>$<hash>"
+;;
+;; IMPORTANT: Replace POSTGRES_PASSWORD with actual password
+;; ==============================================================================
+
+"postgres" "CHANGE_THIS_PASSWORD"

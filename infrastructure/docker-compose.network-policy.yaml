@@ -1,0 +1,254 @@
+# ==============================================================================
+# Network Security Policy Overlay
+# ==============================================================================
+# This overlay enforces strict network isolation and least privilege access.
+#
+# Usage:
+#   docker-compose -f docker-compose.yaml -f docker-compose.network-policy.yaml up
+#
+# Security Model:
+#   - Backend and AI networks are INTERNAL (no direct internet access)
+#   - Only API Gateway can communicate between networks
+#   - Databases cannot communicate with each other
+#   - Monitoring has read-only access to all services
+#
+# Network Access Matrix:
+#   Service              | public | backend | ai | monitoring |
+#   ---------------------|--------|---------|----|-----------
+#   nginx                |   RW   |    -    | -  |     -      |
+#   api-gateway          |   RW   |   RW    | RW |     R      |
+#   backend              |   -    |   RW    | -  |     R      |
+#   ai-services          |   -    |    -    | RW |     R      |
+#   databases            |   -    |   RW    | RW |     R      |
+#   monitoring           |   R    |    R    | R  |     RW     |
+# ==============================================================================
+
+version: '3.8'
+
+networks:
+  # Backend network - INTERNAL, no internet access
+  backend_network:
+    internal: true
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"  # Inter-container communication
+      com.docker.network.bridge.enable_ip_masquerade: "false"  # No NAT to internet
+
+  # AI network - INTERNAL, no internet access
+  ai_network:
+    internal: true
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "false"
+
+  # Public network - Only for nginx and api-gateway
+  public_network:
+    internal: false
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+
+  # Monitoring network - Read-only access (implemented via firewall rules)
+  monitoring_network:
+    internal: false  # Needs internet for alerting
+    driver: bridge
+
+# ==============================================================================
+# Service Network Restrictions
+# ==============================================================================
+services:
+  # Nginx - Public facing only
+  nginx:
+    networks:
+      - public_network
+    # Remove any backend/ai network access
+
+  # API Gateway - Hub for all communication
+  api_gateway:
+    networks:
+      - public_network
+      - backend_network
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE  # Only capability needed
+
+  # Backend - Backend network only
+  backend:
+    networks:
+      - backend_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+  # Celery workers - Backend network only
+  celery_worker:
+    networks:
+      - backend_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  celery_beat:
+    networks:
+      - backend_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  # Databases - Restricted to their respective networks
+  postgres:
+    networks:
+      - backend_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    # No port exposure in production
+    ports: []
+
+  postgres_ai:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    ports: []
+
+  pgbouncer:
+    networks:
+      - backend_network
+    cap_drop:
+      - ALL
+    ports: []
+
+  # Cache & Queue - Backend network only
+  redis:
+    networks:
+      - backend_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    ports: []
+
+  rabbitmq:
+    networks:
+      - backend_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    ports: []
+
+  # Search & Vector DB - Respective networks only
+  elasticsearch:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    ports: []
+
+  qdrant:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+    ports: []
+
+  # AI Services - AI network only
+  recommendation_engine:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  search_engine:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  pricing_engine:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  chatbot_rag:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  fraud_detection:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  demand_forecasting:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  visual_recognition:
+    networks:
+      - ai_network
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  # Monitoring - Read-only access to all networks
+  prometheus:
+    networks:
+      - monitoring_network
+      - public_network  # For scraping external metrics
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+
+  grafana:
+    networks:
+      - monitoring_network
+      - public_network  # For accessing external datasources
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN  # Needs to write dashboards
+
+  jaeger:
+    networks:
+      - monitoring_network
+    cap_drop:
+      - ALL
+
+  alertmanager:
+    networks:
+      - monitoring_network
+      - public_network  # For sending alerts
+    cap_drop:
+      - ALL
