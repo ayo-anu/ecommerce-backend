@@ -1,0 +1,22 @@
+# ==============================================================================
+# Visual Recognition Requirements
+# Computer vision, image processing, object detection
+# ==============================================================================
+
+# Include base requirements
+-r ../../requirements-base.txt
+
+# Computer Vision
+opencv-python==4.8.1.78
+Pillow==10.1.0
+
+# Deep Learning
+torch==2.6.0
+torchvision==0.21.0
+
+# Image Processing
+numpy==1.26.2
+
+# Optional: Advanced CV models
+# transformers==4.36.0  # Only if using vision transformers
+# sentence-transformers==2.2.2  # Only if using CLIP or similar
