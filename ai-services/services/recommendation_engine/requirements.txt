@@ -1,0 +1,29 @@
+# ==============================================================================
+# Recommendation Engine Requirements
+# Collaborative filtering, content-based recommendations
+# ==============================================================================
+
+# Include base requirements
+-r ../../requirements-base.txt
+
+# Core ML & Data Processing
+numpy==1.26.2
+pandas==2.1.4
+scikit-learn==1.3.2
+scipy==1.11.4
+
+# Database
+asyncpg==0.29.0
+psycopg==3.1.12
+psycopg-binary==3.1.12
+
+# Vector Database
+qdrant-client==1.7.0
+grpcio==1.76.0
+
+# Model Persistence
+joblib==1.4.2
+
+# Optional: Advanced ML (uncomment if needed)
+# lightgbm==4.1.0
+# xgboost==2.0.3
