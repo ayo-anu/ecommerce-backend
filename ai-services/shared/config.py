@@ -14,11 +14,18 @@ class Settings(BaseSettings):
     DJANGO_BACKEND_URL: str = "http://backend:8000"
     DJANGO_API_KEY: str = ""
 
-    # Database - DEPRECATED: AI services should NEVER access database directly
-    # This is kept for backward compatibility but should not be used
-    DATABASE_URL: str = ""  # Intentionally empty - AI services must not access DB
-    DB_POOL_SIZE: int = 20
-    DB_MAX_OVERFLOW: int = 10
+    # ==============================================================================
+    # DATABASE ACCESS - DEPRECATED
+    # ==============================================================================
+    # WARNING: Direct database access from AI services is deprecated and will be
+    # removed in a future release. AI services MUST communicate with the backend
+    # via the API (DJANGO_BACKEND_URL) for all data operations.
+    #
+    # These fields are kept as None for backward compatibility but should not be used.
+    # ==============================================================================
+    DATABASE_URL: str = None  # DEPRECATED: Use DJANGO_BACKEND_URL instead
+    DB_POOL_SIZE: int = None  # DEPRECATED: Not applicable for API-based access
+    DB_MAX_OVERFLOW: int = None  # DEPRECATED: Not applicable for API-based access
 
     # Redis
     # SECURITY FIX: Use Docker DNS names as defaults (not localhost)
@@ -32,13 +39,19 @@ class Settings(BaseSettings):
     QDRANT_COLLECTION_PRODUCTS: str = "products"
     QDRANT_VECTOR_SIZE: int = 384
     
-    # Security
+    # ==============================================================================
+    # Security & Authentication
+    # ==============================================================================
+    # NOTE: Service secrets should be loaded from Vault in production
+    # For now, these are loaded from environment variables
+    # Future: Integrate with backend's Vault client for service-level secrets
     SECRET_KEY: str = "change-this-secret-key"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Service-to-Service Authentication
-    SERVICE_AUTH_SECRET: str = ""  # REQUIRED: Unique per service
+    # REQUIRED: Unique per service, should be managed via Vault in production
+    SERVICE_AUTH_SECRET: str = ""
     SERVICE_NAME: str = "unknown"
 
     # API Gateway needs all service secrets to inject headers
