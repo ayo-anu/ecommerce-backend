@@ -99,11 +99,18 @@ if 'runserver' in sys.argv or 'gunicorn' in sys.argv[0] or 'daphne' in sys.argv[
     validate_required_settings()
 
 
-if config('DATABASE_URL', default=''):
+# Get DATABASE_URL from Vault or environment variable
+_database_url = get_vault_secret(
+    'DATABASE_URL',
+    vault_path='secret/data/postgres',
+    vault_key='DATABASE_URL',
+    default=config('DATABASE_URL', default='')
+)
 
+if _database_url:
     DATABASES = {
         'default': dj_database_url.config(
-            default=config('DATABASE_URL'),
+            default=_database_url,
             conn_max_age=600,
             conn_health_checks=True,
         )
@@ -128,7 +135,13 @@ else:
     }
 
 
-REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+# Get REDIS_URL from Vault or environment variable
+REDIS_URL = get_vault_secret(
+    'REDIS_URL',
+    vault_path='secret/data/redis',
+    vault_key='URL',
+    default=config('REDIS_URL', default='redis://localhost:6379/0')
+)
 
 CACHES = {
     'default': {
@@ -167,9 +180,19 @@ EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.
 USE_S3 = config('USE_S3', default=False, cast=bool)
 
 if USE_S3:
-    # AWS S3 Configuration
-    AWS_ACCESS_KEY_ID = config('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = config('AWS_SECRET_ACCESS_KEY')
+    # AWS S3 Configuration - Get credentials from Vault or environment
+    AWS_ACCESS_KEY_ID = get_vault_secret(
+        'AWS_ACCESS_KEY_ID',
+        vault_path='secret/data/aws',
+        vault_key='ACCESS_KEY_ID',
+        default=config('AWS_ACCESS_KEY_ID')
+    )
+    AWS_SECRET_ACCESS_KEY = get_vault_secret(
+        'AWS_SECRET_ACCESS_KEY',
+        vault_path='secret/data/aws',
+        vault_key='SECRET_ACCESS_KEY',
+        default=config('AWS_SECRET_ACCESS_KEY')
+    )
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
     AWS_S3_CUSTOM_DOMAIN = config('AWS_S3_CUSTOM_DOMAIN', default=f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com')
