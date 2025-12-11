@@ -1,0 +1,164 @@
+groups:
+  - name: Service Health
+    interval: 30s
+    rules:
+      # Service Down
+      - alert: ServiceDown
+        expr: service_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: "{{ $labels.service_name }}"
+        annotations:
+          summary: "Service {{ $labels.service_name }} is down"
+          description: "{{ $labels.service_name }} has been down for more than 2 minutes"
+          runbook_url: "https://runbook.example.com/service-down"
+          dashboard_url: "https://grafana.example.com/d/services/ai-services-overview"
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum by (service) (rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum by (service) (rate(http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.service }} (threshold: 5%)"
+          runbook_url: "https://runbook.example.com/high-error-rate"
+
+      # Elevated 4xx Rate
+      - alert: Elevated4xxRate
+        expr: |
+          (
+            sum by (service) (rate(http_requests_total{status=~"4.."}[5m]))
+            /
+            sum by (service) (rate(http_requests_total[5m]))
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "Elevated 4xx rate on {{ $labels.service }}"
+          description: "4xx error rate is {{ $value | humanizePercentage }} on {{ $labels.service }} (threshold: 10%)"
+          runbook_url: "https://runbook.example.com/client-errors"
+
+      # Model Inference Slow
+      - alert: ModelInferenceSlow
+        expr: |
+          histogram_quantile(0.95,
+            rate(model_inference_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.service }}"
+          model: "{{ $labels.model_name }}"
+        annotations:
+          summary: "Slow model inference for {{ $labels.model_name }}"
+          description: "p95 inference time is {{ $value | humanizeDuration }} for {{ $labels.model_name }} in {{ $labels.service }}"
+          runbook_url: "https://runbook.example.com/model-performance"
+
+      # No Traffic
+      - alert: NoTraffic
+        expr: |
+          sum by (service) (rate(http_requests_total[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "No traffic to {{ $labels.service }}"
+          description: "{{ $labels.service }} has received no requests for 10 minutes"
+          runbook_url: "https://runbook.example.com/no-traffic"
+
+  - name: Infrastructure
+    interval: 1m
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: |
+          rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "High CPU usage on {{ $labels.service }}"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.service }}"
+          runbook_url: "https://runbook.example.com/high-cpu"
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes / 1024 / 1024 / 1024) > 2
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "High memory usage on {{ $labels.service }}"
+          description: "Memory usage is {{ $value | humanize }}GB on {{ $labels.service }}"
+          runbook_url: "https://runbook.example.com/high-memory"
+
+      # Database Connection Pool Exhaustion
+      - alert: DatabaseConnectionPoolHigh
+        expr: db_connections_active > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool near capacity"
+          description: "Active connections: {{ $value | humanize }} (threshold: 80)"
+          runbook_url: "https://runbook.example.com/db-connections"
+
+      # Low Cache Hit Rate
+      - alert: LowCacheHitRate
+        expr: |
+          rate(cache_hits_total[5m])
+          /
+          (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))
+          < 0.7
+        for: 15m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+          runbook_url: "https://runbook.example.com/cache-performance"
+
+      # Database Query Slow
+      - alert: DatabaseQuerySlow
+        expr: |
+          histogram_quantile(0.95,
+            rate(db_query_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "p95 query duration is {{ $value | humanizeDuration }} (threshold: 1s)"
+          runbook_url: "https://runbook.example.com/slow-queries"
+
+      # Disk Space Low
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is {{ $value | humanizePercentage }} available on root partition"
+          runbook_url: "https://runbook.example.com/disk-space"

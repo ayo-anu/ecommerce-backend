@@ -1,0 +1,385 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 2, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "content": "# Business Metrics Dashboard\n\nKey business metrics including revenue, orders, conversions, customer acquisition, and product performance.",
+        "mode": "markdown"
+      },
+      "type": "text"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 0, "y": 2},
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {"calcs": ["sum"]}
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(revenue_total[1h]))",
+          "legendFormat": "Revenue (1h)",
+          "refId": "A"
+        }
+      ],
+      "title": "Revenue (Last Hour)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 6, "y": 2},
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {"calcs": ["sum"]}
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(orders_total[1h]))",
+          "legendFormat": "Orders (1h)",
+          "refId": "A"
+        }
+      ],
+      "title": "Orders (Last Hour)",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null}
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 12, "y": 2},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {"calcs": ["lastNotNull"]}
+      },
+      "targets": [
+        {
+          "expr": "sum(revenue_total) / sum(orders_total)",
+          "legendFormat": "AOV",
+          "refId": "A"
+        }
+      ],
+      "title": "Average Order Value",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 0.02},
+              {"color": "green", "value": 0.05}
+            ]
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 6, "w": 6, "x": 18, "y": 2},
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {"calcs": ["mean"]}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(checkout_completed_total[1h])) / sum(rate(sessions_total[1h]))",
+          "legendFormat": "Conversion Rate",
+          "refId": "A"
+        }
+      ],
+      "title": "Conversion Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Revenue ($)",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 3
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 8},
+      "id": 6,
+      "options": {
+        "legend": {"calcs": ["sum", "mean"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(revenue_total[5m])) * 60",
+          "legendFormat": "Revenue per minute",
+          "refId": "A"
+        }
+      ],
+      "title": "Revenue Over Time",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Orders",
+            "drawStyle": "bars",
+            "fillOpacity": 100
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 17},
+      "id": 7,
+      "options": {
+        "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(orders_total{status=\"completed\"}[10m]))",
+          "legendFormat": "Completed",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(orders_total{status=\"pending\"}[10m]))",
+          "legendFormat": "Pending",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(orders_total{status=\"failed\"}[10m]))",
+          "legendFormat": "Failed",
+          "refId": "C"
+        }
+      ],
+      "title": "Orders by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Rate",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "percentunit"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 17},
+      "id": 8,
+      "options": {
+        "legend": {"calcs": ["mean", "last"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(checkout_completed_total[5m])) / sum(rate(checkout_attempted_total[5m]))",
+          "legendFormat": "Checkout Success Rate",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cart_abandoned_total[5m])) / sum(rate(cart_created_total[5m]))",
+          "legendFormat": "Cart Abandonment Rate",
+          "refId": "B"
+        }
+      ],
+      "title": "Conversion Funnel Metrics",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Count",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 26},
+      "id": 9,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum(rate(product_views_total[1h])) by (product_id))",
+          "legendFormat": "Product {{product_id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Viewed Products",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Revenue ($)",
+            "drawStyle": "bars",
+            "fillOpacity": 100
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 26},
+      "id": 10,
+      "options": {
+        "legend": {"calcs": ["sum"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum(rate(product_revenue_total[1h])) by (product_id))",
+          "legendFormat": "Product {{product_id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 Revenue Products",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Users",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 35},
+      "id": 11,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(user_registrations_total[5m]))",
+          "legendFormat": "New Registrations",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(user_logins_total[5m]))",
+          "legendFormat": "User Logins",
+          "refId": "B"
+        }
+      ],
+      "title": "User Activity",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Count",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 35},
+      "id": 12,
+      "options": {
+        "legend": {"calcs": ["mean", "last"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(fraud_detected_total[5m]))",
+          "legendFormat": "Fraud Detections",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(payment_failed_total[5m]))",
+          "legendFormat": "Payment Failures",
+          "refId": "B"
+        }
+      ],
+      "title": "Risk & Errors",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["e-commerce", "business", "revenue", "kpi"],
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "05 - Business Metrics",
+  "uid": "ecommerce-business-metrics",
+  "version": 1
+}

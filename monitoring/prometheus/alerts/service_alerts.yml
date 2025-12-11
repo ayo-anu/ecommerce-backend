@@ -1,0 +1,355 @@
+# Service Health and Performance Alerts
+# Critical alerts for service availability and performance
+
+groups:
+  # ===========================================
+  # SERVICE AVAILABILITY ALERTS
+  # ===========================================
+  - name: service_availability
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.service }} is down"
+          description: "{{ $labels.service }} has been down for more than 2 minutes. Immediate action required."
+          impact: "Users cannot access {{ $labels.service }}"
+          action: "Check service logs and restart if necessary"
+
+      - alert: ServiceFlapping
+        expr: changes(up[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: "Service {{ $labels.service }} is flapping"
+          description: "{{ $labels.service }} has restarted {{ $value }} times in the last 10 minutes"
+          impact: "Service instability, potential user disruption"
+          action: "Check for resource constraints or configuration issues"
+
+  # ===========================================
+  # API PERFORMANCE ALERTS
+  # ===========================================
+  - name: api_performance
+    interval: 30s
+    rules:
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High latency on {{ $labels.service }}"
+          description: "P95 latency is {{ $value }}s (threshold: 0.5s)"
+          impact: "Slow user experience"
+          action: "Check database queries, cache hit rate, and service load"
+
+      - alert: CriticalAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 2m
+        labels:
+          severity: critical
+          category: performance
+        annotations:
+          summary: "Critical latency on {{ $labels.service }}"
+          description: "P95 latency is {{ $value }}s (threshold: 2.0s)"
+          impact: "Severe performance degradation"
+          action: "Immediate investigation required - check for bottlenecks"
+
+      - alert: HighErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: errors
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          impact: "Users experiencing errors"
+          action: "Check application logs for error patterns"
+
+      - alert: HighClientErrorRate
+        expr: |
+          (sum(rate(http_requests_total{status=~"4.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)) > 0.15
+        for: 10m
+        labels:
+          severity: warning
+          category: errors
+        annotations:
+          summary: "High 4xx error rate on {{ $labels.service }}"
+          description: "Client error rate is {{ $value | humanizePercentage }} (threshold: 15%)"
+          impact: "Potential authentication or validation issues"
+          action: "Review API usage patterns and error logs"
+
+  # ===========================================
+  # RESOURCE UTILIZATION ALERTS
+  # ===========================================
+  - name: resource_utilization
+    interval: 1m
+    rules:
+      - alert: HighCPUUsage
+        expr: |
+          (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 80
+        for: 10m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanize }}% (threshold: 80%)"
+          impact: "Performance degradation"
+          action: "Consider scaling or optimizing resource-intensive operations"
+
+      - alert: CriticalCPUUsage
+        expr: |
+          (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 95
+        for: 5m
+        labels:
+          severity: critical
+          category: resources
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value | humanize }}% (threshold: 95%)"
+          impact: "Severe performance issues"
+          action: "Immediate action required - scale or reduce load"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanize }}% (threshold: 85%)"
+          impact: "Risk of OOM errors"
+          action: "Check for memory leaks or increase memory allocation"
+
+      - alert: DiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          category: resources
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Available disk space is {{ $value | humanize }}% (threshold: 15%)"
+          impact: "Risk of service failure"
+          action: "Clean up logs or increase disk capacity"
+
+  # ===========================================
+  # DATABASE ALERTS
+  # ===========================================
+  - name: database_alerts
+    interval: 1m
+    rules:
+      - alert: PostgreSQLDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL {{ $labels.database }} is down"
+          description: "PostgreSQL instance has been unreachable for 2 minutes"
+          impact: "Application cannot access database"
+          action: "Check database service and logs immediately"
+
+      - alert: HighDatabaseConnections
+        expr: |
+          (pg_stat_database_numbackends / pg_settings_max_connections) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "High connection count on {{ $labels.database }}"
+          description: "Database connections at {{ $value | humanize }}% of maximum"
+          impact: "Risk of connection exhaustion"
+          action: "Review connection pooling and close idle connections"
+
+      - alert: SlowQueries
+        expr: |
+          rate(pg_stat_activity_max_tx_duration[5m]) > 30
+        for: 10m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Slow queries detected on {{ $labels.database }}"
+          description: "Long-running queries detected"
+          impact: "Database performance degradation"
+          action: "Identify and optimize slow queries"
+
+      - alert: DatabaseDeadlocks
+        expr: |
+          rate(pg_stat_database_deadlocks[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Database deadlocks on {{ $labels.database }}"
+          description: "Deadlocks detected at rate of {{ $value }}/sec"
+          impact: "Transaction failures"
+          action: "Review transaction isolation levels and query patterns"
+
+  # ===========================================
+  # CACHE ALERTS (Redis)
+  # ===========================================
+  - name: cache_alerts
+    interval: 1m
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been unreachable for 2 minutes"
+          impact: "Severe performance degradation, no caching"
+          action: "Check Redis service and restart if necessary"
+
+      - alert: LowCacheHitRate
+        expr: |
+          (redis_keyspace_hits_total / (redis_keyspace_hits_total + redis_keyspace_misses_total)) < 0.7
+        for: 15m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Low Redis cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 70%)"
+          impact: "Increased database load"
+          action: "Review caching strategy and TTL settings"
+
+      - alert: RedisMemoryHigh
+        expr: |
+          (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis using {{ $value | humanize }}% of allocated memory"
+          impact: "Risk of eviction or OOM"
+          action: "Increase memory or review cache retention policy"
+
+  # ===========================================
+  # AI SERVICES ALERTS
+  # ===========================================
+  - name: ai_services_alerts
+    interval: 1m
+    rules:
+      - alert: MLModelInferenceSlowness
+        expr: |
+          histogram_quantile(0.95,
+            rate(ml_model_inference_duration_seconds_bucket{tier="ai"}[5m])
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          category: ai-performance
+        annotations:
+          summary: "Slow ML inference on {{ $labels.service }}"
+          description: "P95 inference time is {{ $value }}s (threshold: 1.0s)"
+          impact: "Slow AI-powered features"
+          action: "Check model size, GPU availability, and batch processing"
+
+      - alert: HighMLErrorRate
+        expr: |
+          rate(ml_model_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          category: ai-errors
+        annotations:
+          summary: "High ML error rate on {{ $labels.service }}"
+          description: "ML errors at {{ $value }}/sec"
+          impact: "AI features failing"
+          action: "Check model inputs and error logs"
+
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state{state="open"} == 1
+        for: 2m
+        labels:
+          severity: critical
+          category: resilience
+        annotations:
+          summary: "Circuit breaker open for {{ $labels.service }}"
+          description: "Circuit breaker has opened due to repeated failures"
+          impact: "Service degradation, fallback responses active"
+          action: "Check downstream service health"
+
+  # ===========================================
+  # RATE LIMITING ALERTS
+  # ===========================================
+  - name: rate_limiting_alerts
+    interval: 1m
+    rules:
+      - alert: HighRateLimitHitRate
+        expr: |
+          (sum(rate(rate_limit_exceeded_total[5m])) by (service)
+          /
+          sum(rate(http_requests_total[5m])) by (service)) > 0.10
+        for: 10m
+        labels:
+          severity: warning
+          category: rate-limiting
+        annotations:
+          summary: "High rate limit hits on {{ $labels.service }}"
+          description: "{{ $value | humanizePercentage }} of requests are rate limited"
+          impact: "Users being blocked"
+          action: "Review rate limit thresholds or identify abusive patterns"
+
+  # ===========================================
+  # QUEUE ALERTS (Celery/RabbitMQ)
+  # ===========================================
+  - name: queue_alerts
+    interval: 1m
+    rules:
+      - alert: HighQueueDepth
+        expr: rabbitmq_queue_messages > 1000
+        for: 10m
+        labels:
+          severity: warning
+          category: queue
+        annotations:
+          summary: "High queue depth in {{ $labels.queue }}"
+          description: "Queue has {{ $value }} messages (threshold: 1000)"
+          impact: "Task processing delays"
+          action: "Scale workers or investigate slow tasks"
+
+      - alert: CeleryWorkersDown
+        expr: celery_workers_active == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: queue
+        annotations:
+          summary: "No active Celery workers"
+          description: "All Celery workers are down"
+          impact: "Background tasks not processing"
+          action: "Restart Celery workers immediately"

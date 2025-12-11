@@ -1,0 +1,186 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 2, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "content": "# AI Services Performance Dashboard\n\nMonitoring for 7 AI microservices: Recommendation, Search, Pricing, Chatbot, Fraud Detection, Demand Forecasting, and Visual Recognition.",
+        "mode": "markdown"
+      },
+      "type": "text"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}, "type": "value"}
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]
+          }
+        }
+      },
+      "gridPos": {"h": 6, "w": 24, "x": 0, "y": 2},
+      "id": 2,
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {"expr": "up{service=\"recommendation-engine\"}", "legendFormat": "Recommendation", "refId": "A"},
+        {"expr": "up{service=\"search-engine\"}", "legendFormat": "Search", "refId": "B"},
+        {"expr": "up{service=\"pricing-engine\"}", "legendFormat": "Pricing", "refId": "C"},
+        {"expr": "up{service=\"chatbot\"}", "legendFormat": "Chatbot", "refId": "D"},
+        {"expr": "up{service=\"fraud-detection\"}", "legendFormat": "Fraud Detection", "refId": "E"},
+        {"expr": "up{service=\"demand-forecasting\"}", "legendFormat": "Forecasting", "refId": "F"},
+        {"expr": "up{service=\"visual-recognition\"}", "legendFormat": "Visual Recognition", "refId": "G"}
+      ],
+      "title": "AI Services Health Status",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Inferences/sec",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": {
+        "legend": {"calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(ml_model_inference_total{tier=\"ai\"}[5m])) by (service)",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "ML Inference Rate by Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Seconds",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": {
+        "legend": {"calcs": ["mean", "p95"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ml_model_inference_duration_seconds_bucket{tier=\"ai\"}[5m])) by (service, le))",
+          "legendFormat": "{{service}} P95",
+          "refId": "A"
+        }
+      ],
+      "title": "ML Inference Latency P95",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "Errors/sec",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "id": 5,
+      "options": {
+        "legend": {"calcs": ["mean", "last"], "displayMode": "table", "placement": "bottom"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(ml_model_errors_total{tier=\"ai\"}[5m])) by (service)",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "ML Model Errors by Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {
+              "options": {
+                "0": {"color": "green", "text": "CLOSED"},
+                "1": {"color": "red", "text": "OPEN"}
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "id": 6,
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": {"calcs": ["lastNotNull"]},
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {"expr": "circuit_breaker_state{tier=\"ai\"}", "legendFormat": "{{service}}", "refId": "A"}
+      ],
+      "title": "Circuit Breaker States",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["e-commerce", "ai", "ml", "microservices"],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "title": "03 - AI Services Performance",
+  "uid": "ecommerce-ai-services",
+  "version": 1
+}

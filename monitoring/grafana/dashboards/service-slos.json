@@ -1,0 +1,169 @@
+{
+  "dashboard": {
+    "title": "Service SLOs and SLIs",
+    "tags": ["slo", "sli", "reliability"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "1m",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Availability SLO (99.9% target)",
+        "type": "gauge",
+        "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "(1 - (sum(rate(http_requests_total{status=~\"5..\"}[30d])) / sum(rate(http_requests_total[30d])))) * 100",
+            "legendFormat": "Availability %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 99, "color": "yellow"},
+                {"value": 99.9, "color": "green"}
+              ]
+            },
+            "min": 99,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Latency SLO (p95 < 500ms)",
+        "type": "gauge",
+        "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) * 1000",
+            "legendFormat": "p95 latency (ms)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 500, "color": "yellow"},
+                {"value": 1000, "color": "red"}
+              ]
+            },
+            "min": 0,
+            "max": 2000,
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Error Budget (30 days)",
+        "type": "gauge",
+        "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+        "targets": [
+          {
+            "expr": "(0.1 - (sum(rate(http_requests_total{status=~\"5..\"}[30d])) / sum(rate(http_requests_total[30d])) * 100)) / 0.1 * 100",
+            "legendFormat": "Error Budget Remaining %",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "showThresholdLabels": true,
+          "showThresholdMarkers": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 25, "color": "yellow"},
+                {"value": 50, "color": "green"}
+              ]
+            },
+            "min": 0,
+            "max": 100,
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Request Success Rate (7 days)",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{status!~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])) * 100",
+            "legendFormat": "Success Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Success %", "min": 99, "max": 100},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "thresholds": [
+          {
+            "value": 99.9,
+            "colorMode": "critical",
+            "op": "lt",
+            "fill": true,
+            "line": true
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "SLO Compliance by Service",
+        "type": "table",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "(1 - (sum by (service_name) (rate(http_requests_total{status=~\"5..\"}[7d])) / sum by (service_name) (rate(http_requests_total[7d])))) * 100",
+            "legendFormat": "{{service_name}}",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "showHeader": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 99, "color": "yellow"},
+                {"value": 99.9, "color": "green"}
+              ]
+            },
+            "custom": {
+              "displayMode": "color-background"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

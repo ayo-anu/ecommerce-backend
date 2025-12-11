@@ -1,0 +1,136 @@
+{
+  "dashboard": {
+    "title": "Circuit Breakers & Resilience",
+    "tags": ["circuit-breaker", "resilience", "api-gateway"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Circuit Breaker States",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "gateway_proxy_requests_total{status=\"circuit_open\"}",
+            "legendFormat": "Circuit Open - {{service}}"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 2,
+        "title": "Request Success Rate by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(gateway_proxy_requests_total{status=\"success\"}[5m])) by (service) / sum(rate(gateway_proxy_requests_total[5m])) by (service) * 100",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 3,
+        "title": "Retry Attempts by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(gateway_proxy_retries_total[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "Request Latency (p95) by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(gateway_proxy_request_duration_seconds_bucket[5m])) by (service, le))",
+            "legendFormat": "p95 - {{service}}"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 8,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Circuit Breaker State Changes",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(gateway_circuit_breaker_state_changes[5m])) by (service, state)",
+            "legendFormat": "{{service}} - {{state}}"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 16,
+          "w": 24,
+          "h": 8
+        }
+      },
+      {
+        "id": 6,
+        "title": "Error Rate by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(gateway_proxy_requests_total{status=~\"error|circuit_open\"}[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 24,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "id": 7,
+        "title": "Request Volume by Service",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(gateway_proxy_requests_total[5m])) by (service)",
+            "legendFormat": "{{service}}"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 24,
+          "w": 12,
+          "h": 8
+        }
+      }
+    ],
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    }
+  }
+}

@@ -1,0 +1,138 @@
+global:
+  resolve_timeout: 5m
+  # SMTP configuration for email alerts
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@example.com'
+  smtp_auth_username: 'alerts@example.com'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+# Templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Routing tree
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+  routes:
+    # Critical alerts - page immediately
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 10s
+      repeat_interval: 5m
+      continue: true
+
+    # Critical alerts - also send to Slack
+    - match:
+        severity: critical
+      receiver: 'slack-critical'
+      group_wait: 10s
+      repeat_interval: 5m
+
+    # Warning alerts - Slack only
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+      group_wait: 5m
+      repeat_interval: 4h
+
+    # Info alerts - email only
+    - match:
+        severity: info
+      receiver: 'email-team'
+      group_wait: 10m
+      repeat_interval: 24h
+
+# Inhibition rules - suppress notifications
+inhibit_rules:
+  # Suppress warnings if critical alert is firing for same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service', 'instance']
+
+  # Suppress all alerts during maintenance
+  - source_match:
+      alertname: 'MaintenanceMode'
+    target_match_re:
+      severity: '.*'
+    equal: ['cluster']
+
+# Receivers
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'platform-team@example.com'
+        headers:
+          Subject: '[ALERT] {{ .GroupLabels.alertname }}'
+        html: |
+          {{ range .Alerts }}
+          <h3>{{ .Labels.alertname }}</h3>
+          <p><b>Severity:</b> {{ .Labels.severity }}</p>
+          <p><b>Service:</b> {{ .Labels.service }}</p>
+          <p><b>Description:</b> {{ .Annotations.description }}</p>
+          <p><a href="{{ .Annotations.dashboard_url }}">View Dashboard</a></p>
+          <p><a href="{{ .Annotations.runbook_url }}">View Runbook</a></p>
+          {{ end }}
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .CommonAnnotations.summary }}'
+        details:
+          firing: '{{ .Alerts.Firing | len }}'
+          resolved: '{{ .Alerts.Resolved | len }}'
+          service: '{{ .GroupLabels.service }}'
+        links:
+          - href: '{{ .CommonAnnotations.dashboard_url }}'
+            text: 'Grafana Dashboard'
+          - href: '{{ .CommonAnnotations.runbook_url }}'
+            text: 'Runbook'
+
+  - name: 'slack-critical'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL_CRITICAL}'
+        channel: '#alerts-critical'
+        username: 'Alertmanager'
+        icon_emoji: ':rotating_light:'
+        title: ':fire: CRITICAL ALERT: {{ .CommonAnnotations.summary }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          *Dashboard:* {{ .Annotations.dashboard_url }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+
+  - name: 'slack-warnings'
+    slack_configs:
+      - api_url: '${SLACK_WEBHOOK_URL_WARNINGS}'
+        channel: '#alerts-warnings'
+        username: 'Alertmanager'
+        icon_emoji: ':warning:'
+        title: ':warning: Warning: {{ .CommonAnnotations.summary }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Labels.alertname }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+
+  - name: 'email-team'
+    email_configs:
+      - to: 'platform-team@example.com'
+        headers:
+          Subject: '[INFO] Platform Alert'

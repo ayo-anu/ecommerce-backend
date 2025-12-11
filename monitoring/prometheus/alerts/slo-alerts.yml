@@ -1,0 +1,105 @@
+groups:
+  - name: SLO Alerts
+    interval: 1m
+    rules:
+      # Availability SLO: 99.9% (43.2 minutes downtime per month)
+      - alert: AvailabilitySLOBreach
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[30d]))
+            /
+            sum(rate(http_requests_total[30d]))
+          ) > 0.001
+        for: 5m
+        labels:
+          severity: critical
+          slo: availability
+          component: platform
+        annotations:
+          summary: "Availability SLO breached"
+          description: "Service availability is {{ $value | humanizePercentage }} over the last 30 days, exceeding the 0.1% error budget (SLO: 99.9%)"
+          runbook_url: "https://runbook.example.com/slo/availability"
+          dashboard_url: "https://grafana.example.com/d/slo/service-slos"
+
+      # Error Budget Alert - 50% consumed
+      - alert: ErrorBudget50PercentConsumed
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[7d]))
+            /
+            sum(rate(http_requests_total[7d]))
+          ) > 0.0005
+        for: 10m
+        labels:
+          severity: warning
+          slo: availability
+          component: platform
+        annotations:
+          summary: "50% of error budget consumed"
+          description: "Error rate is {{ $value | humanizePercentage }} - 50% of the 30-day error budget has been consumed in the last 7 days"
+          runbook_url: "https://runbook.example.com/slo/error-budget"
+
+      # Error Budget Alert - 80% consumed
+      - alert: ErrorBudget80PercentConsumed
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[7d]))
+            /
+            sum(rate(http_requests_total[7d]))
+          ) > 0.0008
+        for: 5m
+        labels:
+          severity: critical
+          slo: availability
+          component: platform
+        annotations:
+          summary: "80% of error budget consumed"
+          description: "Error rate is {{ $value | humanizePercentage }} - 80% of error budget consumed. Consider implementing a code freeze."
+          runbook_url: "https://runbook.example.com/slo/error-budget"
+
+      # Latency SLO: p95 < 500ms
+      - alert: LatencySLOBreach
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          slo: latency
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "Latency SLO breached for {{ $labels.service }}"
+          description: "p95 latency is {{ $value | humanizeDuration }} for {{ $labels.service }} (SLO: < 500ms)"
+          runbook_url: "https://runbook.example.com/slo/latency"
+          dashboard_url: "https://grafana.example.com/d/slo/service-slos"
+
+      # Latency p99 > 1s (early warning)
+      - alert: LatencyP99High
+        expr: |
+          histogram_quantile(0.99,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          slo: latency
+          component: "{{ $labels.service }}"
+        annotations:
+          summary: "High p99 latency for {{ $labels.service }}"
+          description: "p99 latency is {{ $value | humanizeDuration }} for {{ $labels.service }}"
+          runbook_url: "https://runbook.example.com/latency/investigation"
+
+      # Throughput SLO: > 100 req/s
+      - alert: ThroughputBelowSLO
+        expr: |
+          sum(rate(http_requests_total[5m])) < 100
+        for: 15m
+        labels:
+          severity: warning
+          slo: throughput
+          component: platform
+        annotations:
+          summary: "Throughput below SLO"
+          description: "Current throughput is {{ $value | humanize }} req/s (SLO: > 100 req/s). May indicate service degradation or reduced traffic."
+          runbook_url: "https://runbook.example.com/slo/throughput"
