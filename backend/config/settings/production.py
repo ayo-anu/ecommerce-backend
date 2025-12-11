@@ -9,6 +9,13 @@ import sys
 DEBUG = False
 
 # ==============================================================================
+# Middleware Configuration
+# ==============================================================================
+# Add observability middleware at the beginning of the stack
+MIDDLEWARE.insert(0, 'core.middleware.request_id.RequestIDMiddleware')
+MIDDLEWARE.append('core.middleware.error_logging.ErrorLoggingMiddleware')
+
+# ==============================================================================
 # CRITICAL: ALLOWED_HOSTS validation
 # ==============================================================================
 # SECURITY: NEVER use '*' in production. This prevents host header injection attacks.
@@ -233,14 +240,88 @@ SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 
 # Sentry Error Tracking
+# Only initialize if SENTRY_DSN is configured
+# Gracefully handles invalid DSN without crashing
 if config('SENTRY_DSN', default=''):
-    sentry_sdk.init(
-        dsn=config('SENTRY_DSN'),
-        integrations=[DjangoIntegration()],
-        traces_sample_rate=0.1,
-        send_default_pii=False,
-        environment=config('SENTRY_ENVIRONMENT', default='production'),
-    )
+    try:
+        sentry_sdk.init(
+            dsn=config('SENTRY_DSN'),
+            integrations=[DjangoIntegration()],
+            traces_sample_rate=0.1,
+            send_default_pii=False,
+            environment=config('SENTRY_ENVIRONMENT', default='production'),
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to initialize Sentry: {e}. Continuing without Sentry.")
+
+
+# ==============================================================================
+# Logging Configuration - Production JSON Logs
+# ==============================================================================
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'request_id': {
+            '()': 'core.logging.RequestIDFilter',
+        },
+    },
+    'formatters': {
+        'json': {
+            '()': 'core.logging.JSONFormatter',
+        },
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+            'filters': ['request_id'],
+        },
+        'error_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'json',
+            'level': 'ERROR',
+            'filters': ['request_id'],
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['error_console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.security': {
+            'handlers': ['error_console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {

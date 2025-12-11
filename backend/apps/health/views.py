@@ -123,9 +123,23 @@ def health_check(request):
         'database': {'status': 'unknown', 'latency_ms': None},
         'cache': {'status': 'unknown', 'latency_ms': None},
         'elasticsearch': {'status': 'unknown', 'latency_ms': None},
+        'vault': {'status': 'unknown'},
     }
 
     overall_status = 'healthy'
+
+    # Check Vault integration status
+    try:
+        from core.vault_client import vault_health_check
+        vault_status = vault_health_check()
+        checks['vault'] = vault_status
+    except Exception as e:
+        logger.warning(f"Vault health check failed: {str(e)}")
+        checks['vault'] = {
+            'enabled': False,
+            'implemented': False,
+            'message': f'Vault check failed: {str(e)}'
+        }
 
     # Check database with latency
     import time
