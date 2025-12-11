@@ -4,11 +4,52 @@ Base settings shared across all environments
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# ==============================================================================
+# Vault Integration (Optional)
+# ==============================================================================
+# When USE_VAULT=true, secrets are loaded from Hashicorp Vault
+# When USE_VAULT=false (default), secrets are loaded from environment variables
+#
+# This provides a safe migration path: applications work with or without Vault
+# ==============================================================================
+
+USE_VAULT = os.getenv('USE_VAULT', 'false').lower() in ('true', '1', 'yes')
+
+# Import vault client if available (optional dependency)
+try:
+    from core.vault_client import get_vault_secret
+    VAULT_CLIENT_AVAILABLE = True
+except ImportError:
+    VAULT_CLIENT_AVAILABLE = False
+    # Fallback function that only uses environment variables
+    def get_vault_secret(env_var_name, vault_path=None, vault_key=None, default=None):
+        """Fallback when vault_client is not available"""
+        return os.getenv(env_var_name, default)
+
+# If USE_VAULT is enabled but vault client is not available, warn and fall back
+if USE_VAULT and not VAULT_CLIENT_AVAILABLE:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "USE_VAULT=true but core.vault_client module not available. "
+        "Falling back to environment variables."
+    )
+    USE_VAULT = False
+
+# ==============================================================================
+# SECRET_KEY - Load from Vault or environment
+# ==============================================================================
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = get_vault_secret(
+    'SECRET_KEY',
+    vault_path='secret/data/django' if USE_VAULT else None,
+    vault_key='SECRET_KEY' if USE_VAULT else None,
+    default=config('SECRET_KEY', default='')
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -176,10 +217,25 @@ ELASTICSEARCH_DSL = {
 # Frontend URL
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
 
-# Stripe
-STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
-STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
-STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+# Stripe (Load from Vault or environment)
+STRIPE_SECRET_KEY = get_vault_secret(
+    'STRIPE_SECRET_KEY',
+    vault_path='secret/data/stripe' if USE_VAULT else None,
+    vault_key='SECRET_KEY' if USE_VAULT else None,
+    default=config('STRIPE_SECRET_KEY', default='')
+)
+STRIPE_PUBLISHABLE_KEY = get_vault_secret(
+    'STRIPE_PUBLISHABLE_KEY',
+    vault_path='secret/data/stripe' if USE_VAULT else None,
+    vault_key='PUBLISHABLE_KEY' if USE_VAULT else None,
+    default=config('STRIPE_PUBLISHABLE_KEY', default='')
+)
+STRIPE_WEBHOOK_SECRET = get_vault_secret(
+    'STRIPE_WEBHOOK_SECRET',
+    vault_path='secret/data/stripe' if USE_VAULT else None,
+    vault_key='WEBHOOK_SECRET' if USE_VAULT else None,
+    default=config('STRIPE_WEBHOOK_SECRET', default='')
+)
 
 # Stripe settings for better organization
 STRIPE_API_VERSION = '2023-10-16'

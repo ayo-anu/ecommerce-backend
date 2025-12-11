@@ -5,10 +5,10 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-.venv/
+/env/
+/venv/
+/ENV/
+/.venv/
 *.egg-info/
 
 # Django
@@ -37,8 +37,12 @@ ai-services/*/data/
 *.env
 .env.*
 !.env.example
+!*.env.*.template
+!.env.vault.template
+.env.vault
 backend/.env
 ai-services/*/.env
+infrastructure/env/.env.vault
 
 # Frontend - EXCLUDED FROM MONOREPO
 frontend/

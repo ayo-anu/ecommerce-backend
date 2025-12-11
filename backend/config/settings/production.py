@@ -1,5 +1,6 @@
 import dj_database_url
 from .base import *
+from .base import get_vault_secret, USE_VAULT
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
 from django.core.exceptions import ImproperlyConfigured
@@ -99,7 +100,7 @@ if 'runserver' in sys.argv or 'gunicorn' in sys.argv[0] or 'daphne' in sys.argv[
 
 
 if config('DATABASE_URL', default=''):
-    
+
     DATABASES = {
         'default': dj_database_url.config(
             default=config('DATABASE_URL'),
