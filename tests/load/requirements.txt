@@ -1,0 +1,11 @@
+# Load Testing Dependencies
+locust==2.20.0
+pyzmq==25.1.2
+gevent==23.9.1
+greenlet==3.0.3
+
+# For generating test data
+faker==22.0.0
+
+# For reporting
+jinja2==3.1.3

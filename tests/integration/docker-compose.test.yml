@@ -1,0 +1,143 @@
+# ==============================================================================
+# Integration Test Environment
+# Isolated environment for running integration tests
+# ==============================================================================
+
+version: '3.9'
+
+services:
+  # Test Database (isolated from dev/prod)
+  postgres-test:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: test_ecommerce
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_ecommerce"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for speed
+
+  # Test Redis
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    tmpfs:
+      - /data
+
+  # Test Elasticsearch
+  elasticsearch-test:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9201:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend under test
+  backend-test:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile.optimized
+      target: development
+    environment:
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_ecommerce
+      - REDIS_URL=redis://redis-test:6379/0
+      - CELERY_BROKER_URL=redis://redis-test:6379/1
+      - ELASTICSEARCH_URL=http://elasticsearch-test:9200
+      - SECRET_KEY=test-secret-key-for-integration-tests-only
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.settings.test
+      - ALLOWED_HOSTS=backend-test,localhost
+    ports:
+      - "8001:8000"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      elasticsearch-test:
+        condition: service_healthy
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # API Gateway under test
+  api-gateway-test:
+    build:
+      context: ../../ai-services
+      dockerfile: api_gateway/Dockerfile
+    environment:
+      - REDIS_URL=redis://redis-test:6379/2
+      - BACKEND_URL=http://backend-test:8000
+      - DEBUG=False
+    ports:
+      - "8081:8080"
+    depends_on:
+      backend-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Integration test runner
+  test-runner:
+    build:
+      context: ../../
+      dockerfile: tests/integration/Dockerfile.test
+    environment:
+      - BACKEND_URL=http://backend-test:8000
+      - API_GATEWAY_URL=http://api-gateway-test:8080
+      - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_ecommerce
+      - REDIS_URL=redis://redis-test:6379/0
+      - PYTEST_ARGS=${PYTEST_ARGS:---verbose --color=yes}
+    depends_on:
+      backend-test:
+        condition: service_healthy
+      api-gateway-test:
+        condition: service_healthy
+    volumes:
+      - ../../tests:/tests:ro
+      - test-reports:/reports
+    command: >
+      sh -c "pytest /tests/integration
+             --junitxml=/reports/junit.xml
+             --html=/reports/report.html
+             --cov=/app
+             --cov-report=html:/reports/coverage
+             --cov-report=term
+             ${PYTEST_ARGS}"
+
+volumes:
+  test-reports:
+
+networks:
+  default:
+    name: integration-test-network
