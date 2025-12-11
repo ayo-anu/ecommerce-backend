@@ -23,6 +23,13 @@ import os
 import logging
 from typing import Any, Optional
 
+# Try to import requests for Vault HTTP calls
+try:
+    import requests
+    REQUESTS_AVAILABLE = True
+except ImportError:
+    REQUESTS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,28 +70,55 @@ def get_vault_secret(
     use_vault = os.getenv('USE_VAULT', 'false').lower() in ('true', '1', 'yes')
 
     if use_vault and vault_path and vault_key:
-        # Future: Implement actual Vault HTTP GET here
-        # For PR-A, we only prepare the interface
-        logger.info(
-            f"Vault integration enabled but not yet implemented. "
-            f"Falling back to environment variable: {env_var_name}"
-        )
-        # In future PR: Add minimal HTTP GET to Vault
-        # try:
-        #     vault_addr = os.getenv('VAULT_ADDR')
-        #     vault_token = os.getenv('VAULT_TOKEN')
-        #     if vault_addr and vault_token:
-        #         import requests
-        #         response = requests.get(
-        #             f"{vault_addr}/v1/{vault_path}",
-        #             headers={'X-Vault-Token': vault_token},
-        #             timeout=5
-        #         )
-        #         if response.ok:
-        #             data = response.json()
-        #             return data['data']['data'].get(vault_key)
-        # except Exception as e:
-        #     logger.warning(f"Vault fetch failed for {env_var_name}: {e}")
+        # Attempt to fetch from Vault if requests is available
+        if not REQUESTS_AVAILABLE:
+            logger.warning(
+                f"Vault enabled but requests library not available. "
+                f"Falling back to environment variable: {env_var_name}"
+            )
+        else:
+            vault_addr = os.getenv('VAULT_ADDR')
+            vault_token = os.getenv('VAULT_TOKEN')
+
+            if vault_addr and vault_token:
+                try:
+                    # Build headers
+                    headers = {'X-Vault-Token': vault_token}
+                    vault_namespace = os.getenv('VAULT_NAMESPACE')
+                    if vault_namespace:
+                        headers['X-Vault-Namespace'] = vault_namespace
+
+                    # Perform HTTP GET to Vault
+                    response = requests.get(
+                        f"{vault_addr}/v1/{vault_path}",
+                        headers=headers,
+                        timeout=5
+                    )
+
+                    # On success, extract and return the secret
+                    if response.status_code == 200:
+                        data = response.json()
+                        secret_value = data['data']['data'].get(vault_key)
+                        if secret_value is not None:
+                            logger.info(f"Successfully retrieved {env_var_name} from Vault")
+                            return secret_value
+                        else:
+                            logger.warning(
+                                f"Key '{vault_key}' not found in Vault path '{vault_path}'. "
+                                f"Falling back to environment variable: {env_var_name}"
+                            )
+                    else:
+                        logger.warning(
+                            f"Vault returned status {response.status_code} for {env_var_name}. "
+                            f"Falling back to environment variable"
+                        )
+                except Exception as e:
+                    logger.warning(f"Vault fetch failed for {env_var_name}: {e}. Falling back to environment variable")
+            else:
+                logger.warning(
+                    f"Vault enabled but VAULT_ADDR or VAULT_TOKEN not set. "
+                    f"Falling back to environment variable: {env_var_name}"
+                )
 
     # Fall back to environment variable (current behavior)
     env_value = os.getenv(env_var_name)
@@ -97,19 +131,27 @@ def get_vault_secret(
 
 def vault_health_check() -> dict:
     """
-    Check if Vault integration is enabled.
+    Check if Vault integration is enabled and operational.
 
     Returns:
-        dict: Basic health status
+        dict: Health status with enabled/implemented flags
 
     Note:
-        This is a placeholder for PR-A. Full health checks will be added
-        when actual Vault HTTP integration is implemented.
+        Returns 'implemented': True when USE_VAULT=true and requests library
+        is available, indicating full HTTP GET capability is active.
     """
     use_vault = os.getenv('USE_VAULT', 'false').lower() in ('true', '1', 'yes')
+    is_implemented = use_vault and REQUESTS_AVAILABLE
+
+    if is_implemented:
+        message = 'Vault HTTP GET integration active (read-only)'
+    elif use_vault and not REQUESTS_AVAILABLE:
+        message = 'Vault enabled but requests library not available'
+    else:
+        message = 'Vault integration disabled (using environment variables)'
 
     return {
         'enabled': use_vault,
-        'implemented': False,  # Will be True when HTTP integration added
-        'message': 'Vault interface prepared, full integration pending'
+        'implemented': is_implemented,
+        'message': message
     }
