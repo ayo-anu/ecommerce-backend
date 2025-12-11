@@ -33,7 +33,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy and install Python requirements
 COPY requirements/ /app/requirements/
 RUN pip install --upgrade pip && \
-    pip install -r requirements/dev.txt
+    pip install -r requirements/production.txt
 
 # ==============================================================================
 # Stage 2: Runtime
@@ -49,6 +49,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq5 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Set work directory
@@ -63,29 +64,37 @@ COPY . /app/
 # Create necessary directories
 RUN mkdir -p /app/logs /app/staticfiles /app/media
 
-# Collect static files
-RUN python manage.py collectstatic --noinput --settings=config.settings.production || true
-
 # Create non-root user and set ownership
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app /opt/venv
+
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 USER appuser
 
 # Expose port
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health/', timeout=5)" || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health/ || exit 1
 
-# Run gunicorn
+# Use entrypoint script for startup
+ENTRYPOINT ["/entrypoint.sh"]
+
+# Run gunicorn with production settings
 CMD ["gunicorn", "config.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
+     "--workers", "3", \
+     "--threads", "1", \
      "--worker-class", "sync", \
      "--worker-tmp-dir", "/dev/shm", \
      "--max-requests", "1000", \
      "--max-requests-jitter", "50", \
      "--timeout", "30", \
+     "--preload-app", \
      "--access-logfile", "-", \
-     "--error-logfile", "-"]
+     "--error-logfile", "-", \
+     "--log-level", "info"]
