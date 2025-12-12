@@ -1,0 +1,79 @@
+version: '3.8'
+
+# Lightweight CI integration environment
+# Uses SQLite instead of Postgres for faster startup
+# Designed for GitHub Actions integration tests
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecommerce-backend-ci
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings.development
+      DATABASE_URL: sqlite:///test.db
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: ci-test-secret-key-not-for-production
+      DEBUG: "True"
+      ALLOWED_HOSTS: backend,localhost,127.0.0.1
+      VAULT_DISABLED: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - ci-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      sh -c "
+      python manage.py migrate --noinput &&
+      gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 30 --access-logfile - --error-logfile -
+      "
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis-ci
+    networks:
+      - ci-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  api-gateway:
+    build:
+      context: ./ai-services
+      dockerfile: api_gateway/Dockerfile
+    container_name: ecommerce-api-gateway-ci
+    environment:
+      BACKEND_URL: http://backend:8000
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: INFO
+      VAULT_DISABLED: "true"
+    ports:
+      - "9000:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - ci-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+networks:
+  ci-network:
+    driver: bridge
+    name: ecommerce-ci-network
