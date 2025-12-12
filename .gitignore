@@ -1,4 +1,3 @@
-@"
 # Python
 __pycache__/
 *.py[cod]
@@ -79,7 +78,7 @@ backend_patches/
 backend.bundle
 backend_history.patch
 backend_remote_url.txt
-"@ | Out-File -FilePath .gitignore -Encoding UTF8
+
 # ==============================================================================
 # Production Infrastructure
 # ==============================================================================
