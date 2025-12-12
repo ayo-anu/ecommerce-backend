@@ -33,7 +33,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy and install Python requirements
 COPY requirements/ /app/requirements/
 RUN pip install --upgrade pip && \
-    pip install -r requirements/production.txt
+    pip install -r requirements/prod.txt
 
 # ==============================================================================
 # Stage 2: Runtime
