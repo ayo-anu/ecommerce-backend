@@ -34,14 +34,21 @@ ai-services/*/data/
 # Environment variables
 .env
 *.env
+*.env.*
 .env.*
 !.env.example
+!.env.*.template
 !*.env.*.template
 !.env.vault.template
 .env.vault
 backend/.env
 ai-services/*/.env
 infrastructure/env/.env.vault
+infrastructure/env/.env.production
+infrastructure/env/.env.staging
+infrastructure/env/.env.development
+config/environments/*.env
+config/environments/.env.*
 
 # Frontend - EXCLUDED FROM MONOREPO
 frontend/
@@ -79,6 +86,20 @@ backend.bundle
 backend_history.patch
 backend_remote_url.txt
 
+# Profiling artifacts
+*.prof
+backend/media/*.prof
+*.pyprof
+*.pstats
+
+# Archived and temporary files
+.archived/
+*_SUMMARY.md
+*_FIXES_SUMMARY.md
+OPTIMIZATION_SUMMARY.md
+SECURITY_FIXES_SUMMARY.md
+QUICK_START_SECURE.md
+
 # ==============================================================================
 # Production Infrastructure
 # ==============================================================================
@@ -110,6 +131,12 @@ tests/load/reports/
 # Logs
 *.log
 /var/log/
+logs/
+backend/logs/
+backend/logs/*.log
+ai-services/logs/
+ai-services/logs/*.log
+ai-services/*/logs/
 
 # Environment-specific configs
 infrastructure/env/.env.production
