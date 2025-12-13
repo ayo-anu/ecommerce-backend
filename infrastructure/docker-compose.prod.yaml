@@ -35,9 +35,20 @@ services:
         limits:
           cpus: '2'
           memory: 2G
+          pids: 500
         reservations:
           cpus: '1'
           memory: 1G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 4096
+        hard: 8192
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 256M
 
   postgres_ai:
     ports: []
@@ -49,9 +60,20 @@ services:
         limits:
           cpus: '2'
           memory: 2G
+          pids: 500
         reservations:
           cpus: '1'
           memory: 1G
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 4096
+        hard: 8192
+    security_opt:
+      - no-new-privileges:true
+    shm_size: 256M
 
   pgbouncer:
     ports: []
@@ -72,9 +94,16 @@ services:
         limits:
           cpus: '1'
           memory: 1G
+          pids: 100
         reservations:
           cpus: '0.5'
           memory: 512M
+    ulimits:
+      nofile:
+        soft: 10240
+        hard: 10240
+    security_opt:
+      - no-new-privileges:true
 
   elasticsearch:
     ports: []
@@ -137,9 +166,16 @@ services:
         limits:
           cpus: '4'
           memory: 4G
+          pids: 500
         reservations:
           cpus: '2'
           memory: 2G
+    ulimits:
+      nofile:
+        soft: 16384
+        hard: 16384
+    security_opt:
+      - no-new-privileges:true
 
   celery_worker:
     restart: always
@@ -178,9 +214,16 @@ services:
         limits:
           cpus: '4'
           memory: 4G
+          pids: 500
         reservations:
           cpus: '2'
           memory: 2G
+    ulimits:
+      nofile:
+        soft: 16384
+        hard: 16384
+    security_opt:
+      - no-new-privileges:true
 
   # AI Services - NO external access
   recommender:
@@ -357,9 +400,16 @@ services:
         limits:
           cpus: '2'
           memory: 1G
+          pids: 100
         reservations:
           cpus: '1'
           memory: 512M
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    security_opt:
+      - no-new-privileges:true
 
 # ==============================================================================
 # PRODUCTION NETWORKS
