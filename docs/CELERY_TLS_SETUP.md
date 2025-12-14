@@ -73,7 +73,7 @@ services:
 
 ### 4. Configure Django Settings
 
-Add to your `backend/config/settings/production.py`:
+Add to your `services/backend/config/settings/production.py`:
 
 ```python
 # Enable Redis TLS

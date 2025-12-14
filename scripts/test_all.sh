@@ -179,7 +179,7 @@ generate_coverage() {
 
     print_info "Backend coverage..."
     docker-compose exec -T backend pytest --cov=. --cov-report=html > /dev/null 2>&1 || true
-    print_success "Backend coverage report: backend/htmlcov/index.html"
+    print_success "Backend coverage report: services/backend/htmlcov/index.html"
 
     print_info "Frontend coverage..."
     docker-compose exec -T frontend npm test -- --coverage --watchAll=false > /dev/null 2>&1 || true

@@ -349,7 +349,7 @@ To add a new service to the integration environment:
 
 If health endpoints don't exist yet, implement them:
 
-**Django Backend (`backend/core/views.py`):**
+**Django Backend (`services/backend/core/views.py`):**
 ```python
 from django.http import JsonResponse
 
@@ -357,7 +357,7 @@ def health_check(request):
     return JsonResponse({"status": "healthy", "service": "backend"})
 ```
 
-**FastAPI Gateway (`ai-services/api_gateway/main.py`):**
+**FastAPI Gateway (`services/ai/api_gateway/main.py`):**
 ```python
 @app.get("/health")
 async def health_check():

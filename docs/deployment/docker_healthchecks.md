@@ -311,5 +311,5 @@ backend:
 
 - [Docker Compose Healthcheck Documentation](https://docs.docker.com/compose/compose-file/05-services/#healthcheck)
 - [Kubernetes Probes (similar concepts)](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/)
-- Backend health endpoints: `backend/apps/health/views.py`
-- AI services health module: `ai-services/shared/health.py`
+- Backend health endpoints: `services/backend/apps/health/views.py`
+- AI services health module: `services/ai/shared/health.py`

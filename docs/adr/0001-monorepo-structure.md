@@ -45,7 +45,7 @@ ecommerce-project/
 - **Easier Refactoring**: Cross-service changes are simpler
 - **Consistent Tooling**: One set of CI/CD, linting, testing configs
 - **Simplified Dependencies**: Shared libraries easier to manage
-- **Better Code Sharing**: `ai-services/shared/` for common code
+- **Better Code Sharing**: `services/ai/shared/` for common code
 - **Single Source of Truth**: Documentation and config in one place
 - **Easier Onboarding**: New developers clone one repo
 

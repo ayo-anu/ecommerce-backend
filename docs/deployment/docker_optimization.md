@@ -300,8 +300,8 @@ docker-compose build --pull SERVICE_NAME
 
 The following files are **DEPRECATED** and should not be used:
 
-- `ai-services/requirements.txt` - Replaced by per-service requirements
-- `ai-services/Dockerfile.template` - Replaced by per-service Dockerfiles
+- `services/ai/requirements.txt` - Replaced by per-service requirements
+- `services/ai/Dockerfile.template` - Replaced by per-service Dockerfiles
 - Any references to `SERVICE_NAME` build args in docker-compose.yml
 
 ### Backward Compatibility

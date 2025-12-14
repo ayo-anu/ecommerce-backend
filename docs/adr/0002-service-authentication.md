@@ -45,11 +45,11 @@ Implement **unique cryptographic signing keys for each service**:
 
 ## Implementation
 
-1. ✅ Created `backend/core/service_tokens.py` with isolated key management
+1. ✅ Created `services/backend/core/service_tokens.py` with isolated key management
 2. ✅ Added startup validation to fail if keys missing
 3. ✅ Generated key creation script (`scripts/generate_service_keys.py`)
 4. ✅ Updated `.env.example` with key templates
-5. ✅ Implemented JWKS endpoint for key rotation (`backend/core/jwks.py`)
+5. ✅ Implemented JWKS endpoint for key rotation (`services/backend/core/jwks.py`)
 6. ✅ Documented in `docs/SECRETS_MANAGEMENT.md`
 
 ## Key Design Decisions

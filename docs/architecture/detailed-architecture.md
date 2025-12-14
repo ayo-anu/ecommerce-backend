@@ -607,9 +607,9 @@ See [AI_SERVICES_ARCHITECTURE.md](./AI_SERVICES_ARCHITECTURE.md) for complete de
 ### Docker Compose Configuration
 
 **Files**:
-- `infrastructure/docker-compose.yaml` - Base (20+ services)
-- `infrastructure/docker-compose.dev.yaml` - Dev overrides
-- `infrastructure/docker-compose.prod.yaml` - Prod overrides
+- `deploy/docker/compose/.yaml` - Base (20+ services)
+- `deploy/docker/compose/.dev.yaml` - Dev overrides
+- `deploy/docker/compose/.prod.yaml` - Prod overrides
 
 ### Production Resource Limits
 

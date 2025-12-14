@@ -77,9 +77,9 @@ Implement **multi-layer payment isolation**:
 
 ### Phase 2: Code Isolation (Completed)
 
-- ✅ Payment models in `backend/apps/payments/`
+- ✅ Payment models in `services/backend/apps/payments/`
 - ✅ Clear API boundaries
-- ✅ Database router created (`backend/core/database_routers.py`)
+- ✅ Database router created (`services/backend/core/database_routers.py`)
 
 ### Phase 3: Documentation (Completed)
 

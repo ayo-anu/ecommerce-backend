@@ -261,15 +261,15 @@ ecommerce-project/
 2. **Environment Files in Three Different Locations**
    - `/env/` folder at root with service-specific `.env` files
    - `/infrastructure/env/` with environment templates
-   - Service-level `.env.example` in `backend/` and `ai-services/`
+   - Service-level `.env.example` in `services/backend/` and `services/ai/`
    - **Impact:** Secret sprawl, configuration drift, security risk
    - **Fix:** Single source of truth in `config/environments/`
 
 3. **Large Temporary Files in Repository**
    - `backend_history.patch` (25MB) - Git patch file
    - `git-filter-repo` - Git maintenance tool
-   - Log files in `backend/logs/`, `ai-services/logs/`
-   - Profiling artifacts in `backend/media/*.prof`
+   - Log files in `services/backend/logs/`, `services/ai/logs/`
+   - Profiling artifacts in `services/backend/media/*.prof`
    - **Impact:** Bloated repository, slow clones, contains sensitive data
    - **Fix:** Remove immediately, add to `.gitignore`
 
@@ -423,7 +423,7 @@ chmod +x .git/hooks/pre-commit
 **Severity:** Critical
 **Files Affected:**
 - `docker-compose.production.yml`
-- `infrastructure/docker-compose.prod.yaml`
+- `deploy/docker/compose/.prod.yaml`
 
 **Problem:**
 - Most services missing CPU/memory limits
@@ -656,7 +656,7 @@ jobs:
 
 **Severity:** High
 **Files Affected:**
-- `backend/core/vault_client.py`
+- `services/backend/core/vault_client.py`
 - All docker-compose files
 - `.env` files
 
@@ -979,7 +979,7 @@ find .github/workflows -type f -name "*.yml" -exec sed -i 's|ai-services/|servic
 find .github/workflows -type f -name "*.yml" -exec sed -i 's|docker-compose.ci.yml|deploy/docker/compose/ci.yml|g' {} \;
 
 # Update documentation links
-find docs -type f -name "*.md" -exec sed -i 's|(backend/|(services/backend/|g' {} \;
+find docs -type f -name "*.md" -exec sed -i 's|(services/backend/|(services/backend/|g' {} \;
 find docs -type f -name "*.md" -exec sed -i 's|(infrastructure/|(deploy/|g' {} \;
 
 # Update Docker Compose files
@@ -2356,10 +2356,10 @@ watch -n 5 'curl -s http://prometheus:9090/api/v1/query?query=rate(http_requests
 ### Files to Move
 
 #### Repository Restructuring
-- [ ] Move `backend/` → `services/backend/`
-- [ ] Move `ai-services/` → `services/ai/`
+- [ ] Move `services/backend/` → `services/backend/`
+- [ ] Move `services/ai/` → `services/ai/`
 - [ ] Move `env/` → `config/environments/`
-- [ ] Move `infrastructure/docker-compose.*.yaml` → `deploy/docker/compose/`
+- [ ] Move `deploy/docker/compose/.*.yaml` → `deploy/docker/compose/`
 - [ ] Move `infrastructure/nginx/` → `deploy/nginx/`
 - [ ] Move `integration_tests/` → `.ci/integration-tests/`
 - [ ] Move `scripts/backup_*.sh` → `scripts/backup/`
@@ -2377,9 +2377,9 @@ watch -n 5 'curl -s http://prometheus:9090/api/v1/query?query=rate(http_requests
 - [ ] `.github/WORKFLOWS_CLEANUP_NOTES.md`
 - [ ] `docs/IMPLEMENTATION_SUMMARY.md`
 - [ ] `docs/SECURITY_REMEDIATION_COMPLETE.md`
-- [ ] `backend/logs/django.log`
-- [ ] `ai-services/logs/app.log`
-- [ ] `backend/media/*.prof`
+- [ ] `services/backend/logs/django.log`
+- [ ] `services/ai/logs/app.log`
+- [ ] `services/backend/media/*.prof`
 - [ ] `infrastructure/env/.env.example.example`
 
 ---

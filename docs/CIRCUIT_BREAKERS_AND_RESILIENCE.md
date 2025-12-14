@@ -119,7 +119,7 @@ This document describes the circuit breaker and resilience patterns implemented 
 
 #### 1. Resilient Proxy
 
-**Location**: `ai-services/api_gateway/resilient_proxy.py`
+**Location**: `services/ai/api_gateway/resilient_proxy.py`
 
 **Features**:
 - Circuit breaker per AI service
@@ -145,7 +145,7 @@ class ProxyRegistry:
 
 #### 2. Circuit Breaker
 
-**Location**: `ai-services/api_gateway/circuit_breaker.py`
+**Location**: `services/ai/api_gateway/circuit_breaker.py`
 
 **Configuration**:
 ```python
@@ -166,7 +166,7 @@ class CircuitBreakerConfig:
 
 #### 1. Resilience Module
 
-**Location**: `backend/core/resilience.py`
+**Location**: `services/backend/core/resilience.py`
 
 **Features**:
 - Thread-safe circuit breaker for synchronous code
@@ -195,7 +195,7 @@ class ResilientAPIClient:
 
 #### 2. AI Service Clients
 
-**Location**: `backend/core/ai_clients.py`
+**Location**: `services/backend/core/ai_clients.py`
 
 **Pre-configured clients**:
 - `RecommendationClient` - Port 8001

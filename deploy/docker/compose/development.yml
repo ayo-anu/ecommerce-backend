@@ -44,7 +44,7 @@ services:
       - "8000:8000"
     volumes:
       # Mount source code for hot reload
-      - ../backend:/app
+      - ../services/backend:/app
     environment:
       - DEBUG=True
 

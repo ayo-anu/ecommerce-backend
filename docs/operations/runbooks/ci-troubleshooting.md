@@ -15,7 +15,7 @@ The repository uses GitHub Actions for continuous integration and continuous dep
 ### Backend CI (`backend-ci.yml`)
 
 **Triggers:**
-- Pull requests modifying `backend/**` or workflow file
+- Pull requests modifying `services/backend/**` or workflow file
 - Manual dispatch via Actions UI
 
 **Jobs:**
@@ -25,13 +25,13 @@ The repository uses GitHub Actions for continuous integration and continuous dep
 
 **Requirements:**
 - Python 3.11
-- Dependencies from `backend/requirements/prod.txt` and `backend/requirements/tests.txt`
+- Dependencies from `services/backend/requirements/prod.txt` and `services/backend/requirements/tests.txt`
 - Test environment variables (auto-configured for CI)
 
 ### AI Services CI (`ai-services-ci.yml`)
 
 **Triggers:**
-- Pull requests modifying `ai-services/**` or workflow file
+- Pull requests modifying `services/ai/**` or workflow file
 - Manual dispatch via Actions UI
 
 **Jobs:**
@@ -41,12 +41,12 @@ The repository uses GitHub Actions for continuous integration and continuous dep
 
 **Requirements:**
 - Python 3.11
-- Dependencies from `ai-services/api_gateway/requirements.txt`
+- Dependencies from `services/ai/api_gateway/requirements.txt`
 
 ### Docker Release (`docker-release.yml`)
 
 **Triggers:**
-- Push to `main` branch modifying `backend/**` or `ai-services/**`
+- Push to `main` branch modifying `services/backend/**` or `services/ai/**`
 - Manual dispatch via Actions UI
 
 **Jobs:**
@@ -314,8 +314,8 @@ python-version: '3.11'
 ### Update Docker Base Image
 
 Edit Dockerfiles in:
-- `backend/Dockerfile`
-- `ai-services/api_gateway/Dockerfile`
+- `services/backend/Dockerfile`
+- `services/ai/api_gateway/Dockerfile`
 
 ### Add New Service
 

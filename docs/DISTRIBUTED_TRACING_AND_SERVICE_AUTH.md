@@ -55,7 +55,7 @@ User Request → Django Backend → API Gateway → AI Services
 
 #### 1. Jaeger Installation (Docker)
 
-**File**: `infrastructure/docker-compose.yaml`
+**File**: `deploy/docker/compose/.yaml`
 
 Added Jaeger all-in-one container with:
 - OTLP gRPC/HTTP receivers
@@ -76,8 +76,8 @@ jaeger:
 #### 2. Backend Tracing Integration
 
 **Files Created**:
-- `backend/core/tracing.py` - OpenTelemetry setup
-- `backend/requirements/base.txt` - Added OpenTelemetry packages
+- `services/backend/core/tracing.py` - OpenTelemetry setup
+- `services/backend/requirements/base.txt` - Added OpenTelemetry packages
 
 **Key Features**:
 - Auto-instrumentation for Django, PostgreSQL, Redis, Celery
@@ -98,7 +98,7 @@ def process_order(order_id):
 #### 3. FastAPI Services Tracing
 
 **Files Created**:
-- `ai-services/shared/tracing.py` - Reusable tracing module
+- `services/ai/shared/tracing.py` - Reusable tracing module
 - Updated all AI services to call `setup_tracing(app, service_name)`
 
 **Services Instrumented**:
@@ -114,8 +114,8 @@ def process_order(order_id):
 #### 4. Trace Context Propagation
 
 **Updated Files**:
-- `backend/core/ai_clients.py` - Inject trace context in HTTP headers
-- `ai-services/api_gateway/resilient_proxy.py` - Propagate context to downstream services
+- `services/backend/core/ai_clients.py` - Inject trace context in HTTP headers
+- `services/ai/api_gateway/resilient_proxy.py` - Propagate context to downstream services
 
 **How It Works**:
 ```python
@@ -130,7 +130,7 @@ response = httpx.post(url, headers=headers)
 #### 5. Custom Business Logic Spans
 
 **Updated Files**:
-- `backend/core/checkout_saga.py` - Added tracing to Saga execution
+- `services/backend/core/checkout_saga.py` - Added tracing to Saga execution
 
 **Benefits**:
 - Track entire checkout flow across services
@@ -172,7 +172,7 @@ Django Backend ──[JWT Token]──→ API Gateway ──[JWT Token]──→
 
 #### 1. JWT Token Management
 
-**File Created**: `backend/core/service_tokens.py`
+**File Created**: `services/backend/core/service_tokens.py`
 
 **Features**:
 - Token generation with scopes
@@ -203,7 +203,7 @@ except jwt.ExpiredSignatureError:
 
 #### 2. Service Authentication Middleware
 
-**File Created**: `backend/core/middleware/service_auth.py`
+**File Created**: `services/backend/core/middleware/service_auth.py`
 
 **Features**:
 - Validates X-Service-Token header
@@ -224,7 +224,7 @@ def internal_api_endpoint(request):
 
 #### 3. FastAPI Service Authentication
 
-**File to Create**: `ai-services/shared/service_auth_middleware.py`
+**File to Create**: `services/ai/shared/service_auth_middleware.py`
 
 **Implementation Template**:
 ```python
@@ -257,7 +257,7 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
 #### 4. Update Service Clients
 
 **Files Modified**:
-- `backend/core/ai_clients.py` - Inject service token in all requests
+- `services/backend/core/ai_clients.py` - Inject service token in all requests
 
 **Auto-injection**:
 ```python
@@ -365,7 +365,7 @@ docker-compose ps
 
 ### 4. Enable Service Authentication
 
-Add middleware to `backend/config/settings/base.py`:
+Add middleware to `services/backend/config/settings/base.py`:
 
 ```python
 MIDDLEWARE = [

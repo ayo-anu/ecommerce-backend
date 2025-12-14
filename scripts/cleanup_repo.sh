@@ -118,14 +118,14 @@ echo -e "${GREEN}SAFE DELETIONS (High Confidence)${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-# 1. Duplicate ai-services/common directory
+# 1. Duplicate services/ai/common directory
 echo -e "${BLUE}1. Removing duplicate 'common' module (services use 'shared' instead)${NC}"
-safe_delete "ai-services/common" "Duplicate common module (60KB)"
+safe_delete "services/ai/common" "Duplicate common module (60KB)"
 
 # 2. Empty static directories
 echo -e "${BLUE}2. Removing empty static directories${NC}"
-safe_delete "backend/static files" "Empty static files directory"
-safe_delete "backend/staticfiles" "Empty staticfiles directory"
+safe_delete "services/backend/static files" "Empty static files directory"
+safe_delete "services/backend/staticfiles" "Empty staticfiles directory"
 
 # 3. Next.js old cache files
 echo -e "${BLUE}3. Removing Next.js old cache files${NC}"
@@ -164,18 +164,18 @@ echo ""
 # 6. Empty directories in ai-services
 echo -e "${BLUE}6. Removing empty placeholder directories${NC}"
 EMPTY_DIRS=(
-    "ai-services/docs"
-    "ai-services/notebooks"
-    "ai-services/models"
-    "ai-services/data/seed_data"
-    "ai-services/deployment/docker"
-    "ai-services/deployment/scripts"
-    "ai-services/deployment/kubernetes/deployments"
-    "ai-services/deployment/kubernetes/services"
-    "ai-services/monitoring/grafana/dashboards"
-    "ai-services/monitoring/grafana/datasources"
-    "backend/ssl"
-    "backend/tests"
+    "services/ai/docs"
+    "services/ai/notebooks"
+    "services/ai/models"
+    "services/ai/data/seed_data"
+    "services/ai/deployment/docker"
+    "services/ai/deployment/scripts"
+    "services/ai/deployment/kubernetes/deployments"
+    "services/ai/deployment/kubernetes/services"
+    "services/ai/monitoring/grafana/dashboards"
+    "services/ai/monitoring/grafana/datasources"
+    "services/backend/ssl"
+    "services/backend/tests"
     "docs/system_diagrams"
 )
 
@@ -236,11 +236,11 @@ if [ "$AGGRESSIVE" = true ]; then
 
         # Python venv (can be recreated)
         echo -e "${BLUE}10. Removing Python virtual environment${NC}"
-        if [ -d "backend/venv" ]; then
-            SIZE=$(get_size_kb "backend/venv")
+        if [ -d "services/backend/venv" ]; then
+            SIZE=$(get_size_kb "services/backend/venv")
             echo -e "  Size: $((SIZE / 1024))MB"
-            echo -e "  ${YELLOW}⚠ Can be recreated with: python -m venv backend/venv${NC}"
-            safe_delete "backend/venv" "Python venv (365MB - recreate with python -m venv)"
+            echo -e "  ${YELLOW}⚠ Can be recreated with: python -m venv services/backend/venv${NC}"
+            safe_delete "services/backend/venv" "Python venv (365MB - recreate with python -m venv)"
         fi
     fi
 fi
