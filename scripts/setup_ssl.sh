@@ -90,7 +90,7 @@ server {
 EOF
 
 # Start nginx temporarily
-docker-compose -f infrastructure/docker-compose.yaml up -d nginx || true
+docker-compose -f deploy/docker/compose/base.yaml up -d nginx || true
 echo -e "${GREEN}✓ Nginx started${NC}"
 echo ""
 
@@ -160,8 +160,8 @@ echo ""
 # Step 4: Restart services
 echo -e "${BLUE}Step 4: Restarting services with SSL enabled...${NC}"
 
-docker-compose -f infrastructure/docker-compose.yaml \
-               -f infrastructure/docker-compose.prod.yaml restart nginx
+docker-compose -f deploy/docker/compose/base.yaml \
+               -f deploy/docker/compose/base.prod.yaml restart nginx
 
 echo -e "${GREEN}✓ Services restarted${NC}"
 echo ""
@@ -197,7 +197,7 @@ docker run --rm \
     -v "$(pwd)/infrastructure/docker/certbot/www:/var/www/certbot" \
     certbot/certbot renew \
     --quiet \
-    --deploy-hook "docker-compose -f infrastructure/docker-compose.yaml restart nginx"
+    --deploy-hook "docker-compose -f deploy/docker/compose/base.yaml restart nginx"
 
 echo "Certificate renewal check completed"
 RENEWAL_SCRIPT

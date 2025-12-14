@@ -19,14 +19,14 @@ if [ -f "Makefile" ]; then
     log "Updating Makefile..."
 
     # Docker compose paths
-    sed -i 's|infrastructure/docker-compose\.yaml|deploy/docker/compose/base.yml|g' Makefile
-    sed -i 's|infrastructure/docker-compose\.dev\.yaml|deploy/docker/compose/development.yml|g' Makefile
-    sed -i 's|infrastructure/docker-compose\.prod\.yaml|deploy/docker/compose/production.yml|g' Makefile
+    sed -i 's|deploy/docker/compose/base\.yaml|deploy/docker/compose/base.yml|g' Makefile
+    sed -i 's|deploy/docker/compose/base\.dev\.yaml|deploy/docker/compose/development.yml|g' Makefile
+    sed -i 's|deploy/docker/compose/base\.prod\.yaml|deploy/docker/compose/production.yml|g' Makefile
     sed -i 's|docker-compose\.ci\.yml|deploy/docker/compose/ci.yml|g' Makefile
 
     # Service paths
-    sed -i 's|backend/|services/backend/|g' Makefile
-    sed -i 's|ai-services/|services/ai/|g' Makefile
+    sed -i 's|services/backend/|services/services/backend/|g' Makefile
+    sed -i 's|services/ai/|services/ai/|g' Makefile
 fi
 
 # Update GitHub workflows
@@ -34,11 +34,11 @@ log "Updating GitHub Actions workflows..."
 if [ -d ".github/workflows" ]; then
     find .github/workflows -type f -name "*.yml" -o -name "*.yaml" | while read -r workflow; do
         # Service paths
-        sed -i 's|backend/|services/backend/|g' "$workflow"
-        sed -i 's|ai-services/|services/ai/|g' "$workflow"
+        sed -i 's|services/backend/|services/services/backend/|g' "$workflow"
+        sed -i 's|services/ai/|services/ai/|g' "$workflow"
 
         # Docker compose paths
-        sed -i 's|infrastructure/docker-compose|deploy/docker/compose/base|g' "$workflow"
+        sed -i 's|deploy/docker/compose/base|deploy/docker/compose/base|g' "$workflow"
         sed -i 's|docker-compose\.ci\.yml|deploy/docker/compose/ci.yml|g' "$workflow"
 
         # Context paths for Docker builds
@@ -58,8 +58,8 @@ if [ -d "deploy/docker/compose" ]; then
         sed -i 's|context: ai-services|context: ../../services/ai|g' "$compose_file"
 
         # Update dockerfile paths
-        sed -i 's|dockerfile: backend/Dockerfile|dockerfile: services/backend/Dockerfile|g' "$compose_file"
-        sed -i 's|dockerfile: ai-services/|dockerfile: services/ai/|g' "$compose_file"
+        sed -i 's|dockerfile: services/backend/Dockerfile|dockerfile: services/services/backend/Dockerfile|g' "$compose_file"
+        sed -i 's|dockerfile: services/ai/|dockerfile: services/ai/|g' "$compose_file"
 
         # Update volume paths
         sed -i 's|\.\/backend:|./services/backend:|g' "$compose_file"
@@ -76,14 +76,14 @@ log "Updating documentation internal links..."
 if [ -d "docs" ]; then
     find docs -type f -name "*.md" | while read -r doc_file; do
         # Service path references
-        sed -i 's|(backend/|(services/backend/|g' "$doc_file"
-        sed -i 's|(ai-services/|(services/ai/|g' "$doc_file"
-        sed -i 's|`backend/|`services/backend/|g' "$doc_file"
-        sed -i 's|`ai-services/|`services/ai/|g' "$doc_file"
+        sed -i 's|(services/backend/|(services/services/backend/|g' "$doc_file"
+        sed -i 's|(services/ai/|(services/ai/|g' "$doc_file"
+        sed -i 's|`services/backend/|`services/services/backend/|g' "$doc_file"
+        sed -i 's|`services/ai/|`services/ai/|g' "$doc_file"
 
         # Docker compose references
-        sed -i 's|(infrastructure/docker-compose|(deploy/docker/compose/|g' "$doc_file"
-        sed -i 's|`infrastructure/docker-compose|`deploy/docker/compose/|g' "$doc_file"
+        sed -i 's|(deploy/docker/compose/base|(deploy/docker/compose/|g' "$doc_file"
+        sed -i 's|`deploy/docker/compose/base|`deploy/docker/compose/|g' "$doc_file"
 
         # Documentation path references
         sed -i 's|(docs/DEPLOYMENT_RUNBOOK\.md)|(docs/deployment/runbook.md)|g' "$doc_file"
@@ -97,12 +97,12 @@ if [ -f "README.md" ]; then
     log "Updating README.md..."
 
     # Service paths
-    sed -i 's|backend/|services/backend/|g' README.md
-    sed -i 's|ai-services/|services/ai/|g' README.md
+    sed -i 's|services/backend/|services/services/backend/|g' README.md
+    sed -i 's|services/ai/|services/ai/|g' README.md
 
     # Docker compose commands
-    sed -i 's|infrastructure/docker-compose\.yaml|deploy/docker/compose/base.yml|g' README.md
-    sed -i 's|infrastructure/docker-compose\.dev\.yaml|deploy/docker/compose/development.yml|g' README.md
+    sed -i 's|deploy/docker/compose/base\.yaml|deploy/docker/compose/base.yml|g' README.md
+    sed -i 's|deploy/docker/compose/base\.dev\.yaml|deploy/docker/compose/development.yml|g' README.md
     sed -i 's|docker-compose\.local\.yml|deploy/docker/compose/development.yml|g' README.md
 
     # Documentation references
@@ -116,7 +116,7 @@ if [ -d "deploy/docker/compose" ]; then
     find deploy/docker/compose -type f \( -name "*.yml" -o -name "*.yaml" \) | while read -r compose_file; do
         # Update env_file paths
         sed -i 's|env_file: \.env|env_file: ../../../config/environments/.env|g' "$compose_file"
-        sed -i 's|env_file: backend/\.env|env_file: ../../../config/environments/backend.env|g' "$compose_file"
+        sed -i 's|env_file: services/backend/\.env|env_file: ../../../config/environments/backend.env|g' "$compose_file"
         sed -i 's|env_file: infrastructure/env/|env_file: ../../../config/environments/|g' "$compose_file"
     done
 fi
@@ -129,9 +129,9 @@ log "Updating Python import paths (if needed)..."
 if [ -d "scripts" ]; then
     log "Updating script references..."
     find scripts -type f -name "*.sh" | while read -r script_file; do
-        sed -i 's|backend/|services/backend/|g' "$script_file"
-        sed -i 's|ai-services/|services/ai/|g' "$script_file"
-        sed -i 's|infrastructure/docker-compose|deploy/docker/compose/base|g' "$script_file"
+        sed -i 's|services/backend/|services/services/backend/|g' "$script_file"
+        sed -i 's|services/ai/|services/ai/|g' "$script_file"
+        sed -i 's|deploy/docker/compose/base|deploy/docker/compose/base|g' "$script_file"
     done
 fi
 

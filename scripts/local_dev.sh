@@ -126,7 +126,7 @@ build_images() {
     print_header "Building Docker Images"
 
     print_info "This may take several minutes on first run..."
-    docker-compose -f infrastructure/docker-compose.yaml build
+    docker-compose -f deploy/docker/compose/base.yaml build
 
     print_success "Docker images built successfully"
     echo ""
@@ -137,8 +137,8 @@ start_services() {
     print_header "Starting Services"
 
     print_info "Starting all services in detached mode..."
-    docker-compose -f infrastructure/docker-compose.yaml \
-                   -f infrastructure/docker-compose.dev.yaml up -d
+    docker-compose -f deploy/docker/compose/base.yaml \
+                   -f deploy/docker/compose/base.dev.yaml up -d
 
     print_success "All services started"
     echo ""
@@ -155,7 +155,7 @@ run_migrations() {
     sleep 5
 
     print_info "Running Django migrations..."
-    docker-compose -f infrastructure/docker-compose.yaml exec -T backend \
+    docker-compose -f deploy/docker/compose/base.yaml exec -T backend \
         python manage.py migrate --noinput
 
     print_success "Migrations completed"
@@ -166,7 +166,7 @@ run_migrations() {
 collect_static() {
     print_header "Collecting Static Files"
 
-    docker-compose -f infrastructure/docker-compose.yaml exec -T backend \
+    docker-compose -f deploy/docker/compose/base.yaml exec -T backend \
         python manage.py collectstatic --noinput
 
     print_success "Static files collected"
@@ -180,7 +180,7 @@ create_superuser() {
     read -p "Do you want to create a Django superuser? (Y/n): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        docker-compose -f infrastructure/docker-compose.yaml exec backend \
+        docker-compose -f deploy/docker/compose/base.yaml exec backend \
             python manage.py createsuperuser
         print_success "Superuser created"
     else
@@ -196,8 +196,8 @@ load_sample_data() {
     read -p "Do you want to load sample data? (Y/n): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-        if [ -f "backend/fixtures/sample_data.json" ]; then
-            docker-compose -f infrastructure/docker-compose.yaml exec -T backend \
+        if [ -f "services/backend/fixtures/sample_data.json" ]; then
+            docker-compose -f deploy/docker/compose/base.yaml exec -T backend \
                 python manage.py loaddata fixtures/sample_data.json
             print_success "Sample data loaded"
         else

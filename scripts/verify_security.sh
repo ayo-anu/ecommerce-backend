@@ -142,7 +142,7 @@ echo ""
 echo -e "${YELLOW}[6/7] Checking config.py defaults...${NC}"
 CHECKS=$((CHECKS + 1))
 
-LOCALHOST_COUNT=$(grep -c "localhost" ai-services/shared/config.py || true)
+LOCALHOST_COUNT=$(grep -c "localhost" services/ai/shared/config.py || true)
 
 if [ "$LOCALHOST_COUNT" -le 1 ]; then  # Allow one localhost for ALLOWED_ORIGINS
     echo -e "${GREEN}✓ Config.py uses Docker DNS names${NC}"

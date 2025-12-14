@@ -615,8 +615,8 @@ find .github/workflows -type f -name "*.yml" -exec sed -i 's|backend/|services/b
 find .github/workflows -type f -name "*.yml" -exec sed -i 's|ai-services/|services/ai/|g' {} \;
 
 # Update documentation links
-find docs -type f -name "*.md" -exec sed -i 's|(backend/|(services/backend/|g' {} \;
-find docs -type f -name "*.md" -exec sed -i 's|(infrastructure/docker-compose|(deploy/docker/compose/|g' {} \;
+find docs -type f -name "*.md" -exec sed -i 's|(services/backend/|(services/backend/|g' {} \;
+find docs -type f -name "*.md" -exec sed -i 's|(deploy/docker/compose/|(deploy/docker/compose/|g' {} \;
 
 # Update README
 sed -i 's|backend/|services/backend/|g' README.md
@@ -648,11 +648,11 @@ echo "✅ File references updated"
 
 | From | To | Type |
 |------|-----|------|
-| `backend/` | `services/backend/` | Directory |
-| `ai-services/` | `services/ai/` | Directory |
-| `infrastructure/docker-compose.yaml` | `deploy/docker/compose/base.yml` | File |
-| `infrastructure/docker-compose.dev.yaml` | `deploy/docker/compose/development.yml` | File |
-| `infrastructure/docker-compose.prod.yaml` | `deploy/docker/compose/production.yml` | File |
+| `services/backend/` | `services/backend/` | Directory |
+| `services/ai/` | `services/ai/` | Directory |
+| `deploy/docker/compose/.yaml` | `deploy/docker/compose/base.yml` | File |
+| `deploy/docker/compose/.dev.yaml` | `deploy/docker/compose/development.yml` | File |
+| `deploy/docker/compose/.prod.yaml` | `deploy/docker/compose/production.yml` | File |
 | `.env.example` | `config/environments/.env.example` | File |
 | All docs/* (various) | Organized docs/ structure | Multiple |
 

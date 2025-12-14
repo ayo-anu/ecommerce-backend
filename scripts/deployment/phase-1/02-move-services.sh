@@ -16,19 +16,19 @@ log "Moving service directories to services/..."
 
 # Check if directories exist before moving
 if [ -d "backend" ]; then
-    log "Moving backend/ to services/backend/"
-    git mv backend/ services/backend/
+    log "Moving services/backend/ to services/services/backend/"
+    git mv services/backend/ services/services/backend/
 else
-    warn "backend/ directory not found, may have been moved already"
+    warn "services/backend/ directory not found, may have been moved already"
 fi
 
 if [ -d "ai-services" ]; then
-    log "Moving ai-services/ to services/ai/"
-    git mv ai-services/ services/ai/
+    log "Moving services/ai/ to services/ai/"
+    git mv services/ai/ services/ai/
 else
-    warn "ai-services/ directory not found, may have been moved already"
+    warn "services/ai/ directory not found, may have been moved already"
 fi
 
 log "✅ Service directories moved successfully"
-log "   backend/ → services/backend/"
-log "   ai-services/ → services/ai/"
+log "   services/backend/ → services/services/backend/"
+log "   services/ai/ → services/ai/"

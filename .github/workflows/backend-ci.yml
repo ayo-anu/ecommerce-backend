@@ -3,7 +3,7 @@ name: Backend CI
 on:
   pull_request:
     paths:
-      - 'backend/**'
+      - 'services/backend/**'
       - '.github/workflows/backend-ci.yml'
   workflow_dispatch:
 
@@ -32,7 +32,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements/base.txt', 'backend/requirements/prod.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('services/backend/requirements/base.txt', 'services/backend/requirements/prod.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
@@ -90,7 +90,7 @@ jobs:
       - name: Hadolint (dockerfile lint)
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: backend/Dockerfile
+          dockerfile: services/backend/Dockerfile
           ignore: DL3008,DL3013
 
   build-sanity:
@@ -109,8 +109,8 @@ jobs:
       - name: Build backend image (local)
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./services/backend
+          file: ./services/backend/Dockerfile
           push: false
           tags: backend-ci:latest
           cache-from: type=gha
@@ -132,8 +132,8 @@ jobs:
       - name: Build backend image for scanning
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./services/backend
+          file: ./services/backend/Dockerfile
           push: false
           load: true
           tags: backend:scan
@@ -175,7 +175,7 @@ jobs:
 
       - name: Start integration environment
         run: |
-          docker compose -f docker-compose.ci.yml up -d
+          docker compose -f deploy/docker/compose/ci.yml up -d
           echo "Waiting for services to be healthy..."
           sleep 30
 
@@ -213,11 +213,11 @@ jobs:
         if: failure()
         run: |
           echo "=== Backend Logs ==="
-          docker compose -f docker-compose.ci.yml logs backend
+          docker compose -f deploy/docker/compose/ci.yml logs backend
           echo "=== API Gateway Logs ==="
-          docker compose -f docker-compose.ci.yml logs api-gateway
+          docker compose -f deploy/docker/compose/ci.yml logs api-gateway
 
       - name: Shutdown integration environment
         if: always()
         run: |
-          docker compose -f docker-compose.ci.yml down -v
+          docker compose -f deploy/docker/compose/ci.yml down -v

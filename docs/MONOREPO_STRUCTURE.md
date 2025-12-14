@@ -221,7 +221,7 @@ ai-services/services/recommendation_engine/
 ```
 
 **Boundary Rules**:
-- ✅ Services can import from `ai-services/shared/`
+- ✅ Services can import from `services/ai/shared/`
 - ✅ Services communicate via HTTP/REST (not direct imports)
 - ❌ Services should NOT import from each other
 - ❌ Services should NOT share database connections
@@ -325,12 +325,12 @@ frontend/src/
 - `Makefile` - Development commands
 
 **Backend**:
-- `backend/requirements/` - Dependency management
-- `backend/config/settings/` - Django settings
+- `services/backend/requirements/` - Dependency management
+- `services/backend/config/settings/` - Django settings
 
 **AI Services**:
-- `ai-services/requirements.txt` - Shared dependencies
-- `ai-services/services/*/requirements.txt` - Service-specific deps
+- `services/ai/requirements.txt` - Shared dependencies
+- `services/ai/services/*/requirements.txt` - Service-specific deps
 
 ### Environment Files
 
@@ -593,8 +593,8 @@ class RecommendationResponse(BaseModel):
 ### 4. Shared Code
 
 Put truly shared code in:
-- `backend/core/` - Backend utilities
-- `ai-services/shared/` - AI service utilities
+- `services/backend/core/` - Backend utilities
+- `services/ai/shared/` - AI service utilities
 
 Avoid:
 - Copying code between services

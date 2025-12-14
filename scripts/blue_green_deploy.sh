@@ -37,8 +37,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 ACTIVE_ENV_FILE="/var/run/active_environment"
-BLUE_COMPOSE="infrastructure/docker-compose.yaml"
-GREEN_COMPOSE="infrastructure/docker-compose.yaml"
+BLUE_COMPOSE="deploy/docker/compose/base.yaml"
+GREEN_COMPOSE="deploy/docker/compose/base.yaml"
 BLUE_PROJECT="ecommerce-blue"
 GREEN_PROJECT="ecommerce-green"
 NGINX_CONTAINER="ecommerce_nginx"

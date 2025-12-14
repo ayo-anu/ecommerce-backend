@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - 'backend/**'
-      - 'ai-services/**'
+      - 'services/backend/**'
+      - 'services/ai/**'
       - '.github/workflows/docker-release.yml'
   workflow_dispatch:
 
@@ -53,8 +53,8 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
-          file: ./backend/Dockerfile
+          context: ./services/backend
+          file: ./services/backend/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -104,8 +104,8 @@ jobs:
       - name: Build and push AI Gateway image
         uses: docker/build-push-action@v5
         with:
-          context: ./ai-services
-          file: ./ai-services/api_gateway/Dockerfile
+          context: ./services/ai
+          file: ./services/ai/api_gateway/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
