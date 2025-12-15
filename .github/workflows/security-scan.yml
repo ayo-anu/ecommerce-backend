@@ -152,7 +152,7 @@ jobs:
           fi
 
       - name: Scan image with Grype
-        uses: anchore/scan-action@v3
+        uses: anchore/scan-action@v7
         id: scan
         with:
           image: "${{ matrix.service }}:scan"
