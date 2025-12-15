@@ -175,7 +175,7 @@ jobs:
           output-file: "${{ matrix.service }}-sbom.json"
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: sbom-${{ matrix.service }}
           path: ${{ matrix.service }}-sbom.json
