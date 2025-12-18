@@ -29,7 +29,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy requirements and install
 COPY services/search_engine/requirements.txt ./
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt && \
+    pip install httpx
 
 # ==============================================================================
 # Stage 2: Runtime - Minimal production image
