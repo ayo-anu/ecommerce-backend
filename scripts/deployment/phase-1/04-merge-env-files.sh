@@ -43,14 +43,14 @@ if [ -f ".env.example" ]; then
 fi
 
 # Move backend env template
-if [ -f "services/services/backend/.env.example" ]; then
-    log "Moving services/backend/.env.example → config/environments/backend.env.template"
-    safe_move "services/services/backend/.env.example" "config/environments/backend.env.template"
+if [ -f "services/backend/.env.example" ]; then
+    log "Moving backend/.env.example → config/environments/backend.env.template"
+    safe_move "services/backend/.env.example" "config/environments/backend.env.template"
 fi
 
 # Move AI services env template
 if [ -f "services/ai/.env.example" ]; then
-    log "Moving services/ai/.env.example → config/environments/ai-services.env.template"
+    log "Moving ai-services/.env.example → config/environments/ai-services.env.template"
     safe_move "services/ai/.env.example" "config/environments/ai-services.env.template"
 fi
 

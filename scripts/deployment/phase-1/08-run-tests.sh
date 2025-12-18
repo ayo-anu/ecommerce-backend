@@ -84,8 +84,8 @@ test_dockerfiles() {
     log "Test 3: Checking Dockerfiles..."
 
     local dockerfiles=(
-        "deploy/docker/images/services/backend/Dockerfile.production"
-        "deploy/docker/images/services/ai/Dockerfile.template"
+        "deploy/docker/images/backend/Dockerfile.production"
+        "deploy/docker/images/ai-services/Dockerfile.template"
     )
 
     for dockerfile in "${dockerfiles[@]}"; do
@@ -164,12 +164,12 @@ test_reference_updates() {
     for file in "${files_to_check[@]}"; do
         if [ -f "$file" ]; then
             # Check for old paths
-            if grep -q "deploy/docker/compose/base\.yaml" "$file" 2>/dev/null; then
-                error "❌ $file still contains old path: deploy/docker/compose/base.yaml"
+            if grep -q "infrastructure/docker-compose\.yaml" "$file" 2>/dev/null; then
+                error "❌ $file still contains old path: infrastructure/docker-compose.yaml"
                 ((FAILED_TESTS++))
-            elif grep -E "^[^#]*\bservices/backend/" "$file" | grep -v "services/backend" > /dev/null 2>&1; then
+            elif grep -E "^[^#]*\bbackend/" "$file" | grep -v "services/backend" > /dev/null 2>&1; then
                 # Allow comments but check uncommented lines
-                warn "⚠ $file may contain old services/backend/ paths (check manually)"
+                warn "⚠ $file may contain old backend/ paths (check manually)"
             else
                 info "✓ $file"
             fi
@@ -188,11 +188,11 @@ test_docker_build() {
     log "Test 7: Testing Docker image build (backend)..."
 
     # Only test if Dockerfile exists and Docker is available
-    if [ -f "deploy/docker/images/services/backend/Dockerfile.production" ]; then
+    if [ -f "deploy/docker/images/backend/Dockerfile.production" ]; then
         if docker info > /dev/null 2>&1; then
             info "Building backend image (this may take a few minutes)..."
 
-            if docker build -f deploy/docker/images/services/backend/Dockerfile.production -t backend:phase1-test . > /tmp/docker-build.log 2>&1; then
+            if docker build -f deploy/docker/images/backend/Dockerfile.production -t backend:phase1-test . > /tmp/docker-build.log 2>&1; then
                 log "✅ Backend Docker image built successfully"
 
                 # Check image size

@@ -17,24 +17,24 @@ info() { echo -e "${BLUE}[Step 3]${NC} $1"; }
 log "Consolidating Docker Compose files..."
 
 # Move infrastructure compose files to deploy/docker/compose/
-if [ -f "deploy/docker/compose/base.yaml" ]; then
+if [ -f "infrastructure/docker-compose.yaml" ]; then
     log "Moving docker-compose.yaml → deploy/docker/compose/base.yml"
-    git mv deploy/docker/compose/base.yaml deploy/docker/compose/base.yml
+    git mv infrastructure/docker-compose.yaml deploy/docker/compose/base.yml
 fi
 
-if [ -f "deploy/docker/compose/base.dev.yaml" ]; then
+if [ -f "infrastructure/docker-compose.dev.yaml" ]; then
     log "Moving docker-compose.dev.yaml → deploy/docker/compose/development.yml"
-    git mv deploy/docker/compose/base.dev.yaml deploy/docker/compose/development.yml
+    git mv infrastructure/docker-compose.dev.yaml deploy/docker/compose/development.yml
 fi
 
-if [ -f "deploy/docker/compose/base.prod.yaml" ]; then
+if [ -f "infrastructure/docker-compose.prod.yaml" ]; then
     log "Moving docker-compose.prod.yaml → deploy/docker/compose/production.yml"
-    git mv deploy/docker/compose/base.prod.yaml deploy/docker/compose/production.yml
+    git mv infrastructure/docker-compose.prod.yaml deploy/docker/compose/production.yml
 fi
 
-if [ -f "deploy/docker/compose/base.network-policy.yaml" ]; then
+if [ -f "infrastructure/docker-compose.network-policy.yaml" ]; then
     log "Moving docker-compose.network-policy.yaml → deploy/docker/compose/network-policy.yml"
-    git mv deploy/docker/compose/base.network-policy.yaml deploy/docker/compose/network-policy.yml
+    git mv infrastructure/docker-compose.network-policy.yaml deploy/docker/compose/network-policy.yml
 fi
 
 # Move test compose file
@@ -44,21 +44,21 @@ if [ -f "tests/integration/docker-compose.test.yml" ]; then
 fi
 
 # Handle base.yaml if it exists and is different
-if [ -f "deploy/docker/compose/base.base.yaml" ]; then
+if [ -f "infrastructure/docker-compose.base.yaml" ]; then
     warn "Found docker-compose.base.yaml - checking if it's duplicate..."
 
     # Check if it's identical to docker-compose.yaml
     if [ -f "deploy/docker/compose/base.yml" ]; then
-        if diff -q deploy/docker/compose/base.base.yaml deploy/docker/compose/base.yml > /dev/null 2>&1; then
+        if diff -q infrastructure/docker-compose.base.yaml deploy/docker/compose/base.yml > /dev/null 2>&1; then
             log "docker-compose.base.yaml is duplicate, removing..."
-            git rm deploy/docker/compose/base.base.yaml
+            git rm infrastructure/docker-compose.base.yaml
         else
             warn "docker-compose.base.yaml differs from base.yml"
             warn "Manual review required - keeping both for now"
-            git mv deploy/docker/compose/base.base.yaml deploy/docker/compose/base-alt.yml
+            git mv infrastructure/docker-compose.base.yaml deploy/docker/compose/base-alt.yml
         fi
     else
-        git mv deploy/docker/compose/base.base.yaml deploy/docker/compose/base.yml
+        git mv infrastructure/docker-compose.base.yaml deploy/docker/compose/base.yml
     fi
 fi
 

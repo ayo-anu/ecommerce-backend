@@ -15,8 +15,8 @@ info() { echo -e "${BLUE}[Step 5]${NC} $1"; }
 log "Creating production multi-stage Dockerfiles..."
 
 # Create backend production Dockerfile
-log "Creating deploy/docker/images/services/backend/Dockerfile.production"
-cat > deploy/docker/images/services/backend/Dockerfile.production << 'EOF'
+log "Creating deploy/docker/images/backend/Dockerfile.production"
+cat > deploy/docker/images/backend/Dockerfile.production << 'EOF'
 # ==============================================================================
 # Production Django Backend - Multi-Stage Build
 # Target Size: ~200-300MB (vs ~800MB+ with dev dependencies)
@@ -67,7 +67,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy requirements
 WORKDIR /build
-COPY services/services/backend/requirements/base.txt services/services/backend/requirements/prod.txt ./
+COPY services/backend/requirements/base.txt services/backend/requirements/prod.txt ./
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
@@ -111,7 +111,7 @@ WORKDIR /app
 COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
 
 # Copy application code
-COPY --chown=appuser:appuser services/services/backend/ /app/
+COPY --chown=appuser:appuser services/backend/ /app/
 
 # Create necessary directories with correct permissions
 RUN mkdir -p /app/logs /app/staticfiles /app/media /app/tmp && \
@@ -129,7 +129,7 @@ RUN chmod 444 /app/manage.py 2>/dev/null || true && \
     find /app/apps -type f -name "*.py" -exec chmod 444 {} \; 2>/dev/null || true
 
 # Copy entrypoint
-COPY --chmod=755 services/services/backend/entrypoint.sh /entrypoint.sh
+COPY --chmod=755 services/backend/entrypoint.sh /entrypoint.sh
 
 # Switch to non-root user
 USER appuser
@@ -163,8 +163,8 @@ CMD ["gunicorn", "config.wsgi:application", \
 EOF
 
 # Create .dockerignore for backend
-log "Creating deploy/docker/images/services/backend/.dockerignore"
-cat > deploy/docker/images/services/backend/.dockerignore << 'EOF'
+log "Creating deploy/docker/images/backend/.dockerignore"
+cat > deploy/docker/images/backend/.dockerignore << 'EOF'
 **/__pycache__
 **/*.pyc
 **/*.pyo
@@ -197,8 +197,8 @@ htmlcov/
 EOF
 
 # Create AI services template (will be used for all AI microservices)
-log "Creating deploy/docker/images/services/ai/Dockerfile.template"
-cat > deploy/docker/images/services/ai/Dockerfile.template << 'EOF'
+log "Creating deploy/docker/images/ai-services/Dockerfile.template"
+cat > deploy/docker/images/ai-services/Dockerfile.template << 'EOF'
 # ==============================================================================
 # AI Services - Production Multi-Stage Dockerfile Template
 # ARG SERVICE_NAME must be passed during build
@@ -306,6 +306,6 @@ EOF
 log "✅ Multi-stage Dockerfiles created"
 
 info "Created files:"
-info "  - deploy/docker/images/services/backend/Dockerfile.production"
-info "  - deploy/docker/images/services/backend/.dockerignore"
-info "  - deploy/docker/images/services/ai/Dockerfile.template"
+info "  - deploy/docker/images/backend/Dockerfile.production"
+info "  - deploy/docker/images/backend/.dockerignore"
+info "  - deploy/docker/images/ai-services/Dockerfile.template"
