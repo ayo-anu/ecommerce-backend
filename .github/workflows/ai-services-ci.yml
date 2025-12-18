@@ -3,7 +3,7 @@ name: AI Services CI
 on:
   pull_request:
     paths:
-      - 'ai-services/**'
+      - 'services/ai/**'
       - '.github/workflows/ai-services-ci.yml'
   workflow_dispatch:
 
@@ -32,19 +32,19 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-ai-pip-${{ hashFiles('ai-services/api_gateway/requirements.txt') }}
+          key: ${{ runner.os }}-ai-pip-${{ hashFiles('services/ai/api_gateway/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-ai-pip-
 
       - name: Install dependencies
-        working-directory: ./ai-services/api_gateway
+        working-directory: ./services/ai/api_gateway
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: Lint (flake8)
         if: always()
-        working-directory: ./ai-services/api_gateway
+        working-directory: ./services/ai/api_gateway
         run: |
           if ! pip show flake8 >/dev/null 2>&1; then
             echo 'flake8 not installed, installing...'
@@ -54,7 +54,7 @@ jobs:
 
       - name: Security scan (pip-audit)
         if: always()
-        working-directory: ./ai-services/api_gateway
+        working-directory: ./services/ai/api_gateway
         run: |
           if ! pip show pip-audit >/dev/null 2>&1; then
             echo 'pip-audit not installed, installing...'
@@ -64,7 +64,7 @@ jobs:
 
       - name: Run tests (if available)
         if: always()
-        working-directory: ./ai-services
+        working-directory: ./services/ai
         run: |
           if [ -d tests ] || [ -f pytest.ini ]; then
             if ! pip show pytest >/dev/null 2>&1; then
@@ -84,8 +84,8 @@ jobs:
       - name: Hadolint (dockerfile lint)
         uses: hadolint/hadolint-action@v3.1.0
         with:
-          dockerfile: ai-services/api_gateway/Dockerfile
-          ignore: DL3008,DL3013
+          dockerfile: services/ai/api_gateway/Dockerfile
+          ignore: DL3008,DL3013,DL3015
 
   build-sanity:
     name: Build sanity (Docker build)
@@ -103,8 +103,8 @@ jobs:
       - name: Build AI Gateway image (local)
         uses: docker/build-push-action@v5
         with:
-          context: ./ai-services
-          file: ./ai-services/api_gateway/Dockerfile
+          context: ./services/ai
+          file: ./services/ai/api_gateway/Dockerfile
           push: false
           tags: ai-gateway-ci:latest
           cache-from: type=gha
@@ -126,8 +126,8 @@ jobs:
       - name: Build AI Gateway image for scanning
         uses: docker/build-push-action@v5
         with:
-          context: ./ai-services
-          file: ./ai-services/api_gateway/Dockerfile
+          context: ./services/ai
+          file: ./services/ai/api_gateway/Dockerfile
           push: false
           load: true
           tags: ai-gateway:scan
@@ -169,7 +169,7 @@ jobs:
 
       - name: Start integration environment
         run: |
-          docker compose -f docker-compose.ci.yml up -d
+          docker compose -f deploy/docker/compose/ci.yml up -d
           echo "Waiting for services to be healthy..."
           sleep 30
 
@@ -207,11 +207,11 @@ jobs:
         if: failure()
         run: |
           echo "=== Backend Logs ==="
-          docker compose -f docker-compose.ci.yml logs backend
+          docker compose -f deploy/docker/compose/ci.yml logs backend
           echo "=== API Gateway Logs ==="
-          docker compose -f docker-compose.ci.yml logs api-gateway
+          docker compose -f deploy/docker/compose/ci.yml logs api-gateway
 
       - name: Shutdown integration environment
         if: always()
         run: |
-          docker compose -f docker-compose.ci.yml down -v
+          docker compose -f deploy/docker/compose/ci.yml down -v

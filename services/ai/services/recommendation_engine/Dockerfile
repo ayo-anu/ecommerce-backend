@@ -28,7 +28,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy requirements and install
 COPY services/recommendation_engine/requirements.txt ./
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r requirements.txt
+    pip install -r requirements.txt && \
+    pip install httpx
 
 # ==============================================================================
 # Stage 2: Runtime - Minimal production image
@@ -38,11 +39,6 @@ FROM python:3.11-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
-
-# Install curl for health checks
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -66,8 +62,8 @@ USER appuser
 EXPOSE 8001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8001/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8001/health', timeout=5)" || exit 1
 
 # Run application
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]

@@ -14,9 +14,9 @@ RED := \033[0;31m
 NC := \033[0m # No Color
 
 # Docker Compose files
-COMPOSE_FILE := infrastructure/docker-compose.yaml
-COMPOSE_DEV := infrastructure/docker-compose.dev.yaml
-COMPOSE_PROD := infrastructure/docker-compose.prod.yaml
+COMPOSE_FILE := deploy/docker/compose/base.yml
+COMPOSE_DEV := deploy/docker/compose/development.yml
+COMPOSE_PROD := deploy/docker/compose/production.yml
 
 # Default environment
 ENV ?= development

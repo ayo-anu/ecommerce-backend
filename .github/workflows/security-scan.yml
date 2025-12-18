@@ -5,8 +5,8 @@ on:
     paths:
       - '**/Dockerfile*'
       - '.github/workflows/security-scan.yml'
-      - 'backend/**'
-      - 'ai-services/**'
+      - 'services/backend/**'
+      - 'services/ai/**'
   push:
     branches:
       - main
@@ -31,11 +31,11 @@ jobs:
       matrix:
         service:
           - name: backend
-            context: ./backend
-            dockerfile: ./backend/Dockerfile
+            context: ./services/backend
+            dockerfile: ./services/backend/Dockerfile
           - name: api-gateway
-            context: ./ai-services/api_gateway
-            dockerfile: ./ai-services/api_gateway/Dockerfile
+            context: ./services/ai/api_gateway
+            dockerfile: ./services/ai/api_gateway/Dockerfile
 
     steps:
       - name: Checkout code
@@ -104,7 +104,7 @@ jobs:
           if [ "${{ matrix.service }}" = "backend" ]; then
             docker build -t ${{ matrix.service }}:scan ./backend
           elif [ "${{ matrix.service }}" = "api-gateway" ]; then
-            docker build -t ${{ matrix.service }}:scan ./ai-services/api_gateway
+            docker build -t ${{ matrix.service }}:scan ./services/ai/api_gateway
           fi
 
       - name: Run Snyk to check Docker image for vulnerabilities
@@ -148,7 +148,7 @@ jobs:
           if [ "${{ matrix.service }}" = "backend" ]; then
             docker build -t ${{ matrix.service }}:scan ./backend
           elif [ "${{ matrix.service }}" = "api-gateway" ]; then
-            docker build -t ${{ matrix.service }}:scan ./ai-services/api_gateway
+            docker build -t ${{ matrix.service }}:scan ./services/ai/api_gateway
           fi
 
       - name: Scan image with Grype

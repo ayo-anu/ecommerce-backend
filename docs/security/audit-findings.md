@@ -434,7 +434,7 @@ QDRANT_URL=http://qdrant:6333                         # ✅
 REDIS_URL=redis://:pass@redis:6379/0                  # ✅
 ```
 
-**Code configuration (ai-services/shared/config.py):**
+**Code configuration (services/ai/shared/config.py):**
 ```python
 # Lines 13-62 - Config uses localhost as DEFAULT values
 DJANGO_BACKEND_URL: str = "http://localhost:8000"              # ⚠️ Default

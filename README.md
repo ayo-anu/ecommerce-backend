@@ -112,7 +112,7 @@ This platform combines traditional e-commerce functionality with cutting-edge AI
         └──────────┘    └─────────┘    └─────────┘
 ```
 
-For detailed architecture documentation, see [docs/architecture.md](docs/architecture.md).
+For detailed architecture documentation, see [docs/architecture/system-design.md](docs/architecture/system-design.md).
 
 ---
 
@@ -171,7 +171,7 @@ make seed
 
 ```
 ecommerce-platform/
-├── backend/                    # Django REST Framework backend
+├── services/backend/                    # Django REST Framework backend
 │   ├── apps/                  # Django applications
 │   │   ├── accounts/          # User management
 │   │   ├── products/          # Product catalog
@@ -183,7 +183,7 @@ ecommerce-platform/
 │   ├── requirements/          # Python dependencies
 │   └── tests/                 # Backend tests
 │
-├── ai-services/               # AI microservices
+├── services/ai/               # AI microservices
 │   ├── services/
 │   │   ├── recommendation_engine/
 │   │   ├── search_engine/
@@ -250,7 +250,7 @@ The core e-commerce API built with Django REST Framework.
 
 **Tech Stack:** Django 5.1, DRF 3.15, PostgreSQL, Redis, Celery, Elasticsearch
 
-[Backend Documentation](backend/README.md)
+[Backend Documentation](services/backend/README.md)
 
 ### AI Services
 
@@ -376,7 +376,7 @@ make clean
 ### Adding New Features
 
 1. **Backend feature:**
-   - Add to appropriate Django app in `backend/apps/`
+   - Add to appropriate Django app in `services/backend/apps/`
    - Create migrations: `make makemigrations`
    - Apply migrations: `make migrate`
    - Add tests in `tests/`
@@ -463,7 +463,7 @@ make dev
 make build
 
 # Start with production configs
-docker-compose -f infrastructure/docker-compose.yaml \
+docker-compose -f deploy/docker/compose/base.yml \
                -f infrastructure/docker-compose.prod.yaml up -d
 ```
 
@@ -511,15 +511,15 @@ kubectl apply -f infrastructure/k8s/ -n ecommerce-prod
 kubectl get pods -n ecommerce-prod
 ```
 
-For detailed deployment instructions, see [docs/deployment_guide.md](docs/deployment_guide.md).
+For detailed deployment instructions, see [docs/deployment/docker-deployment.md](docs/deployment/docker-deployment.md).
 
 ---
 
 ## Documentation
 
-- **[Architecture Overview](docs/architecture.md)** - System architecture and design decisions
+- **[Architecture Overview](docs/architecture/system-design.md)** - System architecture and design decisions
 - **[AI Services Guide](docs/ai_services_overview.md)** - Detailed AI services documentation
-- **[Deployment Guide](docs/deployment_guide.md)** - Step-by-step deployment instructions
+- **[Deployment Guide](docs/deployment/docker-deployment.md)** - Step-by-step deployment instructions
 - **[API Documentation](http://localhost:8000/api/docs/)** - Interactive API docs (when running)
 - **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to this project
 
