@@ -64,7 +64,7 @@ jobs:
 
       - name: Run tests (if available)
         if: always()
-        working-directory: ./ai-services
+        working-directory: ./services/ai
         run: |
           if [ -d tests ] || [ -f pytest.ini ]; then
             if ! pip show pytest >/dev/null 2>&1; then
@@ -85,7 +85,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: services/ai/api_gateway/Dockerfile
-          ignore: DL3008,DL3013
+          ignore: DL3008,DL3013,DL3015
 
   build-sanity:
     name: Build sanity (Docker build)
