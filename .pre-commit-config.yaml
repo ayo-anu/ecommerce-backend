@@ -140,7 +140,18 @@ repos:
       - id: python-safety-dependencies-check
         args: ['--ignore=51668']  # Ignore specific vulnerabilities if needed
 
-  # Detect secrets
+  # Gitleaks - Comprehensive secret scanner
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.1
+    hooks:
+      - id: gitleaks
+        name: Gitleaks secret scanner
+        description: Scan for secrets using Gitleaks
+        entry: gitleaks protect --verbose --redact --staged
+        language: golang
+        pass_filenames: false
+
+  # Detect secrets - Alternative secret scanner
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.4.0
     hooks:

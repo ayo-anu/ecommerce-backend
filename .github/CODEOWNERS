@@ -1,0 +1,133 @@
+# CODEOWNERS - Code ownership and review requirements
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ==============================================================================
+# Global Owners
+# ==============================================================================
+# Platform lead has oversight of the entire codebase
+* @ayo-anu
+
+# ==============================================================================
+# Infrastructure & DevOps
+# ==============================================================================
+# CI/CD workflows and deployment configurations
+/.github/workflows/ @ayo-anu @devops-team
+/deploy/ @ayo-anu @devops-team
+/config/ @ayo-anu @devops-team
+
+# Docker and container configurations
+/deploy/docker/ @ayo-anu @devops-team
+docker-compose*.yml @ayo-anu @devops-team
+Dockerfile* @ayo-anu @devops-team
+
+# Infrastructure as Code
+/terraform/ @ayo-anu @devops-team
+/deploy/kubernetes/ @ayo-anu @devops-team
+
+# Security configurations
+/config/policies/ @ayo-anu @security-team @devops-team
+/scripts/security/ @ayo-anu @security-team @devops-team
+
+# ==============================================================================
+# Backend Services
+# ==============================================================================
+/services/backend/ @ayo-anu @backend-team
+
+# Core business logic
+/services/backend/apps/ @ayo-anu @backend-team
+/services/backend/core/ @ayo-anu @backend-team
+
+# Database migrations (requires careful review)
+/services/backend/*/migrations/ @ayo-anu @backend-team @database-team
+
+# ==============================================================================
+# AI Services
+# ==============================================================================
+/services/ai/ @ayo-anu @ai-team
+
+# API Gateway
+/services/ai/api_gateway/ @ayo-anu @ai-team @backend-team
+
+# ML Models and Services
+/services/ai/recommendation_engine/ @ayo-anu @ai-team @ml-team
+/services/ai/search_engine/ @ayo-anu @ai-team
+/services/ai/pricing_engine/ @ayo-anu @ai-team
+/services/ai/chatbot_rag/ @ayo-anu @ai-team
+/services/ai/fraud_detection/ @ayo-anu @ai-team @security-team
+/services/ai/demand_forecasting/ @ayo-anu @ai-team
+/services/ai/visual_recognition/ @ayo-anu @ai-team
+
+# ==============================================================================
+# Security & Compliance
+# ==============================================================================
+# Security documentation and policies
+/docs/security/ @ayo-anu @security-team @compliance-team
+/docs/policies/ @ayo-anu @security-team @compliance-team
+
+# Vault and secrets management
+/deploy/vault/ @ayo-anu @security-team @devops-team
+/config/vault/ @ayo-anu @security-team @devops-team
+
+# Security scanning configurations
+.gitleaks.toml @ayo-anu @security-team
+.semgrep.yml @ayo-anu @security-team
+.pre-commit-config.yaml @ayo-anu @security-team @devops-team
+
+# ==============================================================================
+# Documentation
+# ==============================================================================
+/docs/ @ayo-anu @platform-leads
+
+# Architecture decision records (requires architectural review)
+/docs/adr/ @ayo-anu @platform-leads @architecture-team
+
+# Deployment and operations documentation
+/docs/deployment/ @ayo-anu @devops-team @platform-leads
+/docs/operations/ @ayo-anu @devops-team @sre-team
+
+# ==============================================================================
+# Critical Configuration Files
+# ==============================================================================
+# These files require extra scrutiny due to their critical nature
+
+# Root configuration files
+/.github/ @ayo-anu @devops-team
+/pyproject.toml @ayo-anu @backend-team
+/requirements*.txt @ayo-anu @backend-team
+
+# Environment configurations
+/config/environments/ @ayo-anu @devops-team @security-team
+.env.example @ayo-anu @devops-team
+
+# Nginx and reverse proxy configurations
+/deploy/nginx/ @ayo-anu @devops-team @security-team
+
+# ==============================================================================
+# Production Deployment Approvals
+# ==============================================================================
+# Production deployments require approval from multiple teams
+# This is enforced via GitHub environments and the approval workflow
+
+# Production deployment scripts (extra careful review required)
+/deploy/docker/scripts/blue-green-deploy.sh @ayo-anu @devops-team @sre-team
+/deploy/docker/scripts/rollback.sh @ayo-anu @devops-team @sre-team
+/scripts/deployment/ @ayo-anu @devops-team @sre-team
+
+# ==============================================================================
+# Teams Reference
+# ==============================================================================
+# The following teams should be configured in your GitHub organization:
+#
+# @devops-team        - DevOps engineers responsible for CI/CD and infrastructure
+# @security-team      - Security engineers handling security and compliance
+# @backend-team       - Backend developers working on Django services
+# @ai-team           - AI/ML engineers working on AI services
+# @ml-team           - Machine learning specialists
+# @database-team     - Database administrators and specialists
+# @sre-team          - Site reliability engineers
+# @platform-leads    - Platform engineering leadership
+# @architecture-team - Software architects
+# @compliance-team   - Compliance and audit specialists
+#
+# Individual approvers:
+# @ayo-anu           - Platform lead (owner)
