@@ -1,0 +1,421 @@
+name: SBOM Generation
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  generate-sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+      security-events: write
+
+    strategy:
+      matrix:
+        service:
+          - backend
+          - api-gateway
+          - recommendation-engine
+          - search-engine
+          - pricing-engine
+          - chatbot-rag
+          - fraud-detection
+          - demand-forecasting
+          - visual-recognition
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine service context
+        id: context
+        run: |
+          if [ "${{ matrix.service }}" == "backend" ]; then
+            echo "path=services/backend" >> $GITHUB_OUTPUT
+            echo "dockerfile=services/backend/Dockerfile" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.service }}" == "api-gateway" ]; then
+            echo "path=services/ai/api_gateway" >> $GITHUB_OUTPUT
+            echo "dockerfile=services/ai/api_gateway/Dockerfile" >> $GITHUB_OUTPUT
+          else
+            echo "path=services/ai/${{ matrix.service }}" >> $GITHUB_OUTPUT
+            echo "dockerfile=services/ai/${{ matrix.service }}/Dockerfile" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ steps.context.outputs.path }}
+          file: ${{ steps.context.outputs.dockerfile }}
+          push: false
+          load: true
+          tags: ${{ matrix.service }}:sbom-scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM with Syft (CycloneDX JSON)
+        run: |
+          syft ${{ matrix.service }}:sbom-scan \
+            -o cyclonedx-json \
+            --file sbom-${{ matrix.service }}-cyclonedx.json
+
+      - name: Generate SBOM with Syft (SPDX JSON)
+        run: |
+          syft ${{ matrix.service }}:sbom-scan \
+            -o spdx-json \
+            --file sbom-${{ matrix.service }}-spdx.json
+
+      - name: Generate SBOM with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: ${{ matrix.service }}:sbom-scan
+          format: 'cyclonedx'
+          output: sbom-${{ matrix.service }}-trivy.json
+
+      - name: Scan SBOM for vulnerabilities with Grype
+        id: grype_scan
+        run: |
+          grype sbom:sbom-${{ matrix.service }}-cyclonedx.json \
+            -o json \
+            --file grype-results-${{ matrix.service }}.json \
+            --fail-on high || echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          image-ref: ${{ matrix.service }}:sbom-scan
+          format: 'sarif'
+          output: trivy-results-${{ matrix.service }}.sarif
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: trivy-results-${{ matrix.service }}.sarif
+          category: sbom-${{ matrix.service }}
+
+      - name: Generate SBOM summary
+        run: |
+          cat > sbom-summary-${{ matrix.service }}.md <<EOF
+          # SBOM Summary - ${{ matrix.service }}
+
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Image**: ${{ matrix.service }}:sbom-scan
+          **Workflow**: ${{ github.workflow }}
+          **Run**: ${{ github.run_number }}
+
+          ## SBOM Formats Generated
+
+          - CycloneDX JSON (Syft)
+          - SPDX JSON (Syft)
+          - CycloneDX JSON (Trivy)
+
+          ## Vulnerability Scan Summary
+
+          ### Package Statistics
+          \`\`\`
+          $(syft ${{ matrix.service }}:sbom-scan -o table | head -20)
+          \`\`\`
+
+          ### Vulnerability Summary
+          \`\`\`
+          $(grype sbom:sbom-${{ matrix.service }}-cyclonedx.json -o table | head -30)
+          \`\`\`
+
+          ## Files Generated
+
+          - \`sbom-${{ matrix.service }}-cyclonedx.json\` - CycloneDX format (Syft)
+          - \`sbom-${{ matrix.service }}-spdx.json\` - SPDX format (Syft)
+          - \`sbom-${{ matrix.service }}-trivy.json\` - CycloneDX format (Trivy)
+          - \`grype-results-${{ matrix.service }}.json\` - Vulnerability scan results
+          - \`trivy-results-${{ matrix.service }}.sarif\` - Trivy SARIF results
+
+          ## Next Steps
+
+          1. Review vulnerability scan results
+          2. Update dependencies with known vulnerabilities
+          3. Archive SBOM for compliance tracking
+          4. Upload to DependencyTrack (if configured)
+          EOF
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.service }}
+          path: |
+            sbom-${{ matrix.service }}-*.json
+            grype-results-${{ matrix.service }}.json
+            trivy-results-${{ matrix.service }}.sarif
+            sbom-summary-${{ matrix.service }}.md
+          retention-days: 90
+
+      - name: Check for critical vulnerabilities
+        run: |
+          CRITICAL=$(jq '[.matches[] | select(.vulnerability.severity=="Critical")] | length' grype-results-${{ matrix.service }}.json)
+          HIGH=$(jq '[.matches[] | select(.vulnerability.severity=="High")] | length' grype-results-${{ matrix.service }}.json)
+
+          echo "Critical vulnerabilities: $CRITICAL"
+          echo "High vulnerabilities: $HIGH"
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::Found $CRITICAL CRITICAL vulnerabilities in ${{ matrix.service }}"
+            exit 1
+          fi
+
+          if [ "$HIGH" -gt 5 ]; then
+            echo "::warning::Found $HIGH HIGH vulnerabilities in ${{ matrix.service }}"
+          fi
+
+  upload-to-dependency-track:
+    name: Upload to DependencyTrack
+    runs-on: ubuntu-latest
+    needs: [generate-sbom]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+
+    strategy:
+      matrix:
+        service:
+          - backend
+          - api-gateway
+          - recommendation-engine
+          - search-engine
+          - pricing-engine
+          - chatbot-rag
+          - fraud-detection
+          - demand-forecasting
+          - visual-recognition
+
+    steps:
+      - name: Download SBOM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-${{ matrix.service }}
+
+      - name: Upload to DependencyTrack
+        if: env.DTRACK_API_KEY != ''
+        env:
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+          DTRACK_URL: ${{ secrets.DTRACK_URL || 'https://dependencytrack.example.com' }}
+        run: |
+          # Upload SBOM to DependencyTrack
+          PROJECT_NAME="ecommerce-${{ matrix.service }}"
+          PROJECT_VERSION="${{ github.ref_name }}"
+
+          # Create project if it doesn't exist
+          curl -X PUT "$DTRACK_URL/api/v1/project" \
+            -H "X-Api-Key: $DTRACK_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"name\": \"$PROJECT_NAME\",
+              \"version\": \"$PROJECT_VERSION\",
+              \"classifier\": \"APPLICATION\",
+              \"active\": true
+            }" || true
+
+          # Upload SBOM
+          SBOM_BASE64=$(base64 -w 0 sbom-${{ matrix.service }}-cyclonedx.json)
+
+          curl -X PUT "$DTRACK_URL/api/v1/bom" \
+            -H "X-Api-Key: $DTRACK_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"project\": \"$PROJECT_NAME\",
+              \"projectVersion\": \"$PROJECT_VERSION\",
+              \"bom\": \"$SBOM_BASE64\"
+            }"
+
+          echo "SBOM uploaded to DependencyTrack for ${{ matrix.service }}"
+
+  aggregate-sboms:
+    name: Aggregate SBOMs
+    runs-on: ubuntu-latest
+    needs: [generate-sbom]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all SBOM artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: sboms/
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Create consolidated report
+        run: |
+          cat > SBOM_REPORT.md <<EOF
+          # SBOM Generation Report
+
+          **Generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Workflow Run**: ${{ github.run_number }}
+          **Branch**: ${{ github.ref_name }}
+          **Commit**: ${{ github.sha }}
+
+          ---
+
+          ## Services Scanned
+
+          EOF
+
+          for service in backend api-gateway recommendation-engine search-engine pricing-engine chatbot-rag fraud-detection demand-forecasting visual-recognition; do
+            if [ -d "sboms/sbom-$service" ]; then
+              echo "### $service" >> SBOM_REPORT.md
+              echo "" >> SBOM_REPORT.md
+
+              if [ -f "sboms/sbom-$service/grype-results-$service.json" ]; then
+                CRITICAL=$(jq '[.matches[] | select(.vulnerability.severity=="Critical")] | length' sboms/sbom-$service/grype-results-$service.json)
+                HIGH=$(jq '[.matches[] | select(.vulnerability.severity=="High")] | length' sboms/sbom-$service/grype-results-$service.json)
+                MEDIUM=$(jq '[.matches[] | select(.vulnerability.severity=="Medium")] | length' sboms/sbom-$service/grype-results-$service.json)
+
+                echo "- **Critical**: $CRITICAL" >> SBOM_REPORT.md
+                echo "- **High**: $HIGH" >> SBOM_REPORT.md
+                echo "- **Medium**: $MEDIUM" >> SBOM_REPORT.md
+                echo "" >> SBOM_REPORT.md
+              fi
+            fi
+          done
+
+          cat >> SBOM_REPORT.md <<EOF
+
+          ---
+
+          ## SBOM Artifacts
+
+          All SBOMs are available as workflow artifacts for 90 days.
+
+          ### Formats
+
+          - **CycloneDX JSON** - Industry standard format
+          - **SPDX JSON** - Linux Foundation format
+          - **SARIF** - Security scanning results
+
+          ### Download
+
+          Visit the [Actions run page](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) to download SBOM artifacts.
+
+          EOF
+
+      - name: Upload consolidated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-consolidated-report
+          path: SBOM_REPORT.md
+          retention-days: 90
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('SBOM_REPORT.md', 'utf8');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [generate-sbom]
+    if: always() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [ "${{ needs.generate-sbom.result }}" == "success" ]; then
+            echo "emoji=✅" >> $GITHUB_OUTPUT
+            echo "status=Success" >> $GITHUB_OUTPUT
+          else
+            echo "emoji=❌" >> $GITHUB_OUTPUT
+            echo "status=Failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Slack notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST $SLACK_WEBHOOK_URL \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "${{ steps.status.outputs.emoji }} SBOM Generation ${{ steps.status.outputs.status }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ steps.status.outputs.emoji }} SBOM Generation ${{ steps.status.outputs.status }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\n${{ github.ref_name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Workflow:*\n${{ github.workflow }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Run:*\n#${{ github.run_number }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ steps.status.outputs.status }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }'
