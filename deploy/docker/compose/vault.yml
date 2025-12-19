@@ -1,0 +1,150 @@
+# ==============================================================================
+# E-Commerce Platform - Vault Service
+# ==============================================================================
+# HashiCorp Vault for centralized secrets management
+#
+# USAGE:
+#   docker-compose -f base.yml -f vault.yml up -d
+#
+# SECURITY FEATURES:
+#   ✓ Centralized secrets management
+#   ✓ AppRole authentication for services
+#   ✓ Audit logging enabled
+#   ✓ Secrets rotation support
+#   ✓ Isolated network access
+#
+# ARCHITECTURE:
+#   Services → AppRole Auth → Vault → Encrypted Secrets
+# ==============================================================================
+
+services:
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: ecommerce_vault
+    restart: always
+
+    ports:
+      - "8200:8200"  # Vault API (for initial setup and admin access)
+
+    environment:
+      # Vault configuration
+      - VAULT_ADDR=http://0.0.0.0:8200
+      - VAULT_API_ADDR=http://0.0.0.0:8200
+      - VAULT_LOCAL_CONFIG=${VAULT_LOCAL_CONFIG:-}
+
+      # Skip TLS verification for development (use proper TLS in production)
+      - SKIP_SETCAP=true
+
+    volumes:
+      # Vault data persistence
+      - vault_data:/vault/data
+
+      # Vault audit logs
+      - vault_logs:/vault/logs
+
+      # Vault configuration
+      - ../../vault/config:/vault/config:ro
+
+      # Vault policies
+      - ../../vault/policies:/vault/policies:ro
+
+    cap_add:
+      - IPC_LOCK  # Required for Vault to use mlock
+
+    command: server
+
+    networks:
+      - application  # Access from backend services
+      - database     # Access for database secret engines
+      - monitoring   # Expose metrics
+
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+          pids: 100
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+    security_opt:
+      - no-new-privileges:true
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=vault"
+
+# ==============================================================================
+# VAULT VOLUMES
+# ==============================================================================
+volumes:
+  vault_data:
+    driver: local
+    name: ecommerce_vault_data
+
+  vault_logs:
+    driver: local
+    name: ecommerce_vault_logs
+
+# ==============================================================================
+# VAULT SETUP INSTRUCTIONS
+# ==============================================================================
+# After starting Vault for the first time:
+#
+# 1. Initialize Vault:
+#    ./scripts/security/init-vault.sh
+#
+# 2. Unseal Vault (required after every restart):
+#    ./scripts/security/unseal-vault.sh
+#
+# 3. Migrate secrets to Vault:
+#    ./scripts/security/migrate-secrets.sh
+#
+# 4. Configure AppRole authentication:
+#    (Automatically done in init-vault.sh)
+#
+# 5. Update services with Vault credentials:
+#    - Set VAULT_ROLE_ID and VAULT_SECRET_ID for each service
+#    - Enable Vault in service configuration (USE_VAULT=true)
+#
+# ==============================================================================
+# PRODUCTION DEPLOYMENT
+# ==============================================================================
+# For production:
+#
+# 1. Use TLS/HTTPS for Vault communication:
+#    - Generate or obtain SSL certificates
+#    - Update Vault config to use TLS
+#    - Set VAULT_ADDR=https://vault:8200
+#
+# 2. Implement auto-unseal:
+#    - AWS KMS auto-unseal
+#    - Azure Key Vault auto-unseal
+#    - GCP Cloud KMS auto-unseal
+#
+# 3. Enable high availability:
+#    - Deploy Vault in HA mode with Consul backend
+#    - Or use integrated storage (Raft) with multiple nodes
+#
+# 4. Backup unseal keys and root token:
+#    - Store in multiple secure locations
+#    - Use Shamir's Secret Sharing (5 keys, threshold 3)
+#    - Keep root token for emergency recovery only
+#
+# 5. Set up monitoring and alerting:
+#    - Monitor Vault seal status
+#    - Alert on authentication failures
+#    - Track secret access patterns
+#
+# ==============================================================================
