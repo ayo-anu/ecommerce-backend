@@ -40,8 +40,15 @@ RUN openssl dhparam -out /etc/nginx/ssl/dhparam.pem 2048
 COPY deploy/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY deploy/nginx/conf.d/* /etc/nginx/conf.d/
 
-# Set proper permissions
-RUN chown -R nginx:nginx /var/log/nginx /var/cache/nginx
+# Set proper permissions for nginx user
+RUN chown -R nginx:nginx /var/log/nginx /var/cache/nginx /etc/nginx/ssl /var/www/certbot && \
+    chmod 755 /var/log/nginx /var/cache/nginx && \
+    chmod 644 /etc/nginx/ssl/selfsigned.crt && \
+    chmod 600 /etc/nginx/ssl/selfsigned.key /etc/nginx/ssl/dhparam.pem
+
+# Note: Nginx master process runs as root to bind to privileged ports (80/443)
+# Worker processes run as nginx user (defined in nginx.conf)
+# This is standard practice for nginx in production
 
 # Expose HTTP and HTTPS ports
 EXPOSE 80 443

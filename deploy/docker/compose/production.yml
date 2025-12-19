@@ -215,6 +215,7 @@ services:
   backend:
     ports: []
     restart: always
+    user: "1000:1000"  # Run as appuser (non-root)
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 8 --threads 4 --timeout 120 --max-requests 1000 --max-requests-jitter 50
     environment:
       - DEBUG=False
@@ -257,6 +258,7 @@ services:
 
   celery_worker:
     restart: always
+    user: "1000:1000"  # Run as appuser (non-root)
     command: celery -A config worker -l warning --concurrency=8 --max-tasks-per-child=1000
     environment:
       - ENVIRONMENT=production
@@ -281,6 +283,7 @@ services:
 
   celery_beat:
     restart: always
+    user: "1000:1000"  # Run as appuser (non-root)
     environment:
       - ENVIRONMENT=production
     networks:
@@ -303,6 +306,7 @@ services:
   api_gateway:
     ports: []
     restart: always
+    user: "1000:1000"  # Run as appuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8080 --workers 8 --loop uvloop --no-access-log
     environment:
       - ENVIRONMENT=production
@@ -337,6 +341,7 @@ services:
   recommender:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8001 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
@@ -362,6 +367,7 @@ services:
   search:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8002 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
@@ -387,6 +393,7 @@ services:
   pricing:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8003 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
@@ -412,6 +419,7 @@ services:
   chatbot:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8004 --workers 2 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
@@ -437,6 +445,7 @@ services:
   fraud:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8005 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
@@ -462,6 +471,7 @@ services:
   forecasting:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8006 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
@@ -487,6 +497,7 @@ services:
   vision:
     ports: []
     restart: always
+    user: "1001:1001"  # Run as aiuser (non-root)
     command: uvicorn main:app --host 0.0.0.0 --port 8007 --workers 2 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
