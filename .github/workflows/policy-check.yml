@@ -1,0 +1,236 @@
+# ==============================================================================
+# Policy Enforcement Workflow
+# ==============================================================================
+# Enforces OPA security policies on Dockerfiles and Docker Compose files
+#
+# Triggers:
+#   - Pull requests that modify Dockerfiles or compose files
+#   - Manual workflow dispatch
+#
+# Tools:
+#   - OPA: Open Policy Agent
+#   - Conftest: Test utility for structured configurations
+# ==============================================================================
+
+name: Policy Enforcement
+
+on:
+  pull_request:
+    paths:
+      - '**/Dockerfile*'
+      - '**/docker-compose*.yml'
+      - 'deploy/docker/compose/*.yml'
+      - 'config/policies/*.rego'
+  push:
+    branches:
+      - main
+      - 'phase-*/**'
+    paths:
+      - '**/Dockerfile*'
+      - '**/docker-compose*.yml'
+      - 'deploy/docker/compose/*.yml'
+      - 'config/policies/*.rego'
+  workflow_dispatch:
+
+jobs:
+  # ============================================================================
+  # Job 1: Validate Dockerfiles
+  # ============================================================================
+  dockerfile-policy-check:
+    name: Dockerfile Policy Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Conftest
+        run: |
+          CONFTEST_VERSION=0.49.1
+          wget https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz
+          tar xzf conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin/
+          conftest --version
+
+      - name: Find all Dockerfiles
+        id: find-dockerfiles
+        run: |
+          echo "Finding Dockerfiles..."
+          find deploy/docker/images -name "Dockerfile*" -type f > dockerfiles.txt
+          cat dockerfiles.txt
+          echo "dockerfile_count=$(wc -l < dockerfiles.txt)" >> $GITHUB_OUTPUT
+
+      - name: Test Dockerfiles with OPA policies
+        if: steps.find-dockerfiles.outputs.dockerfile_count > 0
+        run: |
+          echo "Testing Dockerfiles against security policies..."
+          EXIT_CODE=0
+
+          while IFS= read -r dockerfile; do
+            echo ""
+            echo "=================================================="
+            echo "Testing: $dockerfile"
+            echo "=================================================="
+
+            if conftest test "$dockerfile" \
+              --policy config/policies/docker.rego \
+              --namespace docker \
+              --no-color \
+              --output stdout; then
+              echo "✅ $dockerfile passed all policy checks"
+            else
+              echo "❌ $dockerfile failed policy checks"
+              EXIT_CODE=1
+            fi
+          done < dockerfiles.txt
+
+          exit $EXIT_CODE
+
+      - name: Upload policy test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: dockerfile-policy-results
+          path: dockerfiles.txt
+
+  # ============================================================================
+  # Job 2: Validate Docker Compose Files
+  # ============================================================================
+  compose-policy-check:
+    name: Docker Compose Policy Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Conftest
+        run: |
+          CONFTEST_VERSION=0.49.1
+          wget https://github.com/open-policy-agent/conftest/releases/download/v${CONFTEST_VERSION}/conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz
+          tar xzf conftest_${CONFTEST_VERSION}_Linux_x86_64.tar.gz
+          sudo mv conftest /usr/local/bin/
+          conftest --version
+
+      - name: Find all Docker Compose files
+        id: find-compose
+        run: |
+          echo "Finding Docker Compose files..."
+          find deploy/docker/compose -name "*.yml" -type f > compose-files.txt
+          cat compose-files.txt
+          echo "compose_count=$(wc -l < compose-files.txt)" >> $GITHUB_OUTPUT
+
+      - name: Test Compose files with OPA policies
+        if: steps.find-compose.outputs.compose_count > 0
+        run: |
+          echo "Testing Docker Compose files against security policies..."
+          EXIT_CODE=0
+
+          while IFS= read -r composefile; do
+            echo ""
+            echo "=================================================="
+            echo "Testing: $composefile"
+            echo "=================================================="
+
+            # Skip base files as they are extended by production
+            if [[ "$composefile" == *"base.yml"* ]] || [[ "$composefile" == *"base-alt.yml"* ]]; then
+              echo "ℹ️  Skipping base file: $composefile (extended by production)"
+              continue
+            fi
+
+            if conftest test "$composefile" \
+              --policy config/policies/compose.rego \
+              --namespace compose \
+              --no-color \
+              --output stdout; then
+              echo "✅ $composefile passed all policy checks"
+            else
+              echo "❌ $composefile failed policy checks"
+              EXIT_CODE=1
+            fi
+          done < compose-files.txt
+
+          exit $EXIT_CODE
+
+      - name: Upload policy test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: compose-policy-results
+          path: compose-files.txt
+
+  # ============================================================================
+  # Job 3: Policy Validation Summary
+  # ============================================================================
+  policy-summary:
+    name: Policy Enforcement Summary
+    runs-on: ubuntu-latest
+    needs: [dockerfile-policy-check, compose-policy-check]
+    if: always()
+
+    steps:
+      - name: Check job results
+        run: |
+          echo "=================================================="
+          echo "Policy Enforcement Summary"
+          echo "=================================================="
+          echo ""
+
+          if [ "${{ needs.dockerfile-policy-check.result }}" == "success" ]; then
+            echo "✅ Dockerfile policies: PASSED"
+          else
+            echo "❌ Dockerfile policies: FAILED"
+          fi
+
+          if [ "${{ needs.compose-policy-check.result }}" == "success" ]; then
+            echo "✅ Docker Compose policies: PASSED"
+          else
+            echo "❌ Docker Compose policies: FAILED"
+          fi
+
+          echo ""
+          echo "=================================================="
+
+          # Fail if any check failed
+          if [ "${{ needs.dockerfile-policy-check.result }}" != "success" ] || \
+             [ "${{ needs.compose-policy-check.result }}" != "success" ]; then
+            echo "❌ Policy enforcement failed - please review the logs above"
+            exit 1
+          fi
+
+          echo "✅ All policy checks passed!"
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const dockerfile_result = '${{ needs.dockerfile-policy-check.result }}';
+            const compose_result = '${{ needs.compose-policy-check.result }}';
+
+            let emoji = '✅';
+            let status = 'PASSED';
+
+            if (dockerfile_result !== 'success' || compose_result !== 'success') {
+              emoji = '❌';
+              status = 'FAILED';
+            }
+
+            const comment = `## ${emoji} Policy Enforcement ${status}
+
+            | Check | Status |
+            |-------|--------|
+            | Dockerfile Policies | ${dockerfile_result === 'success' ? '✅ Passed' : '❌ Failed'} |
+            | Docker Compose Policies | ${compose_result === 'success' ? '✅ Passed' : '❌ Failed'} |
+
+            ${status === 'FAILED' ? '**Please review the workflow logs and fix policy violations.**' : '**All security policies are satisfied!**'}
+
+            ---
+            <sub>Policy enforcement powered by OPA + Conftest</sub>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
