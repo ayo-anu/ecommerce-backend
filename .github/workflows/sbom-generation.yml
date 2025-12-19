@@ -53,8 +53,10 @@ jobs:
             echo "path=services/ai/api_gateway" >> $GITHUB_OUTPUT
             echo "dockerfile=services/ai/api_gateway/Dockerfile" >> $GITHUB_OUTPUT
           else
-            echo "path=services/ai/${{ matrix.service }}" >> $GITHUB_OUTPUT
-            echo "dockerfile=services/ai/${{ matrix.service }}/Dockerfile" >> $GITHUB_OUTPUT
+            # Convert service name from hyphen-case to underscore_case
+            SERVICE_DIR=$(echo "${{ matrix.service }}" | tr '-' '_')
+            echo "path=services/ai/services/${SERVICE_DIR}" >> $GITHUB_OUTPUT
+            echo "dockerfile=services/ai/services/${SERVICE_DIR}/Dockerfile" >> $GITHUB_OUTPUT
           fi
 
       - name: Build Docker image
@@ -114,7 +116,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: trivy-results-${{ matrix.service }}.sarif

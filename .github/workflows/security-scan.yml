@@ -65,7 +65,7 @@ jobs:
           exit-code: '0'  # Don't fail build, just report
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results-${{ matrix.service.name }}.sarif'
@@ -117,7 +117,7 @@ jobs:
           args: --severity-threshold=high --file=Dockerfile
 
       - name: Upload Snyk results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: snyk.sarif
@@ -161,7 +161,7 @@ jobs:
           output-format: sarif
 
       - name: Upload Grype results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
@@ -175,7 +175,7 @@ jobs:
           output-file: "${{ matrix.service }}-sbom.json"
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.service }}
           path: ${{ matrix.service }}-sbom.json
@@ -202,7 +202,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy dependency results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-dependency-results.sarif'
@@ -257,7 +257,7 @@ jobs:
             --metrics=off
 
       - name: Upload Semgrep results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: semgrep-auto.sarif
