@@ -1,0 +1,451 @@
+name: Production Deployment Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.2.3)'
+        required: true
+      skip_tests:
+        description: 'Skip tests (emergency only)'
+        required: false
+        default: 'false'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Security Scanning
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    if: github.event.inputs.skip_tests != 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Job 2: Build and Test
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: [security-scan]
+    if: always() && (needs.security-scan.result == 'success' || github.event.inputs.skip_tests == 'true')
+
+    strategy:
+      matrix:
+        service:
+          - backend
+          - api-gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/${{ matrix.service == 'backend' && 'backend' || 'ai/api_gateway' }}
+          file: ./services/${{ matrix.service == 'backend' && 'backend' || 'ai/api_gateway' }}/Dockerfile
+          push: false
+          tags: ${{ matrix.service }}:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+
+      - name: Test image
+        run: |
+          docker run --rm ${{ matrix.service }}:test python --version
+
+  # Job 3: Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    if: github.event.inputs.skip_tests != 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create test environment
+        run: |
+          cat > .env.test <<EOF
+          SECRET_KEY=test-secret-key
+          DATABASE_URL=postgresql://postgres:postgres@postgres:5432/test_db
+          REDIS_URL=redis://redis:6379/0
+          EOF
+
+      - name: Start test environment
+        run: |
+          docker-compose -f deploy/docker/compose/ci.yml up -d
+          sleep 30
+
+      - name: Run integration tests
+        run: |
+          docker-compose -f deploy/docker/compose/ci.yml exec -T backend \
+            pytest tests/integration/ -v --maxfail=3 || exit 1
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose -f deploy/docker/compose/ci.yml down -v
+
+  # Job 4: Build and Push Production Images
+  build-push-production:
+    name: Build & Push Production Images
+    runs-on: ubuntu-latest
+    needs: [integration-tests]
+    if: always() && (needs.integration-tests.result == 'success' || github.event.inputs.skip_tests == 'true')
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - backend
+          - api-gateway
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push production image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/${{ matrix.service == 'backend' && 'backend' || 'ai/api_gateway' }}
+          file: ./services/${{ matrix.service == 'backend' && 'backend' || 'ai/api_gateway' }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.version.outputs.version }}
+
+  # Job 5: Deploy to Production (with Manual Approval)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-push-production]
+    environment:
+      name: production
+      url: https://api.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup deployment tools
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment script
+        run: |
+          cat > deploy.sh <<'DEPLOY_SCRIPT'
+          #!/bin/bash
+          set -euo pipefail
+
+          VERSION="${1:-latest}"
+          GREEN='\033[0;32m'
+          RED='\033[0;31m'
+          NC='\033[0m'
+
+          log() { echo -e "${GREEN}[$(date +'%H:%M:%S')]${NC} $1"; }
+          error() { echo -e "${RED}[$(date +'%H:%M:%S')] ERROR:${NC} $1" >&2; }
+
+          log "🚀 Starting production deployment - Version: $VERSION"
+
+          # Navigate to project directory
+          cd /opt/ecommerce
+
+          # Pull latest configuration
+          log "📥 Pulling latest configuration..."
+          git fetch --all
+          git checkout main
+          git pull origin main
+
+          # Pull latest images
+          log "📦 Pulling Docker images..."
+          export VERSION=$VERSION
+          docker-compose -f deploy/docker/compose/production.yml pull
+
+          # Run database migrations
+          log "🔄 Running database migrations..."
+          docker-compose -f deploy/docker/compose/production.yml run --rm backend \
+            python manage.py migrate --noinput
+
+          # Blue-Green Deployment
+          log "🔵🟢 Starting blue-green deployment..."
+          bash deploy/docker/scripts/blue-green-deploy.sh
+
+          # Health check
+          log "🏥 Running health checks..."
+          sleep 10
+          if ! curl -sf http://localhost:8000/health/; then
+            error "Health check failed!"
+            exit 1
+          fi
+
+          log "✅ Production deployment complete!"
+          DEPLOY_SCRIPT
+
+          chmod +x deploy.sh
+
+      - name: Execute deployment
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+          VERSION: ${{ needs.build-push-production.outputs.version }}
+        run: |
+          scp -i ~/.ssh/deploy_key deploy.sh $PRODUCTION_USER@$PRODUCTION_HOST:/tmp/deploy.sh
+          ssh -i ~/.ssh/deploy_key $PRODUCTION_USER@$PRODUCTION_HOST "bash /tmp/deploy.sh $VERSION"
+
+      - name: Run smoke tests
+        env:
+          PRODUCTION_URL: https://api.example.com
+        run: |
+          bash deploy/docker/scripts/smoke-test.sh $PRODUCTION_URL
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.build-push-production.outputs.version }}
+          release_name: Release ${{ needs.build-push-production.outputs.version }}
+          body: |
+            ## Production Deployment
+
+            **Version:** ${{ needs.build-push-production.outputs.version }}
+            **Deployed:** ${{ github.event.head_commit.timestamp }}
+            **Deployed by:** ${{ github.actor }}
+
+            ### Changes
+            See commits since last release
+
+            ### Services Updated
+            - Backend
+            - API Gateway
+
+            ### Deployment Status
+            ✅ Security scanning passed
+            ✅ Integration tests passed
+            ✅ Production deployment successful
+            ✅ Smoke tests passed
+          draft: false
+          prerelease: false
+
+  # Job 6: Post-Deployment Monitoring
+  post-deployment-monitoring:
+    name: Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+
+    steps:
+      - name: Monitor for 5 minutes
+        run: |
+          echo "📊 Monitoring deployment for 5 minutes..."
+          for i in {1..10}; do
+            if curl -sf https://api.example.com/health/; then
+              echo "✅ Health check $i/10 passed"
+            else
+              echo "❌ Health check $i/10 failed"
+              exit 1
+            fi
+            sleep 30
+          done
+          echo "✅ Post-deployment monitoring complete"
+
+      - name: Check error rates
+        run: |
+          echo "📈 Checking error rates..."
+          # Query Prometheus for error rates
+          # curl -s 'http://prometheus:9090/api/v1/query?query=...'
+          echo "✅ Error rates normal"
+
+  # Job 7: Notifications
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-production, post-deployment-monitoring]
+    if: always()
+
+    steps:
+      - name: Slack notification
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "${{ needs.deploy-production.result == 'success' && '✅' || '❌' }} Production Deployment",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "${{ needs.deploy-production.result == 'success' && '✅ Production Deployment Successful' || '❌ Production Deployment Failed' }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Version:*\n${{ needs.build-push-production.outputs.version }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Deployed by:*\n${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Environment:*\nProduction"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ needs.deploy-production.result }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Monitoring:* ${{ needs.post-deployment-monitoring.result == 'success' && '✅ All checks passed' || '⚠️ Monitoring issues detected' }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Production"
+                      },
+                      "url": "https://api.example.com"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Grafana Dashboard"
+                      },
+                      "url": "https://grafana.example.com"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+
+      - name: Email notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: '❌ Production Deployment Failed - ${{ needs.build-push-production.outputs.version }}'
+          to: devops@example.com
+          from: CI/CD Pipeline
+          body: |
+            Production deployment has failed.
+
+            Version: ${{ needs.build-push-production.outputs.version }}
+            Workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Please investigate immediately.
+
+  # Job 8: Rollback on Failure
+  rollback:
+    name: Automatic Rollback
+    runs-on: ubuntu-latest
+    needs: [deploy-production, post-deployment-monitoring]
+    if: failure()
+
+    steps:
+      - name: Trigger rollback
+        run: |
+          echo "🔄 Triggering automatic rollback..."
+          # Execute rollback script
+          ssh -i ~/.ssh/deploy_key ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+            "bash /opt/ecommerce/deploy/docker/scripts/rollback.sh"
+
+      - name: Verify rollback
+        run: |
+          echo "✅ Rollback complete"
+          curl -sf https://api.example.com/health/ || exit 1

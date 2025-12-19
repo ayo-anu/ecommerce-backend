@@ -1,0 +1,22 @@
+# Example Dockerfile that violates security policies
+# This file is intentionally bad for testing purposes
+
+# Violation: Using :latest tag
+FROM python:latest
+
+# Violation: No USER directive (runs as root)
+# Violation: No HEALTHCHECK
+
+WORKDIR /app
+
+# Violation: Running privileged command
+RUN --privileged apt-get update
+
+# Warning: Unpinned packages
+RUN pip install django flask requests
+
+COPY . .
+
+# Note: Missing EXPOSE, USER, HEALTHCHECK
+
+CMD ["python", "app.py"]

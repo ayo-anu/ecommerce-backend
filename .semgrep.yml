@@ -1,0 +1,192 @@
+# Semgrep Configuration for E-Commerce Platform
+# SAST (Static Application Security Testing)
+
+rules:
+  # Django Security
+  - id: django-sql-injection
+    pattern: django.db.connection.cursor().execute($ARG)
+    message: Potential SQL injection vulnerability. Use parameterized queries.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+      owasp: "A1: Injection"
+
+  - id: django-xss-safe-filter
+    pattern: $VAR | safe
+    message: Using 'safe' filter can lead to XSS. Ensure input is sanitized.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-79: XSS"
+      owasp: "A7: XSS"
+
+  - id: hardcoded-secret
+    patterns:
+      - pattern-either:
+          - pattern: SECRET_KEY = "..."
+          - pattern: API_KEY = "..."
+          - pattern: PASSWORD = "..."
+          - pattern: TOKEN = "..."
+    message: Hardcoded secret detected. Use environment variables.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+
+  - id: debug-true-production
+    pattern: DEBUG = True
+    message: DEBUG should be False in production
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"
+
+  # FastAPI Security
+  - id: fastapi-no-auth
+    pattern: |
+      @app.$METHOD(...)
+      def $FUNC(...):
+          ...
+    message: API endpoint without authentication. Consider adding dependencies.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+
+  # Python Security
+  - id: eval-use
+    pattern: eval(...)
+    message: Avoid using eval(). It can execute arbitrary code.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-95: Code Injection"
+
+  - id: exec-use
+    pattern: exec(...)
+    message: Avoid using exec(). It can execute arbitrary code.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-95: Code Injection"
+
+  - id: pickle-unsafe
+    pattern: pickle.loads(...)
+    message: pickle.loads() is unsafe with untrusted data. Use JSON instead.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+
+  - id: yaml-unsafe-load
+    pattern: yaml.load(...)
+    message: yaml.load() is unsafe. Use yaml.safe_load() instead.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+
+  - id: shell-injection
+    pattern: subprocess.$METHOD(..., shell=True, ...)
+    message: Potential shell injection. Avoid shell=True or sanitize input.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-78: OS Command Injection"
+
+  # Crypto
+  - id: weak-crypto-md5
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+    message: MD5 and SHA1 are cryptographically weak. Use SHA256 or better.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-327: Use of Broken Crypto"
+
+  - id: hardcoded-password
+    patterns:
+      - pattern-regex: 'password\s*=\s*["\'][^"\']+["\']'
+    message: Possible hardcoded password
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-259: Hardcoded Password"
+
+  # HTTP Security
+  - id: requests-verify-false
+    pattern: requests.$METHOD(..., verify=False, ...)
+    message: SSL verification disabled. This is insecure.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-295: Certificate Validation"
+
+  # Path Traversal
+  - id: path-traversal
+    pattern: open($PATH, ...)
+    message: Potential path traversal. Validate file paths.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-22: Path Traversal"
+
+  # JWT
+  - id: jwt-none-algorithm
+    pattern: jwt.decode(..., algorithms=["none"], ...)
+    message: JWT 'none' algorithm is insecure
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-327: Broken Crypto"
+
+  # Django ORM
+  - id: django-raw-sql
+    pattern: $MODEL.objects.raw(...)
+    message: Using raw SQL. Consider using ORM to prevent injection.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+
+  # File Upload
+  - id: insecure-file-upload
+    pattern: request.FILES['$FILE']
+    message: File upload without validation. Check file type and size.
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      cwe: "CWE-434: Unrestricted Upload"
+
+# Scan configuration
+options:
+  # Ignore test files
+  exclude:
+    - "*/tests/*"
+    - "*/test_*.py"
+    - "*_test.py"
+    - "*/conftest.py"
+
+  # Performance tuning
+  max_target_bytes: 1000000
+  timeout: 30
+  timeout_threshold: 3

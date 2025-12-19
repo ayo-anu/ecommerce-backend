@@ -1,0 +1,188 @@
+# Gitleaks Configuration for E-Commerce Platform
+# Secret Scanning Configuration
+
+title = "E-Commerce Platform Secret Scanning"
+
+[extend]
+useDefault = true
+
+# Custom rules for e-commerce platform
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key ID"
+regex = '''(?i)(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+tags = ["aws", "credentials", "secret"]
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Access Key"
+regex = '''(?i)aws_secret_access_key\s*=\s*['\"]?([A-Za-z0-9/+=]{40})['\"]?'''
+tags = ["aws", "credentials", "secret"]
+
+[[rules]]
+id = "stripe-secret-key"
+description = "Stripe Secret API Key"
+regex = '''sk_(test|live)_[0-9a-zA-Z]{24,}'''
+tags = ["stripe", "payment", "secret"]
+
+[[rules]]
+id = "stripe-restricted-key"
+description = "Stripe Restricted API Key"
+regex = '''rk_(test|live)_[0-9a-zA-Z]{24,}'''
+tags = ["stripe", "payment", "secret"]
+
+[[rules]]
+id = "stripe-publishable-key"
+description = "Stripe Publishable Key"
+regex = '''pk_(test|live)_[0-9a-zA-Z]{24,}'''
+tags = ["stripe", "payment"]
+[rules.allowlist]
+regexes = [
+    '''pk_test_.*example''',  # Allow test examples in docs
+]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''sk-[A-Za-z0-9]{48}'''
+tags = ["openai", "api", "secret"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey|access[_-]?key)\s*[:=]\s*['\"]?([a-z0-9_-]{32,})['\"]?'''
+tags = ["api", "key", "secret"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT Secret"
+regex = '''(?i)jwt[_-]?secret\s*[:=]\s*['\"]?([a-zA-Z0-9_-]{32,})['\"]?'''
+tags = ["jwt", "secret"]
+
+[[rules]]
+id = "database-url"
+description = "Database Connection String"
+regex = '''(?i)(postgres|postgresql|mysql|mongodb|redis)://[^:]+:[^@]+@[^/\s]+(/[^\s'"]+)?'''
+tags = ["database", "credentials", "secret"]
+
+[[rules]]
+id = "django-secret-key"
+description = "Django Secret Key"
+regex = '''(?i)secret[_-]?key\s*=\s*['\"]([a-zA-Z0-9@#$%^&*()-_=+]{40,})['\"]'''
+tags = ["django", "secret"]
+
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----'''
+tags = ["key", "private", "secret"]
+
+[[rules]]
+id = "generic-password"
+description = "Generic Password"
+regex = '''(?i)(password|passwd|pwd)\s*[:=]\s*['\"]([^'\"]{8,})['\"]'''
+tags = ["password", "secret"]
+[rules.allowlist]
+regexes = [
+    '''password.*placeholder''',
+    '''password.*example''',
+    '''password.*test''',
+    '''password.*dummy''',
+]
+
+[[rules]]
+id = "slack-webhook"
+description = "Slack Webhook URL"
+regex = '''https://hooks\.slack\.com/services/[A-Z0-9]{9,12}/[A-Z0-9]{9,12}/[A-Za-z0-9]{24}'''
+tags = ["slack", "webhook", "secret"]
+
+[[rules]]
+id = "github-token"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[0-9a-zA-Z]{36}'''
+tags = ["github", "token", "secret"]
+
+[[rules]]
+id = "github-oauth-token"
+description = "GitHub OAuth Token"
+regex = '''gho_[0-9a-zA-Z]{36}'''
+tags = ["github", "token", "secret"]
+
+[[rules]]
+id = "sendgrid-api-key"
+description = "SendGrid API Key"
+regex = '''SG\.[0-9A-Za-z_-]{22}\.[0-9A-Za-z_-]{43}'''
+tags = ["sendgrid", "email", "secret"]
+
+[[rules]]
+id = "mailgun-api-key"
+description = "Mailgun API Key"
+regex = '''key-[0-9a-zA-Z]{32}'''
+tags = ["mailgun", "email", "secret"]
+
+[[rules]]
+id = "twilio-api-key"
+description = "Twilio API Key"
+regex = '''SK[0-9a-fA-F]{32}'''
+tags = ["twilio", "api", "secret"]
+
+[[rules]]
+id = "google-api-key"
+description = "Google API Key"
+regex = '''AIza[0-9A-Za-z_-]{35}'''
+tags = ["google", "api", "secret"]
+
+[[rules]]
+id = "cloudinary-url"
+description = "Cloudinary URL"
+regex = '''cloudinary://[0-9]+:[A-Za-z0-9_-]+@[A-Za-z0-9_-]+'''
+tags = ["cloudinary", "credentials", "secret"]
+
+# Allowlist configuration
+[allowlist]
+description = "Allowlist for false positives"
+
+# Paths to ignore
+paths = [
+    '''.env.example$''',
+    '''.env.*.template$''',
+    '''.env.*.example$''',
+    '''.*_test\.py$''',
+    '''.*test_.*\.py$''',
+    '''.*/tests/.*''',
+    '''.*/fixtures/.*''',
+    '''.*\.md$''',
+    '''.*\.txt$''',
+    '''package-lock\.json$''',
+    '''poetry\.lock$''',
+    '''.*\.min\.js$''',
+]
+
+# Regexes to ignore
+regexes = [
+    '''placeholder''',
+    '''example''',
+    '''dummy''',
+    '''fake''',
+    '''test''',
+    '''sample''',
+    '''mock''',
+    '''your-key-here''',
+    '''your-.*-here''',
+    '''replace-.*''',
+    '''change-.*''',
+    '''<.*>''',
+    '''\$\{.*\}''',  # Template variables
+    '''%(.*?)s''',  # Python string formatting
+]
+
+# Commits to ignore
+commits = []
+
+# Stop words
+stopwords = [
+    '''password''',
+    '''key''',
+    '''secret''',
+    '''token''',
+]

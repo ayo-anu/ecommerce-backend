@@ -1,0 +1,48 @@
+# Example Docker Compose file that passes all security policies
+version: '3.8'
+
+services:
+  backend:
+    image: backend:1.0.0
+    user: "1000:1000"
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=backend"
+
+    networks:
+      - backend
+
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+
+networks:
+  backend:
+    driver: bridge
