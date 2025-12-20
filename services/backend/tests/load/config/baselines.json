@@ -1,0 +1,123 @@
+{
+  "description": "Performance baseline thresholds for all critical endpoints",
+  "version": "1.0.0",
+  "last_updated": "2025-12-20",
+  "environment": "production",
+  "endpoints": {
+    "/api/v1/products/": {
+      "name": "Product List",
+      "method": "GET",
+      "target_rps": 100,
+      "thresholds": {
+        "p50_ms": 50,
+        "p95_ms": 100,
+        "p99_ms": 200,
+        "max_error_rate": 0.01
+      },
+      "priority": "high"
+    },
+    "/api/v1/products/{id}/": {
+      "name": "Product Detail",
+      "method": "GET",
+      "target_rps": 200,
+      "thresholds": {
+        "p50_ms": 30,
+        "p95_ms": 80,
+        "p99_ms": 150,
+        "max_error_rate": 0.01
+      },
+      "priority": "high"
+    },
+    "/api/v1/products/search/": {
+      "name": "Product Search",
+      "method": "GET",
+      "target_rps": 50,
+      "thresholds": {
+        "p50_ms": 100,
+        "p95_ms": 300,
+        "p99_ms": 500,
+        "max_error_rate": 0.02
+      },
+      "priority": "high"
+    },
+    "/api/v1/cart/": {
+      "name": "View Cart",
+      "method": "GET",
+      "target_rps": 80,
+      "thresholds": {
+        "p50_ms": 50,
+        "p95_ms": 120,
+        "p99_ms": 250,
+        "max_error_rate": 0.01
+      },
+      "priority": "high"
+    },
+    "/api/v1/cart/items/": {
+      "name": "Add to Cart",
+      "method": "POST",
+      "target_rps": 50,
+      "thresholds": {
+        "p50_ms": 80,
+        "p95_ms": 150,
+        "p99_ms": 300,
+        "max_error_rate": 0.02
+      },
+      "priority": "high"
+    },
+    "/api/v1/orders/": {
+      "name": "Create Order (Checkout)",
+      "method": "POST",
+      "target_rps": 20,
+      "thresholds": {
+        "p50_ms": 200,
+        "p95_ms": 500,
+        "p99_ms": 1000,
+        "max_error_rate": 0.03
+      },
+      "priority": "critical"
+    },
+    "/api/v1/auth/login/": {
+      "name": "User Login",
+      "method": "POST",
+      "target_rps": 30,
+      "thresholds": {
+        "p50_ms": 150,
+        "p95_ms": 300,
+        "p99_ms": 600,
+        "max_error_rate": 0.01
+      },
+      "priority": "high"
+    },
+    "/api/v1/accounts/profile/": {
+      "name": "View Profile",
+      "method": "GET",
+      "target_rps": 40,
+      "thresholds": {
+        "p50_ms": 40,
+        "p95_ms": 100,
+        "p99_ms": 200,
+        "max_error_rate": 0.01
+      },
+      "priority": "medium"
+    },
+    "/api/v1/products/{id}/recommendations/": {
+      "name": "AI Recommendations",
+      "method": "GET",
+      "target_rps": 25,
+      "thresholds": {
+        "p50_ms": 300,
+        "p95_ms": 800,
+        "p99_ms": 1500,
+        "max_error_rate": 0.05
+      },
+      "priority": "medium"
+    }
+  },
+  "notes": {
+    "measurement": "All latencies measured in milliseconds (ms)",
+    "error_rate": "Error rate is percentage (0.01 = 1%)",
+    "rps": "Requests per second under load",
+    "priority": "critical > high > medium > low",
+    "update_frequency": "Review and update baselines quarterly or after major changes"
+  }
+}
