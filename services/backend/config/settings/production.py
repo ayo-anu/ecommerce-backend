@@ -184,7 +184,11 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 
 
+# ==============================================================================
+# CDN & Static Files Configuration
+# ==============================================================================
 USE_S3 = config('USE_S3', default=False, cast=bool)
+USE_CDN = config('USE_CDN', default=False, cast=bool)
 
 if USE_S3:
     # AWS S3 Configuration - Get credentials from Vault or environment
@@ -192,38 +196,63 @@ if USE_S3:
         'AWS_ACCESS_KEY_ID',
         vault_path='secret/data/aws',
         vault_key='ACCESS_KEY_ID',
-        default=config('AWS_ACCESS_KEY_ID')
+        default=config('AWS_ACCESS_KEY_ID', default='')
     )
     AWS_SECRET_ACCESS_KEY = get_vault_secret(
         'AWS_SECRET_ACCESS_KEY',
         vault_path='secret/data/aws',
         vault_key='SECRET_ACCESS_KEY',
-        default=config('AWS_SECRET_ACCESS_KEY')
+        default=config('AWS_SECRET_ACCESS_KEY', default='')
     )
     AWS_STORAGE_BUCKET_NAME = config('AWS_STORAGE_BUCKET_NAME')
     AWS_S3_REGION_NAME = config('AWS_S3_REGION_NAME', default='us-east-1')
-    AWS_S3_CUSTOM_DOMAIN = config('AWS_S3_CUSTOM_DOMAIN', default=f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com')
-    AWS_S3_OBJECT_PARAMETERS = {
-        'CacheControl': 'max-age=86400',
-    }
-    AWS_DEFAULT_ACL = 'public-read'
+
+    # CDN Configuration
+    if USE_CDN:
+        # CDN_DOMAIN should be your CloudFront or Cloudflare domain
+        # Examples:
+        #   CloudFront: d1234567890.cloudfront.net
+        #   Cloudflare: cdn.example.com
+        CDN_DOMAIN = config('CDN_DOMAIN', default='')
+
+        if CDN_DOMAIN:
+            AWS_S3_CUSTOM_DOMAIN = CDN_DOMAIN
+        else:
+            # Fallback to S3 direct if CDN_DOMAIN not set
+            AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    else:
+        AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+    # S3 Configuration
+    AWS_DEFAULT_ACL = None  # Use bucket's default ACL
     AWS_S3_FILE_OVERWRITE = False
-    
-    # Static files
-    STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_S3_VERIFY = True
+
+    # Enable S3 Transfer Acceleration (optional, for faster uploads)
+    AWS_S3_USE_ACCELERATE_ENDPOINT = config('AWS_S3_USE_ACCELERATE', default=False, cast=bool)
+
+    # Custom storage backends with optimized cache headers
+    STATICFILES_STORAGE = 'core.storage_backends.StaticStorage'
+    DEFAULT_FILE_STORAGE = 'core.storage_backends.MediaStorage'
+
+    # URLs for static and media files
     STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
-    
-    # Media files
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+
+    # Collectstatic configuration
+    AWS_LOCATION = 'static'
+
 else:
-  
+    # Local file serving with WhiteNoise
     MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     STATIC_ROOT = BASE_DIR / 'staticfiles'
     STATIC_URL = '/static/'
-    
-    
+
+    # WhiteNoise cache headers
+    WHITENOISE_MAX_AGE = 31536000  # 1 year for versioned static files
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: True  # Mark all as immutable
+
     MEDIA_ROOT = BASE_DIR / 'media'
     MEDIA_URL = '/media/'
 
