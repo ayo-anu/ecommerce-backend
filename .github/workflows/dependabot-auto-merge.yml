@@ -105,20 +105,23 @@ jobs:
       - name: Add comment for ineligible PRs
         if: steps.check-eligibility.outputs.eligible == 'false'
         run: |
-          gh pr comment "$PR_URL" --body "⚠️ **Auto-merge not enabled**
+          gh pr comment "$PR_URL" --body "$(cat <<'COMMENT_EOF'
+          ⚠️ Auto-merge not enabled
 
-**Reason**: ${{ steps.check-eligibility.outputs.reason }}
+          Reason: ${{ steps.check-eligibility.outputs.reason }}
 
-This PR requires manual review and approval.
+          This PR requires manual review and approval.
 
-**Update Type**: \`${{ steps.metadata.outputs.update-type }}\`
-**Dependencies**: ${{ steps.metadata.outputs.dependency-names }}
+          Update Type: ${{ steps.metadata.outputs.update-type }}
+          Dependencies: ${{ steps.metadata.outputs.dependency-names }}
 
-To enable auto-merge for patch updates:
-1. Ensure CI checks pass
-2. Verify this is a patch update (x.y.Z)
-3. PR must have \`automerge-candidate\` label
-4. PR must NOT have \`do-not-merge\` label"
+          To enable auto-merge for patch updates:
+          1. Ensure CI checks pass
+          2. Verify this is a patch update (x.y.Z)
+          3. PR must have automerge-candidate label
+          4. PR must NOT have do-not-merge label
+          COMMENT_EOF
+          )"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
