@@ -1,13 +1,16 @@
 # ==============================================================================
-# Dependabot Configuration
+# Dependabot Configuration - Phase 6 Enhanced
 # ==============================================================================
 # Automated dependency updates for security patches and version upgrades
 #
 # Features:
-# - Weekly security updates
-# - Grouped updates by ecosystem
-# - Auto-merge for patch updates (optional)
-# - Custom labels for tracking
+# - Daily security updates for critical vulnerabilities
+# - Weekly dependency updates grouped by ecosystem
+# - Automatic labeling and grouping
+# - Branch protection integration
+# - CI/CD pipeline validation
+#
+# Updated: 2025-12-24 (Phase 6: Compliance & Maintainability)
 # ==============================================================================
 
 version: 2
@@ -17,19 +20,21 @@ updates:
   # Backend Python Dependencies
   # ============================================================================
   - package-ecosystem: "pip"
-    directory: "/backend"
+    directory: "/services/backend"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"  # Daily for security patches
       time: "02:00"
       timezone: "UTC"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 15
     reviewers:
-      - "backend-team"
+      - "platform-team"
+    assignees:
+      - "platform-team"
     labels:
       - "dependencies"
       - "backend"
       - "python"
+      - "automerge-candidate"
     commit-message:
       prefix: "chore(deps)"
       prefix-development: "chore(deps-dev)"
@@ -40,34 +45,52 @@ updates:
         patterns:
           - "django*"
           - "djangorestframework*"
+        update-types:
+          - "minor"
+          - "patch"
+      database-drivers:
+        patterns:
+          - "psycopg*"
+          - "sqlalchemy*"
+        update-types:
+          - "minor"
+          - "patch"
       testing:
         patterns:
           - "pytest*"
           - "coverage"
+          - "factory-boy"
+        update-types:
+          - "minor"
+          - "patch"
       security:
         patterns:
           - "cryptography"
           - "pyjwt"
+          - "authlib"
+        update-types:
+          - "patch"
     ignore:
-      # Ignore major version updates (require manual review)
+      # Ignore major version updates (require manual review and planning)
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   # ============================================================================
-  # AI Services Python Dependencies
+  # AI API Gateway Python Dependencies
   # ============================================================================
   - package-ecosystem: "pip"
-    directory: "/ai-services"
+    directory: "/services/ai/api_gateway"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "03:00"
       timezone: "UTC"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 15
     labels:
       - "dependencies"
       - "ai-services"
+      - "api-gateway"
       - "python"
+      - "automerge-candidate"
     commit-message:
       prefix: "chore(deps)"
       include: "scope"
@@ -75,15 +98,169 @@ updates:
       fastapi-ecosystem:
         patterns:
           - "fastapi"
-          - "uvicorn"
+          - "uvicorn*"
           - "pydantic*"
+          - "starlette"
+        update-types:
+          - "minor"
+          - "patch"
+      http-clients:
+        patterns:
+          - "httpx"
+          - "aiohttp"
+          - "requests"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ============================================================================
+  # AI Services - Individual Service Dependencies
+  # ============================================================================
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/recommendation_engine"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "recommendation"
+      - "python"
+    groups:
+      ml-libraries:
+        patterns:
+          - "scikit-learn"
+          - "numpy"
+          - "pandas"
+          - "scipy"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/fraud_detection"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "fraud-detection"
+      - "python"
+    groups:
       ml-libraries:
         patterns:
           - "scikit-learn"
           - "numpy"
           - "pandas"
           - "tensorflow*"
+          - "keras*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/search_engine"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "search"
+      - "python"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/chatbot_rag"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "02:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "chatbot"
+      - "python"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/pricing_engine"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "03:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "pricing"
+      - "python"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/demand_forecasting"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "04:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "forecasting"
+      - "python"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "pip"
+    directory: "/services/ai/services/visual_recognition"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "05:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "ai-services"
+      - "vision"
+      - "python"
+    groups:
+      vision-libraries:
+        patterns:
+          - "pillow"
+          - "opencv*"
           - "torch*"
+          - "torchvision"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   # ============================================================================
   # GitHub Actions
@@ -92,112 +269,276 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "04:00"
+      day: "wednesday"
+      time: "02:00"
       timezone: "UTC"
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "github-actions"
       - "ci"
+      - "automerge-candidate"
     commit-message:
       prefix: "ci"
       include: "scope"
 
   # ============================================================================
-  # Docker Base Images
+  # Docker Base Images - Services
   # ============================================================================
   - package-ecosystem: "docker"
-    directory: "/backend"
+    directory: "/services/backend"
     schedule:
       interval: "weekly"
-      day: "tuesday"
-      time: "02:00"
+      day: "wednesday"
+      time: "03:00"
       timezone: "UTC"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "docker"
       - "backend"
     commit-message:
       prefix: "chore(docker)"
+    ignore:
+      # Pin to Python 3.11 (avoid auto-upgrade to 3.12+)
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "docker"
-    directory: "/ai-services/api_gateway"
+    directory: "/services/ai/api_gateway"
     schedule:
       interval: "weekly"
-      day: "tuesday"
-      time: "03:00"
+      day: "wednesday"
+      time: "04:00"
       timezone: "UTC"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "docker"
       - "ai-services"
+      - "api-gateway"
     commit-message:
       prefix: "chore(docker)"
 
   - package-ecosystem: "docker"
-    directory: "/ai-services/services/recommendation_engine"
+    directory: "/services/ai/services/recommendation_engine"
     schedule:
       interval: "weekly"
-      day: "tuesday"
+      day: "thursday"
+      time: "02:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+      - "recommendation"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/services/ai/services/fraud_detection"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "03:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+      - "fraud-detection"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/services/ai/services/search_engine"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
       time: "04:00"
       timezone: "UTC"
     labels:
       - "dependencies"
       - "docker"
       - "ai-services"
+      - "search"
+    commit-message:
+      prefix: "chore(docker)"
 
   - package-ecosystem: "docker"
-    directory: "/ai-services/services/fraud_detection"
+    directory: "/services/ai/services/chatbot_rag"
     schedule:
       interval: "weekly"
-      day: "tuesday"
+      day: "thursday"
       time: "05:00"
       timezone: "UTC"
     labels:
       - "dependencies"
       - "docker"
       - "ai-services"
+      - "chatbot"
+    commit-message:
+      prefix: "chore(docker)"
 
-  # ============================================================================
-  # Infrastructure Docker Compose
-  # ============================================================================
   - package-ecosystem: "docker"
-    directory: "/infrastructure"
+    directory: "/services/ai/services/pricing_engine"
     schedule:
       interval: "weekly"
-      day: "wednesday"
+      day: "friday"
       time: "02:00"
       timezone: "UTC"
-    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+      - "pricing"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/services/ai/services/demand_forecasting"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "03:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+      - "forecasting"
+    commit-message:
+      prefix: "chore(docker)"
+
+  - package-ecosystem: "docker"
+    directory: "/services/ai/services/visual_recognition"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "04:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "ai-services"
+      - "vision"
+    commit-message:
+      prefix: "chore(docker)"
+
+  # ============================================================================
+  # Docker Compose Files - Infrastructure
+  # ============================================================================
+  - package-ecosystem: "docker"
+    directory: "/deploy/docker/compose"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "05:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "docker"
       - "infrastructure"
+      - "docker-compose"
     commit-message:
       prefix: "chore(infra)"
 
 # ==============================================================================
-# Security Updates Strategy
+# Dependency Update Strategy - Phase 6
 # ==============================================================================
-# Dependabot will automatically:
-# 1. Create PRs for security vulnerabilities (priority)
-# 2. Group related dependencies for easier review
-# 3. Run CI checks on all dependency updates
-# 4. Label PRs for easy filtering
 #
-# Recommended Workflow:
-# 1. Review security updates IMMEDIATELY (labeled "security")
-# 2. Review and merge patch updates within 48 hours
-# 3. Review minor updates weekly
-# 4. Plan major updates quarterly
+# Update Schedule:
+# ================
+# - Backend & API Gateway Python deps: DAILY (security-focused)
+# - AI Services Python deps: WEEKLY (Monday-Tuesday)
+# - GitHub Actions: WEEKLY (Wednesday)
+# - Docker Images: WEEKLY (Wednesday-Friday)
+# - Docker Compose: WEEKLY (Friday)
 #
-# Auto-merge (optional):
-# To enable auto-merge for patch updates, add this to repo settings:
-# - Enable "Allow auto-merge"
-# - Add branch protection rule requiring CI to pass
-# - Use GitHub CLI or bot to auto-approve dependabot PRs:
-#   gh pr review --approve "PR_NUMBER"
+# Grouping Strategy:
+# ==================
+# Dependencies are grouped by ecosystem to reduce PR volume:
+# - Django ecosystem (django, djangorestframework)
+# - FastAPI ecosystem (fastapi, uvicorn, pydantic)
+# - Database drivers (psycopg, sqlalchemy)
+# - ML libraries (scikit-learn, numpy, pandas, tensorflow)
+# - Testing tools (pytest, coverage)
+# - Security libraries (cryptography, pyjwt)
+#
+# Security Update Workflow:
+# =========================
+# 1. CRITICAL (CVE with CVSS >= 9.0):
+#    - Automated alert via GitHub Security Advisories
+#    - Review and merge IMMEDIATELY (< 4 hours)
+#    - Deploy to production within 24 hours
+#
+# 2. HIGH (CVE with CVSS >= 7.0):
+#    - Review within 24 hours
+#    - Merge within 48 hours
+#    - Deploy to production within 1 week
+#
+# 3. MEDIUM (CVE with CVSS >= 4.0):
+#    - Review within 1 week
+#    - Merge within 2 weeks
+#    - Include in next release cycle
+#
+# 4. LOW (CVE with CVSS < 4.0):
+#    - Review monthly
+#    - Batch with other updates
+#
+# Review Workflow:
+# ================
+# 1. PATCH updates (x.y.Z):
+#    - Auto-merge after CI passes (if labeled "automerge-candidate")
+#    - Manual review optional
+#
+# 2. MINOR updates (x.Y.0):
+#    - Require manual code review
+#    - Test in staging environment
+#    - Review changelog for breaking changes
+#
+# 3. MAJOR updates (X.0.0):
+#    - IGNORED by Dependabot (intentional)
+#    - Requires planning and migration strategy
+#    - Schedule quarterly for major dependency upgrades
+#    - Create separate epic for major version migrations
+#
+# Auto-merge Configuration:
+# =========================
+# To enable auto-merge for patch updates:
+#
+# 1. Enable auto-merge in repository settings:
+#    Settings → General → Allow auto-merge
+#
+# 2. Configure branch protection for main:
+#    - Require status checks to pass
+#    - Require CI workflow to pass
+#    - Include Dependabot in allowed merge methods
+#
+# 3. Set up GitHub Action for auto-approval (see .github/workflows/dependabot-auto-merge.yml)
+#
+# Labels:
+# =======
+# - "dependencies": All dependency updates
+# - "python": Python package updates
+# - "docker": Docker image updates
+# - "github-actions": GitHub Actions updates
+# - "automerge-candidate": Eligible for automatic merge after CI passes
+# - Service-specific: "backend", "ai-services", "api-gateway", etc.
+#
+# Monitoring:
+# ===========
+# - Weekly review of open Dependabot PRs
+# - Monthly audit of outdated dependencies
+# - Quarterly major version upgrade planning
+# - Track dependency update metrics in team dashboard
+#
+# Compliance:
+# ===========
+# This configuration supports:
+# - SOC 2: Regular security updates and patch management
+# - PCI-DSS: Timely security vulnerability remediation
+# - GDPR: Data protection through up-to-date security libraries
+#
 # ==============================================================================
