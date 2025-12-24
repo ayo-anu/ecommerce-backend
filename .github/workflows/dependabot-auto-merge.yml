@@ -1,0 +1,113 @@
+name: Dependabot Auto-Merge
+
+# ==============================================================================
+# Dependabot Auto-Merge Workflow
+# ==============================================================================
+# Automatically approves and merges Dependabot PRs for patch updates after CI passes
+#
+# Security:
+# - Only runs for Dependabot-created PRs
+# - Only auto-merges patch updates (x.y.Z)
+# - Requires all CI checks to pass
+# - Requires "automerge-candidate" label
+#
+# Manual Override:
+# - Remove "automerge-candidate" label to prevent auto-merge
+# - Add "do-not-merge" label to block auto-merge
+# ==============================================================================
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-Merge Dependabot PR
+    runs-on: ubuntu-latest
+
+    # Only run for Dependabot PRs
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - name: Check PR metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v1
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Check if auto-merge eligible
+        id: check-eligibility
+        run: |
+          # Check if PR has automerge-candidate label
+          if [[ ! "${{ contains(github.event.pull_request.labels.*.name, 'automerge-candidate') }}" == "true" ]]; then
+            echo "eligible=false" >> $GITHUB_OUTPUT
+            echo "reason=Missing automerge-candidate label" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check if PR has do-not-merge label
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'do-not-merge') }}" == "true" ]]; then
+            echo "eligible=false" >> $GITHUB_OUTPUT
+            echo "reason=Has do-not-merge label" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Only auto-merge patch updates (x.y.Z)
+          UPDATE_TYPE="${{ steps.metadata.outputs.update-type }}"
+          if [[ "$UPDATE_TYPE" != "version-update:semver-patch" ]]; then
+            echo "eligible=false" >> $GITHUB_OUTPUT
+            echo "reason=Not a patch update (type: $UPDATE_TYPE)" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Eligible for auto-merge
+          echo "eligible=true" >> $GITHUB_OUTPUT
+          echo "reason=Patch update with automerge-candidate label" >> $GITHUB_OUTPUT
+
+      - name: Log eligibility decision
+        run: |
+          echo "Auto-merge eligible: ${{ steps.check-eligibility.outputs.eligible }}"
+          echo "Reason: ${{ steps.check-eligibility.outputs.reason }}"
+          echo "Update type: ${{ steps.metadata.outputs.update-type }}"
+          echo "Dependency names: ${{ steps.metadata.outputs.dependency-names }}"
+
+      - name: Auto-approve PR
+        if: steps.check-eligibility.outputs.eligible == 'true'
+        run: |
+          gh pr review "$PR_URL" --approve --body "Auto-approving patch update after CI checks pass. 🤖"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge
+        if: steps.check-eligibility.outputs.eligible == 'true'
+        run: |
+          gh pr merge "$PR_URL" --auto --squash --delete-branch
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add comment for ineligible PRs
+        if: steps.check-eligibility.outputs.eligible == 'false'
+        run: |
+          gh pr comment "$PR_URL" --body "⚠️ **Auto-merge not enabled**
+
+**Reason**: ${{ steps.check-eligibility.outputs.reason }}
+
+This PR requires manual review and approval.
+
+**Update Type**: \`${{ steps.metadata.outputs.update-type }}\`
+**Dependencies**: ${{ steps.metadata.outputs.dependency-names }}
+
+To enable auto-merge for patch updates:
+1. Ensure CI checks pass
+2. Verify this is a patch update (x.y.Z)
+3. PR must have \`automerge-candidate\` label
+4. PR must NOT have \`do-not-merge\` label"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
