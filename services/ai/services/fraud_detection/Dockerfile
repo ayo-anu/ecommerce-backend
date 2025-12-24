@@ -6,7 +6,7 @@
 # ==============================================================================
 # Stage 1: Builder - Install dependencies
 # ==============================================================================
-FROM python:3.11-slim AS builder
+FROM python:3.14-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -36,7 +36,7 @@ RUN pip install --upgrade pip setuptools wheel && \
 # ==============================================================================
 # Stage 2: Runtime - Minimal production image
 # ==============================================================================
-FROM python:3.11-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
