@@ -1,12 +1,12 @@
 name: Load Testing
 
 on:
-  # Run on pull requests to main
-  pull_request:
-    branches: [main]
-    paths:
-      - 'services/backend/**'
-      - '.github/workflows/load-test.yml'
+  # DISABLED: Run on pull requests to main (too heavy for PR runs)
+  # pull_request:
+  #   branches: [main]
+  #   paths:
+  #     - 'services/backend/**'
+  #     - '.github/workflows/load-test.yml'
 
   # Run on schedule (weekly)
   schedule:

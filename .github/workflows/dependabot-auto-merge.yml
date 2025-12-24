@@ -19,6 +19,8 @@ name: Dependabot Auto-Merge
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
+  pull_request_target:
+    types: [opened]
 
 permissions:
   contents: write
@@ -38,6 +40,15 @@ jobs:
         uses: dependabot/fetch-metadata@v1
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Auto-label patch updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: |
+          gh pr edit "$PR_URL" --add-label "automerge-candidate"
+          echo "Added automerge-candidate label to patch update PR"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if auto-merge eligible
         id: check-eligibility

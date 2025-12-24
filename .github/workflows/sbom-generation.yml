@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
     tags: ['v*.*.*']
-  pull_request:
-    branches: [main]
+  # DISABLED: pull_request (too heavy for PR runs, 36+ failures)
+  # pull_request:
+  #   branches: [main]
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday
   workflow_dispatch:
