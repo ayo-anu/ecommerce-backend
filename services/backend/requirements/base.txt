@@ -77,7 +77,7 @@ jsonschema-specifications==2025.9.1
 kombu==5.5.4
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
-marshmallow==4.1.0
+marshmallow==4.1.2
 matplotlib-inline==0.2.1
 mccabe==0.7.0
 mdurl==0.1.2
