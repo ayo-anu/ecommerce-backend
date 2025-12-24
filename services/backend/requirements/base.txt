@@ -8,7 +8,7 @@ asgiref==3.10.0
 astroid==3.0.3
 asttokens==3.0.0
 attrs==25.4.0
-Authlib==1.6.5
+Authlib==1.6.6
 babel==2.17.0
 backcall==0.2.0
 billiard==4.2.2
