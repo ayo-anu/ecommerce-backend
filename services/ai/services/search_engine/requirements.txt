@@ -11,7 +11,7 @@ elasticsearch==8.19.2
 elastic-transport==8.17.1
 
 # Vector Database
-qdrant-client==1.7.0
+qdrant-client>=1.12.0,<2.0.0  # CRITICAL: Security fix for CVE-2024-3829 (input validation failure)
 grpcio==1.76.0
 
 # NLP for semantic search

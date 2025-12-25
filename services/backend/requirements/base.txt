@@ -31,7 +31,7 @@ cryptography==46.0.3
 decorator==5.2.1
 dill==0.4.0
 dj-database-url==2.1.0
-Django==5.1.13
+Django>=5.1.14,<5.2.0  # Security fix for CVE-2025-64459 (SQL injection) and GHSA-frmv-pr5f-9mcr
 django-celery-beat==2.8.1
 django-celery-results==2.5.1
 django-cors-headers==4.3.1
@@ -54,7 +54,7 @@ elasticsearch-dsl==8.11.0
 executing==2.2.1
 factory-boy==3.3.0
 Faker==20.1.0
-filelock==3.20.0
+filelock>=3.20.1,<4.0.0  # Security fix for CVE-2025-68146 (TOCTOU race condition)
 flower==2.0.1
 gprof2dot==2025.4.14
 gunicorn==23.0.0
@@ -77,7 +77,7 @@ jsonschema-specifications==2025.9.1
 kombu==5.5.4
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
-marshmallow==4.1.0
+marshmallow>=4.2.0,<5.0.0  # Update to latest secure version
 matplotlib-inline==0.2.1
 mccabe==0.7.0
 mdurl==0.1.2
@@ -144,7 +144,7 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.2
 uritemplate==4.2.0
-urllib3==2.5.0
+urllib3>=2.5.2,<3.0.0  # Security fix for CVE-2025-66471 and CVE-2025-66418
 vine==5.1.0
 wcwidth==0.2.14
 webencodings==0.5.1
