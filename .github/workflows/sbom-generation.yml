@@ -25,6 +25,7 @@ jobs:
       security-events: write
 
     strategy:
+      fail-fast: false  # Don't cancel other jobs if one fails
       matrix:
         service:
           - backend
@@ -117,7 +118,7 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: trivy-results-${{ matrix.service }}.sarif
@@ -202,6 +203,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
 
     strategy:
+      fail-fast: false  # Don't cancel other jobs if one fails
       matrix:
         service:
           - backend
