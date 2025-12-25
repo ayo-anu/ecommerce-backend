@@ -35,7 +35,7 @@ jobs:
             context: ./services/backend
             dockerfile: ./services/backend/Dockerfile
           - name: api-gateway
-            context: ./services/ai/api_gateway
+            context: ./services/ai
             dockerfile: ./services/ai/api_gateway/Dockerfile
 
     steps:

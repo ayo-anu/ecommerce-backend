@@ -52,12 +52,13 @@ jobs:
             echo "path=services/backend" >> $GITHUB_OUTPUT
             echo "dockerfile=services/backend/Dockerfile" >> $GITHUB_OUTPUT
           elif [ "${{ matrix.service }}" == "api-gateway" ]; then
-            echo "path=services/ai/api_gateway" >> $GITHUB_OUTPUT
+            echo "path=services/ai" >> $GITHUB_OUTPUT
             echo "dockerfile=services/ai/api_gateway/Dockerfile" >> $GITHUB_OUTPUT
           else
+            # All AI services build from services/ai context
             # Convert service name from hyphen-case to underscore_case
             SERVICE_DIR=$(echo "${{ matrix.service }}" | tr '-' '_')
-            echo "path=services/ai/services/${SERVICE_DIR}" >> $GITHUB_OUTPUT
+            echo "path=services/ai" >> $GITHUB_OUTPUT
             echo "dockerfile=services/ai/services/${SERVICE_DIR}/Dockerfile" >> $GITHUB_OUTPUT
           fi
 
