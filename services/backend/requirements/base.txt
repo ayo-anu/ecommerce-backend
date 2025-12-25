@@ -47,7 +47,7 @@ djangorestframework==3.15.2
 djangorestframework_simplejwt==5.5.1
 docutils==0.20.1
 dparse==0.6.4
-drf-spectacular==0.27.0
+drf-spectacular==0.29.0
 elastic-transport==8.17.1
 elasticsearch==8.19.2
 elasticsearch-dsl==8.11.0
