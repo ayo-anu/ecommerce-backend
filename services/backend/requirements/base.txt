@@ -154,7 +154,7 @@ whitenoise==6.6.0
 # OpenTelemetry for Distributed Tracing
 opentelemetry-api==1.21.0
 opentelemetry-sdk==1.21.0
-opentelemetry-instrumentation==0.42b0
+opentelemetry-instrumentation==0.60b1
 opentelemetry-instrumentation-django==0.42b0
 opentelemetry-instrumentation-psycopg2==0.42b0
 opentelemetry-instrumentation-redis==0.42b0
