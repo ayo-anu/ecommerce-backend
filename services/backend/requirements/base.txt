@@ -31,7 +31,7 @@ cryptography==46.0.3
 decorator==5.2.1
 dill==0.4.0
 dj-database-url==2.1.0
-Django>=5.1.14,<5.2.0  # Security fix for CVE-2025-64459 (SQL injection) and GHSA-frmv-pr5f-9mcr
+Django>=5.1.14,<5.3.0  # Security fix for CVE-2025-64459 (SQL injection) and GHSA-frmv-pr5f-9mcr
 django-celery-beat==2.8.1
 django-celery-results==2.5.1
 django-cors-headers==4.3.1
