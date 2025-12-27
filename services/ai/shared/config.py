@@ -21,11 +21,12 @@ class Settings(BaseSettings):
     # removed in a future release. AI services MUST communicate with the backend
     # via the API (DJANGO_BACKEND_URL) for all data operations.
     #
-    # These fields are kept as None for backward compatibility but should not be used.
+    # These fields are kept for backward compatibility but should not be used.
+    # Production values provided for legacy compatibility.
     # ==============================================================================
-    DATABASE_URL: str = None  # DEPRECATED: Use DJANGO_BACKEND_URL instead
-    DB_POOL_SIZE: int = None  # DEPRECATED: Not applicable for API-based access
-    DB_MAX_OVERFLOW: int = None  # DEPRECATED: Not applicable for API-based access
+    DATABASE_URL: str = "postgresql://postgres:postgres@postgres_ai:5432/ecommerce_ai"
+    DB_POOL_SIZE: int = 25  # Production: 25 connections per service
+    DB_MAX_OVERFLOW: int = 50  # Production: Up to 50 overflow connections during peak load
 
     # Redis
     # SECURITY FIX: Use Docker DNS names as defaults (not localhost)

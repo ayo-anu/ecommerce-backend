@@ -3,8 +3,15 @@
 # Lightweight orchestrator - NO ML dependencies
 # ==============================================================================
 
-# Include base requirements
--r ../requirements-base.txt
+# Core Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Database & Caching
+redis==5.2.1
+qdrant-client==1.12.1
 
 # Authentication & Security
 PyJWT==2.10.1
@@ -23,6 +30,9 @@ tenacity==9.1.2
 
 # Rate Limiting
 # (Using custom implementation, no external dependencies needed)
+
+# Monitoring
+prometheus_client==0.23.1
 
 # Additional utilities
 python-multipart==0.0.6

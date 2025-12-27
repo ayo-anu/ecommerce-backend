@@ -114,7 +114,7 @@ services:
   # PgBouncer - Connection Pooler
   pgbouncer:
     build:
-      context: ./docker/pgbouncer
+      context: ../../../infrastructure/docker/pgbouncer
       dockerfile: Dockerfile
     container_name: ecommerce_pgbouncer
     restart: unless-stopped
@@ -186,7 +186,10 @@ services:
 
   # Qdrant Vector Database (AI services)
   qdrant:
-    image: qdrant/qdrant:v1.7.0
+    build:
+      context: ../../../infrastructure/docker/qdrant
+      dockerfile: Dockerfile
+    image: ecommerce_qdrant:latest
     container_name: ecommerce_qdrant
     restart: unless-stopped
     volumes:
@@ -198,7 +201,7 @@ services:
       - ai_network
       - monitoring_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:6333/"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -233,7 +236,7 @@ services:
   # Django Backend API
   backend:
     build:
-      context: ../backend
+      context: ../../../services/backend
       dockerfile: Dockerfile
     container_name: ecommerce_backend
     restart: unless-stopped
@@ -281,7 +284,7 @@ services:
   # Celery Worker
   celery_worker:
     build:
-      context: ../backend
+      context: ../../../services/backend
       dockerfile: Dockerfile
     container_name: ecommerce_celery_worker
     restart: unless-stopped
@@ -309,7 +312,7 @@ services:
   # Celery Beat Scheduler
   celery_beat:
     build:
-      context: ../backend
+      context: ../../../services/backend
       dockerfile: Dockerfile
     container_name: ecommerce_celery_beat
     restart: unless-stopped
@@ -339,14 +342,14 @@ services:
 
   api_gateway:
     build:
-      context: ../ai-services
-      dockerfile: api_gateway/Dockerfile
+      context: ../../../services
+      dockerfile: gateway/Dockerfile
     container_name: ecommerce_api_gateway
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8080 --workers 4
     volumes:
-      - ../ai-services/api_gateway:/app
-      - ../ai-services/shared:/app/shared
+      - ../../../services/gateway:/app
+      - ../../../services/shared:/app/shared
     environment:
       - BACKEND_URL=http://backend:8000
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/2
@@ -385,15 +388,15 @@ services:
   # 1. Recommendation Engine
   recommender:
     build:
-      context: ../ai-services
-      dockerfile: services/recommendation_engine/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/recommendation_engine/Dockerfile
     container_name: ecommerce_recommender
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8001
     volumes:
-      - ../ai-services/services/recommendation_engine:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/recommendation_engine:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/3
@@ -418,15 +421,15 @@ services:
   # 2. Search Engine
   search:
     build:
-      context: ../ai-services
-      dockerfile: services/search_engine/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/search_engine/Dockerfile
     container_name: ecommerce_search
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8002
     volumes:
-      - ../ai-services/services/search_engine:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/search_engine:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/4
@@ -454,15 +457,15 @@ services:
   # 3. Pricing Engine
   pricing:
     build:
-      context: ../ai-services
-      dockerfile: services/pricing_engine/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/pricing_engine/Dockerfile
     container_name: ecommerce_pricing
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8003
     volumes:
-      - ../ai-services/services/pricing_engine:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/pricing_engine:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/5
@@ -487,15 +490,15 @@ services:
   # 4. Chatbot with RAG
   chatbot:
     build:
-      context: ../ai-services
-      dockerfile: services/chatbot_rag/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/chatbot_rag/Dockerfile
     container_name: ecommerce_chatbot
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8004
     volumes:
-      - ../ai-services/services/chatbot_rag:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/chatbot_rag:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/6
@@ -524,15 +527,15 @@ services:
   # 5. Fraud Detection
   fraud:
     build:
-      context: ../ai-services
-      dockerfile: services/fraud_detection/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/fraud_detection/Dockerfile
     container_name: ecommerce_fraud
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8005
     volumes:
-      - ../ai-services/services/fraud_detection:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/fraud_detection:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/7
@@ -557,15 +560,15 @@ services:
   # 6. Demand Forecasting
   forecasting:
     build:
-      context: ../ai-services
-      dockerfile: services/demand_forecasting/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/demand_forecasting/Dockerfile
     container_name: ecommerce_forecasting
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8006
     volumes:
-      - ../ai-services/services/demand_forecasting:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/demand_forecasting:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/8
@@ -590,15 +593,15 @@ services:
   # 7. Visual Recognition
   vision:
     build:
-      context: ../ai-services
-      dockerfile: services/visual_recognition/Dockerfile
+      context: ../../../services
+      dockerfile: ai/services/visual_recognition/Dockerfile
     container_name: ecommerce_vision
     restart: unless-stopped
     command: uvicorn main:app --host 0.0.0.0 --port 8007
     volumes:
-      - ../ai-services/services/visual_recognition:/app
-      - ../ai-services/shared:/app/shared
-      - ../ai-services/models:/models
+      - ../../../services/ai/services/visual_recognition:/app
+      - ../../../services/shared:/app/shared
+      - ../../../services/ai/models:/models
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres_ai:5432/${POSTGRES_AI_DB:-ecommerce_ai}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/9

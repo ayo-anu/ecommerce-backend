@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from .routers import vision
+from routers import vision
 from shared.monitoring import setup_monitoring, service_up
 from shared.logger import setup_logger
 from shared.health import create_health_router

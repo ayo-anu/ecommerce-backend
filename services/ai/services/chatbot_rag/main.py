@@ -13,7 +13,7 @@ from pathlib import Path
 # Add parent directories to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from .routers import chat
+from routers import chat
 from shared.monitoring import setup_monitoring, service_up
 from shared.logger import setup_logger
 from shared.health import create_health_router

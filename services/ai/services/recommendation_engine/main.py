@@ -11,7 +11,7 @@ from shared.monitoring import service_up, http_requests_total, http_request_dura
 from shared.tracing import setup_tracing
 from shared.config import get_settings
 from shared.service_auth_middleware import ServiceAuthMiddleware
-from .routers import recommendations
+from routers import recommendations
 
 # Setup logging
 setup_logging()

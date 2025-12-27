@@ -15,6 +15,7 @@ A production-grade, AI-powered e-commerce platform built on microservices archit
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+- [Architectural Tradeoffs](#architectural-tradeoffs)
 - [Technology Stack](#technology-stack)
 - [Features](#features)
 - [Quick Start](#quick-start)
@@ -66,8 +67,8 @@ This platform delivers enterprise-grade e-commerce capabilities enhanced with cu
                              │
                              ▼
                     ┌─────────────────┐
-                    │   API Gateway   │
-                    │   (FastAPI)     │
+                    │   API Gateway   │  ⭐ Top-level infrastructure
+                    │   (FastAPI)     │     (services/gateway/)
                     │   Port 8080     │
                     └────────┬────────┘
                              │
@@ -101,7 +102,263 @@ The platform implements a **4-tier network architecture** for security and isola
 - **AI Network** (`172.22.0.0/24`) - API Gateway ↔ AI Services + AI Databases
 - **Monitoring Network** (`172.23.0.0/24`) - Prometheus ↔ All Services (metrics collection)
 
+### Architecture Highlights
+
+**Production-Grade Structure** ✅
+- API Gateway moved to `services/gateway/` (top-level) - not nested under `ai/`
+- Shared utilities in `services/shared/` - truly shared, not domain-specific
+- Clear separation: infrastructure (gateway, shared) vs domain logic (backend, ai)
+- Folder structure matches runtime architecture and network topology
+
 For detailed architecture documentation, see [docs/architecture/system-design.md](docs/architecture/system-design.md).
+
+---
+
+## Architectural Tradeoffs
+
+This section documents key architectural decisions, their benefits, drawbacks, and the reasoning behind them.
+
+### 1. Microservices vs Monolith Architecture
+
+**Decision**: Microservices architecture with 9 independent services (1 backend + 7 AI services + 1 API gateway)
+
+**Benefits** ✅
+- **Independent Scaling** - Scale AI services separately based on demand (e.g., scale recommendation engine during peak traffic without scaling fraud detection)
+- **Technology Flexibility** - Django for backend CRUD, FastAPI for high-performance AI services
+- **Fault Isolation** - Failure in pricing engine doesn't crash the entire platform
+- **Team Autonomy** - Different teams can own and deploy services independently
+- **Faster Deployments** - Deploy individual services without full system downtime
+
+**Drawbacks** ⚠️
+- **Operational Complexity** - Managing 9+ services requires sophisticated monitoring and orchestration
+- **Network Overhead** - Inter-service communication adds latency (50-100ms per hop)
+- **Distributed Debugging** - Tracing issues across services requires distributed tracing tools (Jaeger)
+- **Data Consistency** - No ACID transactions across services; eventual consistency challenges
+- **Resource Overhead** - Each service needs its own container, memory, and CPU allocation
+- **Development Complexity** - Local development requires running multiple services simultaneously
+
+**When This Works**:
+- Teams larger than 5-10 developers
+- Need to scale specific components independently
+- Different services have different performance characteristics
+- Long-term platform with evolving requirements
+
+**When to Avoid**:
+- Small teams (<3 developers)
+- MVP or early-stage products
+- Simple CRUD applications
+- Limited infrastructure budget
+
+---
+
+### 2. Multiple Database Strategy
+
+**Decision**: 5 specialized databases (PostgreSQL x2, Redis, Elasticsearch, Qdrant)
+
+**Benefits** ✅
+- **Optimized Performance** - Each database optimized for its use case (OLTP, cache, search, vectors)
+- **Data Isolation** - AI data separated from transactional data for security and compliance
+- **Scalability** - Scale search and vector databases independently from main database
+- **Right Tool for Job** - Vector similarity search requires Qdrant; full-text search needs Elasticsearch
+
+**Drawbacks** ⚠️
+- **Operational Burden** - 5 databases to backup, monitor, upgrade, and secure
+- **Cost** - Higher infrastructure costs (~$200-500/month in cloud vs ~$50 for single database)
+- **Data Synchronization** - Keeping Elasticsearch in sync with PostgreSQL requires change data capture
+- **Consistency Challenges** - No cross-database transactions; eventual consistency across stores
+- **Learning Curve** - Team needs expertise in multiple database technologies
+- **Backup Complexity** - Coordinated backups across 5 systems to maintain data consistency
+
+**Alternatives Considered**:
+- **Single PostgreSQL** - Simpler but slower for search and vector operations (50-100x slower for similarity search)
+- **PostgreSQL + pgvector** - Reduces databases to 2, but vector performance degrades beyond 100K vectors
+- **Cloud Managed Services** - Reduce operational burden but increase costs 3-5x
+
+---
+
+### 3. Network Segmentation (4-Tier Architecture)
+
+**Decision**: Separate networks for public, backend, AI, and monitoring traffic
+
+**Benefits** ✅
+- **Security in Depth** - Compromised service can't directly access all systems
+- **Compliance** - Meets PCI-DSS and SOC 2 requirements for network isolation
+- **Traffic Control** - Prevent AI services from directly accessing payment data
+- **Blast Radius Reduction** - Limit impact of security breaches
+
+**Drawbacks** ⚠️
+- **Complexity** - More complex networking configuration and troubleshooting
+- **Performance Overhead** - Additional network hops add ~5-10ms latency
+- **Development Friction** - Local development requires careful network setup
+- **Debugging Difficulty** - Network issues harder to diagnose across multiple subnets
+
+**Simplified Alternative**: Single shared network (like most Docker Compose setups)
+- **Pros**: Simpler, faster, easier to debug
+- **Cons**: Violates security best practices; fails compliance audits
+
+---
+
+### 4. Dedicated AI Microservices
+
+**Decision**: 7 separate AI services instead of monolithic AI service or integrated backend
+
+**Benefits** ✅
+- **Model Isolation** - Large PyTorch models don't bloat backend memory (recommendation model = 500MB)
+- **Independent Deployment** - Update fraud detection model without redeploying entire backend
+- **Specialized Scaling** - Scale search engine 10x during holiday sales without scaling chatbot
+- **Technology Optimization** - Use CUDA/GPU for visual recognition without affecting Django backend
+- **Development Velocity** - ML team deploys models without coordinating with backend team
+
+**Drawbacks** ⚠️
+- **Resource Consumption** - 7 AI containers require significant memory (~8-16GB total vs ~2GB for monolith)
+- **Cold Start Latency** - First request to each service takes 2-5 seconds to load models
+- **Network Calls** - Each AI prediction requires network roundtrip (vs in-process function call)
+- **Deployment Overhead** - 7 additional CI/CD pipelines, Dockerfiles, and health checks
+- **Cost** - Higher cloud costs (~$300-800/month vs ~$50-100 for single service)
+
+**When to Consolidate**:
+- Early MVP with <1000 users
+- Limited budget (<$200/month infrastructure)
+- Small team without dedicated ML engineers
+- **Consider**: Merge 2-3 low-traffic services (chatbot + visual recognition)
+
+---
+
+### 5. Docker Compose vs Kubernetes
+
+**Decision**: Docker Compose for deployment and orchestration
+
+**Benefits** ✅
+- **Simplicity** - Single YAML file, easy to understand and maintain
+- **Fast Setup** - Running locally or on a VM takes <10 minutes
+- **Low Resource Overhead** - No control plane overhead (vs Kubernetes ~1-2GB)
+- **Development Experience** - Same tooling for dev and production
+- **Cost Effective** - Run on single VPS ($40-100/month) vs managed Kubernetes ($150-500/month)
+
+**Drawbacks** ⚠️
+- **Single Node** - No automatic multi-node clustering or failover
+- **Manual Scaling** - Must manually scale services (no Horizontal Pod Autoscaler)
+- **Limited Self-Healing** - Basic restart policies vs Kubernetes' sophisticated health management
+- **No Rolling Updates** - Deployment causes brief downtime vs zero-downtime rolling updates
+- **Production Limitations** - Not suitable beyond 10,000 concurrent users or 99.99% uptime SLA
+
+**Migration Path to Kubernetes**:
+- **Phase 1** (0-10K users): Docker Compose on single node
+- **Phase 2** (10K-100K users): Docker Swarm for simple multi-node clustering
+- **Phase 3** (100K+ users): Kubernetes for enterprise-grade orchestration
+
+---
+
+### 6. Synchronous API + Asynchronous Tasks (Celery)
+
+**Decision**: Synchronous REST APIs with Celery for background processing
+
+**Benefits** ✅
+- **Familiar Model** - REST APIs widely understood by frontend developers
+- **Immediate Responses** - Users get instant feedback for queries
+- **Background Processing** - Email, reports, ML training run asynchronously without blocking requests
+- **Retry Logic** - Celery handles failed tasks with automatic retries
+
+**Drawbacks** ⚠️
+- **Blocking Operations** - Long-running AI predictions (>2s) block HTTP workers
+- **Resource Inefficiency** - Idle HTTP workers consume memory waiting for I/O
+- **Scalability Limits** - Synchronous model limits concurrent requests to ~100-500 per server
+- **Message Queue Dependency** - RabbitMQ becomes critical dependency; outage blocks async tasks
+
+**Alternative Patterns Considered**:
+- **Async/Await (FastAPI)** - Better for I/O-bound operations, already used in AI services
+- **Event-Driven Architecture** - More scalable but increases complexity 10x
+- **GraphQL** - Reduces over-fetching but adds query complexity
+
+---
+
+### 7. Self-Hosted Infrastructure vs Cloud Services
+
+**Decision**: Self-hosted PostgreSQL, Redis, Elasticsearch on Docker
+
+**Benefits** ✅
+- **Cost Control** - ~$50-100/month self-hosted vs ~$300-800/month managed services
+- **Full Control** - Custom configurations, extensions, and optimizations
+- **Data Privacy** - Data stays in your infrastructure (important for compliance)
+- **No Vendor Lock-in** - Easy to migrate between cloud providers
+
+**Drawbacks** ⚠️
+- **Operational Burden** - Team responsible for backups, security patches, monitoring
+- **Expertise Required** - Need DBA skills for PostgreSQL tuning and troubleshooting
+- **Availability Risk** - No built-in high availability; must implement replication manually
+- **Backup Responsibility** - Data loss risk if backups not properly configured
+- **Time Investment** - ~5-10 hours/month for maintenance vs ~0 hours for managed services
+
+**Hybrid Approach** (Recommended for Production):
+- **Self-hosted**: PostgreSQL, Redis (predictable load, cost-sensitive)
+- **Managed**: Elasticsearch, Qdrant (complex operations, less critical)
+- **Cloud**: Backups to S3, monitoring with Datadog/New Relic
+
+---
+
+### 8. API Gateway Pattern
+
+**Decision**: Dedicated API Gateway (FastAPI) as unified entry point
+
+**Benefits** ✅
+- **Single Entry Point** - Clients call one URL instead of 8 different services
+- **Cross-Cutting Concerns** - Authentication, rate limiting, logging in one place
+- **Circuit Breaker** - Prevents cascade failures when AI services are down
+- **Response Caching** - Cache AI predictions to reduce load and costs
+- **Service Discovery** - Backend/frontend don't need to track 7 AI service endpoints
+
+**Drawbacks** ⚠️
+- **Single Point of Failure** - Gateway outage blocks all traffic (mitigate with clustering)
+- **Latency Overhead** - Adds 10-30ms to every request
+- **Complexity** - Another service to develop, deploy, and maintain
+- **Bottleneck Risk** - Gateway can become performance bottleneck under extreme load
+
+**Alternatives**:
+- **No Gateway** - Clients call services directly (simpler but less secure)
+- **Service Mesh** (Istio/Linkerd) - More powerful but 10x more complex
+- **API Management Platform** (Kong, AWS API Gateway) - Less custom code but higher cost
+
+---
+
+### 9. Service Granularity
+
+**Decision**: Fine-grained services (7 separate AI services vs 1 unified AI service)
+
+**Benefits** ✅
+- **Bounded Contexts** - Each service has clear responsibility
+- **Independent Evolution** - Update recommendation algorithm without touching fraud detection
+- **Failure Isolation** - Bug in chatbot doesn't affect pricing engine
+- **Team Ownership** - Each team owns their service end-to-end
+
+**Drawbacks** ⚠️
+- **Over-Engineering Risk** - 7 services may be excessive for <10K users
+- **Shared Code Duplication** - Common utilities duplicated across services
+- **Integration Overhead** - More API contracts to maintain and version
+- **Resource Waste** - Low-traffic services (chatbot, visual recognition) may not justify dedicated containers
+
+**Right-Sizing Recommendations**:
+- **MVP (0-1K users)**: Merge into 2 services (backend + unified AI service)
+- **Growth (1K-10K users)**: Split into 4 services (backend + recommendations + search + fraud)
+- **Scale (10K+ users)**: Current 9-service architecture justified
+
+---
+
+### 10. Trade-Off Summary Matrix
+
+| Aspect | Current Choice | Complexity | Cost/Month | Scalability | Team Size |
+|--------|---------------|------------|-----------|-------------|-----------|
+| **Architecture** | Microservices | High | $200-500 | Excellent (1M+ users) | 5+ developers |
+| **Databases** | 5 specialized | High | $150-400 | Excellent | Need DBA |
+| **Orchestration** | Docker Compose | Medium | $50-150 | Medium (10K users) | 2+ ops |
+| **AI Services** | 7 separate | High | $300-800 | Excellent | 3+ ML engineers |
+| **Infrastructure** | Self-hosted | High | $100-300 | Medium | Need DevOps |
+| **Gateway** | FastAPI | Medium | $20-50 | High | 1-2 developers |
+
+**Total Infrastructure Cost Estimate**:
+- **Development**: ~$0 (local Docker)
+- **Small Production** (1K users): ~$100-200/month (single VPS)
+- **Medium Production** (10K users): ~$500-1000/month (3-5 VPS + managed databases)
+- **Large Production** (100K+ users): ~$2000-5000/month (Kubernetes cluster + managed services)
 
 ---
 
@@ -334,6 +591,28 @@ Once all services are running, access the following endpoints:
 ecommerce-project/
 │
 ├── services/                          # Application services
+│   ├── gateway/                       # ⭐ API Gateway (FastAPI) - Unified entry point
+│   │   ├── auth.py                    # JWT authentication
+│   │   ├── circuit_breaker.py         # Circuit breaker patterns
+│   │   ├── resilient_proxy.py         # Resilient HTTP proxy
+│   │   ├── rate_limiter.py            # Rate limiting
+│   │   ├── middleware.py              # Custom middleware
+│   │   ├── gateway_routes.py          # Central routing table
+│   │   ├── main.py                    # Gateway entry point
+│   │   ├── Dockerfile                 # Gateway Docker image
+│   │   └── requirements.txt           # Gateway dependencies
+│   │
+│   ├── shared/                        # ⭐ Shared utilities (cross-cutting)
+│   │   ├── config.py                  # Configuration management
+│   │   ├── logger.py                  # Structured logging
+│   │   ├── monitoring.py              # Prometheus metrics
+│   │   ├── redis_client.py            # Redis client wrapper
+│   │   ├── vector_db.py               # Qdrant client wrapper
+│   │   ├── database.py                # Database connections
+│   │   ├── tracing.py                 # Distributed tracing
+│   │   ├── health.py                  # Health check utilities
+│   │   └── service_auth_middleware.py # Service authentication
+│   │
 │   ├── backend/                       # Django REST Framework backend
 │   │   ├── apps/                      # Django applications
 │   │   │   ├── accounts/              # User authentication and management
@@ -353,12 +632,7 @@ ecommerce-project/
 │   │   ├── Dockerfile                 # Backend Docker image
 │   │   └── manage.py                  # Django management script
 │   │
-│   └── ai/                            # AI microservices
-│       ├── api_gateway/               # FastAPI API Gateway
-│       │   ├── routers/               # API route handlers
-│       │   ├── middleware/            # Gateway middleware
-│       │   └── main.py                # Gateway entry point
-│       │
+│   └── ai/                            # AI microservices domain
 │       ├── services/                  # AI microservices
 │       │   ├── recommendation_engine/ # Personalized recommendations
 │       │   ├── search_engine/         # Semantic search
@@ -368,14 +642,10 @@ ecommerce-project/
 │       │   ├── demand_forecasting/    # Demand prediction
 │       │   └── visual_recognition/    # Computer vision
 │       │
-│       ├── shared/                    # Shared utilities
-│       │   ├── cache.py               # Redis caching
-│       │   ├── database.py            # Database connections
-│       │   ├── logging_config.py      # Logging configuration
-│       │   └── metrics.py             # Prometheus metrics
-│       │
 │       ├── models/                    # Trained ML models
-│       └── ml_pipeline/               # Model training pipelines
+│       ├── ml_pipeline/               # Model training pipelines
+│       ├── requirements-base.txt      # Shared AI dependencies
+│       └── tests/                     # AI services tests
 │
 ├── deploy/                            # Deployment configuration
 │   ├── docker/                        # Docker configurations
@@ -475,19 +745,25 @@ The core e-commerce API providing:
 
 ---
 
-### API Gateway
+### API Gateway (Production-Grade Infrastructure)
 
 **Port**: 8080
 **Technology**: FastAPI, Uvicorn
+**Location**: `services/gateway/` (top-level infrastructure component)
 
-Unified entry point for all AI microservices providing:
-- Request routing and load balancing
-- Response caching with Redis
-- Rate limiting and throttling
-- Request/response transformation
-- Circuit breaker patterns
-- Distributed tracing integration
-- Metrics collection
+**Architecture Decision**: The gateway is positioned as a top-level service (not under `ai/`) because it serves as the unified entry point for **all services** (backend + 7 AI services), handling cross-cutting concerns:
+
+**Core Capabilities**:
+- **Request Routing** - Routes to backend (Django) and all AI services
+- **Circuit Breaker** - Prevents cascade failures with fallback mechanisms
+- **Rate Limiting** - Per-user and per-endpoint throttling
+- **Authentication** - JWT validation and service-to-service auth
+- **Resilient Proxy** - Retry logic, timeouts, and graceful degradation
+- **Response Caching** - Redis-backed caching for performance
+- **Distributed Tracing** - Jaeger integration for request tracking
+- **Metrics Collection** - Prometheus metrics for monitoring
+
+**Network Position**: Bridges three networks (public, backend, ai) making it a true gateway, not an AI-specific component.
 
 **Documentation**: http://localhost:8080/docs (when running)
 
@@ -735,7 +1011,7 @@ cd services/ai/services/recommendation_engine  # Example
 # 4. Add tests in tests/
 
 # 5. Update API Gateway routing if needed
-cd ../../api_gateway/routers
+cd ../../../gateway  # Gateway is now top-level
 
 # 6. Run tests
 make test-ai

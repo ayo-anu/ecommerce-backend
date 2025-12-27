@@ -14,7 +14,8 @@ FROM python:3.11-slim-bookworm AS builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
 
 # Set work directory
 WORKDIR /app
@@ -31,9 +32,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy and install Python requirements
 COPY api_gateway/requirements.txt ./
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r requirements.txt && \
-    pip install httpx
+
+# Install dependencies with timeout and retry settings
+RUN pip install --default-timeout=300 --retries 5 --upgrade pip setuptools wheel && \
+    pip install --default-timeout=300 --retries 5 -r requirements.txt && \
+    pip install --default-timeout=300 --retries 5 httpx
 
 # ==============================================================================
 # Stage 2: Runtime

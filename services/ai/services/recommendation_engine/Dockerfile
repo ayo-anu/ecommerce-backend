@@ -11,7 +11,8 @@ FROM python:3.11-slim-bookworm AS builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
 
 WORKDIR /build
 
@@ -26,11 +27,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy requirements and install
-COPY services/recommendation_engine/requirements.txt ./
-RUN pip install --upgrade pip setuptools wheel && \
-    pip install -r requirements.txt && \
-    pip install httpx
+# Copy base requirements first (needed for -r reference)
+COPY ai/requirements-base.txt /requirements-base.txt
+# Copy service requirements
+COPY ai/services/recommendation_engine/requirements.txt ./
+RUN pip install --default-timeout=300 --retries 5 --upgrade pip setuptools wheel && \
+    pip install --default-timeout=300 --retries 5 -r requirements.txt && \
+    pip install --default-timeout=300 --retries 5 httpx
 
 # ==============================================================================
 # Stage 2: Runtime - Minimal production image
@@ -48,7 +51,7 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
-COPY services/recommendation_engine/ /app/
+COPY ai/services/recommendation_engine/ /app/
 COPY shared/ /app/shared/
 
 # Create models directory

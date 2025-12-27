@@ -14,7 +14,8 @@ FROM python:3.11-slim-bookworm AS builder
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
 
 # Set work directory
 WORKDIR /app
@@ -33,8 +34,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy and install Python requirements
 COPY requirements/ /app/requirements/
-RUN pip install --upgrade pip && \
-    pip install -r requirements/prod.txt
+RUN pip install --default-timeout=300 --retries 5 --upgrade pip && \
+    pip install --default-timeout=300 --retries 5 -r requirements/prod.txt
 
 # ==============================================================================
 # Stage 2: Runtime

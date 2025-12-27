@@ -31,9 +31,11 @@ wait_for_postgres() {
 
     # If DATABASE_URL is set, try to extract host and port
     if [ -n "$DATABASE_URL" ]; then
-        # Extract host from DATABASE_URL (format: postgres://user:pass@host:port/db)
-        DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\):.*/\1/p')
-        DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+        # Extract host from DATABASE_URL (format: postgresql://user:pass@host:port/db)
+        # Remove protocol and credentials, extract host:port
+        HOST_PORT=$(echo "$DATABASE_URL" | awk -F'[@/]' '{print $4}')
+        DB_HOST=$(echo "$HOST_PORT" | cut -d':' -f1)
+        DB_PORT=$(echo "$HOST_PORT" | cut -d':' -f2)
 
         # Fallback if extraction failed
         [ -z "$DB_HOST" ] && DB_HOST="localhost"
