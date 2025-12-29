@@ -12,7 +12,8 @@ from .serializers import (
     ProductReviewSerializer, CreateReviewSerializer,
     WishlistSerializer, WishlistItemSerializer
 )
-from core.pagination import CursorPagination
+from .filters import ProductFilter
+from core.pagination import StandardResultsSetPagination
 from core.permissions import IsAdminOrReadOnly
 import logging
 
@@ -22,23 +23,21 @@ logger = logging.getLogger(__name__)
 class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'is_active', 'is_featured']
+    filterset_class = ProductFilter  # Use custom filter class
     search_fields = ['name', 'description', 'sku']
     ordering_fields = ['price', 'created_at', 'name']
     ordering = ['-created_at']
-    pagination_class = CursorPagination
+    pagination_class = StandardResultsSetPagination  # Changed from CursorPagination to include count
     
     def get_queryset(self):
         """Optimized queryset with select_related and prefetch_related"""
         if self.action == 'list':
             # Lightweight queryset for lists
+            # Note: Removed .only() to avoid field access issues with filters
             return Product.objects.filter(is_active=True).select_related(
                 'category'
             ).prefetch_related(
                 Prefetch('images', queryset=ProductImage.objects.filter(is_primary=True))
-            ).only(
-                'id', 'name', 'slug', 'price', 'compare_at_price',
-                'stock_quantity', 'low_stock_threshold', 'category__name'
             )
         else:
             # Full queryset for detail views

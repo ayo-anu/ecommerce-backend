@@ -104,6 +104,25 @@ services:
       - ../ai-services/services/visual_recognition:/app
       - ../ai-services/shared:/app/shared
 
+  # Celery Worker - Development configuration
+  celery_worker:
+    volumes:
+      # Mount source code for hot reload
+      - ../services/backend:/app
+    environment:
+      - DEBUG=True
+      - CELERY_TASK_ALWAYS_EAGER=False  # In dev, run real worker (not eager mode)
+    command: celery -A config worker -l debug --concurrency=2  # Lower concurrency and debug logging for dev
+
+  # Celery Beat - Development configuration
+  celery_beat:
+    volumes:
+      # Mount source code for hot reload
+      - ../services/backend:/app
+    environment:
+      - DEBUG=True
+    command: celery -A config beat -l debug --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
   prometheus:
     ports:
       - "9090:9090"

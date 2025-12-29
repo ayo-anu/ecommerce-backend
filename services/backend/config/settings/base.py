@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_spectacular',
     'django_elasticsearch_dsl',
+    'django_celery_beat',  # Celery Beat scheduler
     'storages',
     
     # Local apps

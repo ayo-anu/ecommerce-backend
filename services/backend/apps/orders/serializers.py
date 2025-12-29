@@ -216,19 +216,34 @@ class CartItemSerializer(serializers.ModelSerializer):
     product_price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
     product_image = serializers.SerializerMethodField()
     subtotal = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = CartItem
-        fields = ['id', 'product', 'variant', 'quantity', 'product_name', 
+        fields = ['id', 'product', 'variant', 'quantity', 'product_name',
                   'product_price', 'product_image', 'subtotal']
-    
+
     def get_product_image(self, obj):
+        """
+        Get primary product image.
+        Uses prefetched 'primary_images' if available (from optimized query),
+        otherwise falls back to standard query.
+        """
+        # Try to use prefetched data first (avoids N+1 query)
+        if hasattr(obj.product, 'primary_images') and obj.product.primary_images:
+            primary_image = obj.product.primary_images[0]
+            return self.context['request'].build_absolute_uri(primary_image.image.url)
+
+        # Fallback to standard query (for backward compatibility)
         primary_image = obj.product.images.filter(is_primary=True).first()
         if primary_image:
             return self.context['request'].build_absolute_uri(primary_image.image.url)
         return None
-    
+
     def get_subtotal(self, obj):
+        """
+        Calculate item subtotal.
+        Accesses product/variant price (should be prefetched with select_related).
+        """
         price = obj.variant.price if obj.variant and obj.variant.price else obj.product.price
         return price * obj.quantity
 

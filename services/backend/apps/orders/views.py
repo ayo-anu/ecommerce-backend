@@ -93,9 +93,11 @@ class OrderViewSet(viewsets.ModelViewSet):
 class CartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = CartSerializer
-    
+    queryset = Cart.objects.all()  # Required by DRF ModelViewSet
+
     #Cart Queryset
     def get_queryset(self):
+        """Filter cart to current user only"""
         return Cart.objects.filter(user=self.request.user).prefetch_related(
             Prefetch(
                 'items',
@@ -111,7 +113,60 @@ class CartViewSet(viewsets.ModelViewSet):
         """Get or create cart for user"""
         cart, created = Cart.objects.get_or_create(user=self.request.user)
         return cart
-    
+
+    def list(self, request):
+        """
+        GET /api/orders/cart/ - Get current user's cart (creates if doesn't exist)
+        Returns a single cart object, not a list.
+
+        Optimized with select_related and prefetch_related to avoid N+1 queries.
+        """
+        try:
+            # Get or create cart (without optimization yet, as it may not exist)
+            cart, created = Cart.objects.get_or_create(user=request.user)
+
+            # If cart exists and has items, optimize the query
+            if not created and cart.items.exists():
+                from django.db.models import Prefetch
+                from apps.products.models import ProductImage
+                from django.db import connection
+                from django.conf import settings
+
+                # Re-fetch cart with optimizations to avoid N+1 queries
+                cart = Cart.objects.prefetch_related(
+                    Prefetch(
+                        'items',
+                        queryset=CartItem.objects.select_related(
+                            'product',  # Fetch product in same query
+                            'variant'   # Fetch variant in same query
+                        ).prefetch_related(
+                            Prefetch(
+                                'product__images',  # Prefetch product images
+                                queryset=ProductImage.objects.filter(is_primary=True),
+                                to_attr='primary_images'
+                            )
+                        )
+                    )
+                ).get(id=cart.id)
+
+                # Log query count in development/testing
+                if settings.DEBUG:
+                    query_count = len(connection.queries)
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"Cart retrieval query count: {query_count} queries")
+
+            serializer = self.get_serializer(cart)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in CartViewSet.list(): {type(e).__name__}: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=False, methods=['post'])
     def add_item(self, request):
         """Add item to cart"""
@@ -119,7 +174,14 @@ class CartViewSet(viewsets.ModelViewSet):
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
         quantity = int(request.data.get('quantity', 1))
-        
+
+        # Validate quantity is positive
+        if quantity < 1:
+            return Response(
+                {'error': 'Quantity must be at least 1'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             product = Product.objects.get(id=product_id, is_active=True)
         except Product.DoesNotExist:

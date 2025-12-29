@@ -25,13 +25,14 @@ class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for product lists"""
     primary_image = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
-    
+
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'slug', 'price', 'compare_at_price', 
+            'id', 'name', 'slug', 'price', 'compare_at_price',
             'is_on_sale', 'discount_percentage', 'primary_image',
-            'category_name', 'stock_quantity', 'is_low_stock'
+            'category_name', 'stock_quantity', 'is_low_stock',
+            'is_active', 'is_featured'  # Added for filtering and tests
         ]
     
     def get_primary_image(self, obj):

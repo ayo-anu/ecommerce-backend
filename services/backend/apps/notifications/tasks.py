@@ -142,22 +142,27 @@ def send_order_cancellation_email(order_id):
 def send_verification_email(user_id):
     """Send email verification"""
     from django.utils.crypto import get_random_string
-    
+
     user = User.objects.get(id=user_id)
-    token = get_random_string(64)
-    
-    user.email_verification_token = token
-    user.save()
-    
+
+    # Generate token (already saved in serializer create method)
+    # Check if token exists, if not create one
+    if not user.email_verification_token:
+        token = get_random_string(64)
+        user.email_verification_token = token
+        user.save(update_fields=['email_verification_token'])
+    else:
+        token = user.email_verification_token
+
     verification_link = f"{settings.FRONTEND_URL}/verify-email?token={token}"
-    
+
     context = {
         'user': user,
         'verification_link': verification_link
     }
-    
+
     html_content = render_to_string('emails/email_verification.html', context)
-    
+
     send_email_task.delay(
         recipient_email=user.email,
         subject='Verify Your Email Address',

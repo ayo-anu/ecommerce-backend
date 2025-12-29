@@ -75,3 +75,35 @@ SILKY_PYTHON_PROFILER = True
 SILKY_PYTHON_PROFILER_BINARY = True
 SILKY_META = True
 SILKY_INTERCEPT_PERCENT = 100
+
+# ==============================================================================
+# CELERY - Development Configuration
+# ==============================================================================
+# For E2E testing with real Celery worker (production-like)
+# Set to False to use real worker, True for synchronous execution
+CELERY_TASK_ALWAYS_EAGER = False  # Changed to test with real worker
+CELERY_TASK_EAGER_PROPAGATES = False  # Only propagate exceptions when EAGER=True
+
+# ==============================================================================
+# THROTTLING - High limits for E2E testing
+# ==============================================================================
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '10000/hour',
+        'user': '10000/hour',
+        'login': '10000/minute',
+    },
+}
+
+# Override broker/backend URLs for local development
+# RabbitMQ is the broker, Redis is the result backend
+CELERY_BROKER_URL = 'amqp://admin:admin@localhost:5672//'
+CELERY_RESULT_BACKEND = 'redis://:redis_password@localhost:6379/1'  # Added password for Redis auth
+
+# Elasticsearch - Use localhost to connect to Docker Elasticsearch
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': 'http://localhost:9200'
+    },
+}
