@@ -8,7 +8,7 @@
 # Stage 1: Builder
 # ==============================================================================
 # Use latest Debian Bookworm base image for security updates
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -42,7 +42,7 @@ RUN pip install --default-timeout=300 --retries 5 --upgrade pip setuptools wheel
 # Stage 2: Runtime
 # ==============================================================================
 # Use latest Debian Bookworm base image for security updates
-FROM python:3.11-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
