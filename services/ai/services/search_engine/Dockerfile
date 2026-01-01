@@ -7,7 +7,7 @@
 # Stage 1: Builder - Install dependencies
 # ==============================================================================
 # Use latest Debian Bookworm base image for security updates
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -40,7 +40,7 @@ RUN pip install --default-timeout=600 --retries 10 --upgrade pip setuptools whee
 # Stage 2: Runtime - Minimal production image
 # ==============================================================================
 # Use latest Debian Bookworm base image for security updates
-FROM python:3.11-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
