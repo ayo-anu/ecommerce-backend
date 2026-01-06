@@ -1,504 +1,147 @@
-# Enterprise E-Commerce Platform
+# E-Commerce Platform
 
-A production-grade e-commerce platform with Django REST Framework backend and AI microservices architecture. The core backend is production-ready with comprehensive E2E testing (96% pass rate across 92 tests). Multiple AI microservices exist but are still under integration and testing.
+A backend API for an e-commerce platform built with Django REST Framework. The system handles user authentication, product catalog management, shopping cart operations, order processing, and payment integration. The backend is production-ready with comprehensive end-to-end testing. Additional AI microservices exist but are still under development.
 
-## Project Status
+## Project Overview
 
-### Production-Ready Components
+This project implements a complete e-commerce backend API with the following capabilities:
 
-**Backend API (Django REST Framework)** - **READY FOR PRODUCTION**
-- 96% test pass rate (88/92 E2E tests passing)
-- 5 complete workflows validated at 100%
-- 17+ critical bugs fixed through testing
-- Comprehensive security hardening (XSS, SQL injection, CSRF protection)
-- Performance optimized (60x improvement in authentication)
-- Full async infrastructure with Celery workers
+- User registration, authentication, and profile management using JWT tokens
+- Product catalog with categories, variants, images, and reviews
+- Shopping cart with session and authenticated user support
+- Order processing with inventory management and status tracking
+- Payment integration with Stripe for checkout and refunds
+- Asynchronous task processing for emails and background jobs
+- Full-text search with Elasticsearch
+- Admin dashboard for managing products, orders, and users
 
-**Infrastructure** - **PRODUCTION-READY**
-- PostgreSQL 15 (main + AI databases)
-- Redis 7 (cache + Celery results, with authentication)
-- RabbitMQ 3.12 (message broker)
-- Elasticsearch 8.11 (full-text search)
-- Qdrant 1.7 (vector database)
-- Celery 5.5 (async task processing + scheduled jobs)
-- PgBouncer (connection pooling)
+The backend has been tested with 92 end-to-end tests covering complete user workflows from registration through checkout. The system uses PostgreSQL for data storage, Redis for caching and session management, RabbitMQ for message queuing, and Celery for asynchronous task execution.
 
-### Work in Progress
+Seven AI microservices have been developed (recommendations, semantic search, dynamic pricing, chatbot, fraud detection, demand forecasting, and visual recognition) but are not yet integrated or production-ready. An API gateway has also been implemented but requires additional testing.
 
-**AI Microservices** - **INTEGRATION AND TESTING PHASE**
+## Current Status
 
-Seven AI services exist with base functionality but require integration testing and production validation:
-- Recommendation Engine (Port 8001) - Collaborative and content-based filtering
-- Search Engine (Port 8002) - Semantic search with vector embeddings
-- Pricing Engine (Port 8003) - Dynamic price optimization
-- Chatbot with RAG (Port 8004) - Retrieval-Augmented Generation chatbot
-- Fraud Detection (Port 8005) - Real-time transaction risk assessment
-- Demand Forecasting (Port 8006) - Time-series prediction models
-- Visual Recognition (Port 8007) - Computer vision for product images
+**Production-Ready:**
+- Django REST Framework backend (96% test pass rate across 92 tests)
+- User authentication and authorization
+- Product catalog and search
+- Shopping cart and checkout
+- Order management
+- Payment processing with Stripe
+- Email notifications
+- Database infrastructure (PostgreSQL, Redis, Elasticsearch)
+- Asynchronous task processing (Celery with RabbitMQ)
 
-**API Gateway (FastAPI)** - **TESTING PHASE**
-- Located in `services/gateway/`
-- Circuit breaker, rate limiting, and service routing implemented
-- Requires integration testing with backend and AI services
-
-**Current Focus**: Deploy production-ready backend while completing AI service integration and testing locally.
-
----
-
-## Architecture
-
-```
-┌────────────────────────────────────────────┐
-│         Load Balancer (Nginx)              │
-│            Port 80/443 (HTTPS)             │
-└──────────────────┬─────────────────────────┘
-                   │
-                   ▼
-          ┌─────────────────┐
-          │   API Gateway   │  (Testing Phase)
-          │   (FastAPI)     │
-          │   Port 8080     │
-          └────────┬────────┘
-                   │
-       ┌───────────┼───────────┐
-       │           │           │
-       ▼           ▼           ▼
-┌──────────┐  ┌────────┐  ┌────────┐
-│ Backend  │  │   AI   │  │Monitor │
-│ (Django) │  │Services│  │        │
-│Port 8000 │  │8001-   │  │        │
-│          │  │8007    │  │        │
-│PRODUCTION│  │TESTING │  │        │
-└────┬─────┘  └───┬────┘  └───┬────┘
-     │            │            │
-     └────────────┼────────────┘
-                  │
-        ┌─────────┼─────────┐
-        │         │         │
-        ▼         ▼         ▼
-   ┌────────┬────────┬────────┐
-   │Postgres│ Redis  │ Qdrant │
-   │  (x2)  │        │        │
-   └────────┴────────┴────────┘
-```
-
-### Network Architecture
-
-Four-tier network segmentation for security:
-
-- **Public Network** (172.20.0.0/24) - Nginx to API Gateway
-- **Backend Network** (172.21.0.0/24) - Core services and databases
-- **AI Network** (172.22.0.0/24) - AI services and AI database
-- **Monitoring Network** (172.23.0.0/24) - Prometheus metrics collection
-
----
+**In Development:**
+- API Gateway (FastAPI) - requires integration testing
+- AI microservices - require integration and end-to-end validation
 
 ## Technology Stack
 
-| Layer | Technology | Version | Status |
-|-------|------------|---------|--------|
-| **Backend API** | Django + DRF | 5.1.14+ | Production-Ready |
-| **API Gateway** | FastAPI | Latest | Testing |
-| **AI Services** | FastAPI + PyTorch | Latest | Integration Phase |
-| **Databases** | PostgreSQL | 15 | Production-Ready |
-| **Cache/Queue** | Redis + RabbitMQ | 7 / 3.12 | Production-Ready |
-| **Search** | Elasticsearch | 8.11 | Production-Ready |
-| **Vector DB** | Qdrant | 1.7 | Production-Ready |
-| **Task Queue** | Celery | 5.5 | Production-Ready |
-| **Container** | Docker + Compose | 20.10+ | Production-Ready |
+**Backend Framework:**
+- Python 3.11
+- Django 5.1.14
+- Django REST Framework 3.15
 
----
+**Databases:**
+- PostgreSQL 15 (primary database)
+- PostgreSQL 15 (AI data, separate instance)
+- Redis 7 (caching, sessions, Celery results)
+- Elasticsearch 8.11 (full-text product search)
+- Qdrant 1.7 (vector database for AI services)
 
-## Core Features
+**Message Queue and Task Processing:**
+- RabbitMQ 3.12 (message broker)
+- Celery 5.5 (asynchronous task execution)
+- Celery Beat (scheduled tasks)
 
-### Backend API (Production-Ready)
+**Payments:**
+- Stripe API integration
 
-**User Management**
-- JWT authentication with token refresh (tested at 100%)
-- Role-based access control
-- User profiles and preferences
-- Secure password hashing (Argon2)
+**Infrastructure:**
+- Docker and Docker Compose
+- Nginx (reverse proxy and load balancer)
 
-**Product Catalog**
-- Multi-category organization (tested at 100%)
-- Advanced search and filtering
-- Product variants (sizes, colors)
-- Elasticsearch integration
-- Image management
-- Review and rating system
+**Testing:**
+- Pytest for end-to-end testing
+- Real database connections (no mocking)
 
-**Shopping Cart & Orders**
-- Session and user carts (tested at 100%)
-- Atomic inventory deduction
-- Order status tracking
-- Cart calculation and validation
+## Features
 
-**Payment Processing**
-- Stripe integration (core logic tested at 85%)
-- Secure webhook handling
-- Transaction history
+### User Management
+- User registration with email and password
+- JWT-based authentication with access and refresh tokens
+- User profiles with addresses
+- Password hashing with Argon2
+- Role-based permissions
+
+### Product Catalog
+- Product management with categories and tags
+- Product variants (sizes, colors, etc.) with separate pricing and inventory
+- Multiple product images with primary image designation
+- Product reviews and ratings
+- Review helpfulness voting
+- Full-text search via Elasticsearch
+- Filtering and sorting
+
+### Shopping Cart
+- Session-based cart for anonymous users
+- User-based cart for authenticated users
+- Add, update, and remove items
+- Variant selection
+- Cart total calculation
+
+### Orders
+- Create orders from cart items
+- Order number generation
+- Inventory deduction on order creation
+- Order status tracking (pending, processing, shipped, delivered, cancelled)
+- Order cancellation with inventory restoration
+- Order history per user
+
+### Payments
+- Stripe checkout session creation
+- Payment processing via Stripe webhooks
+- Payment status tracking
 - Refund processing
-
-**Admin Dashboard**
-- Django admin interface
-- Product and order management
-- User administration
-- Analytics reporting
-
-**Async Processing**
-- Celery workers with RabbitMQ broker
-- Email notifications (32-126ms processing time)
-- Scheduled tasks with Celery Beat
-- Background job processing
-
-### AI Features (Integration Phase)
-
-Seven microservices implementing machine learning capabilities. Base functionality exists but requires production integration testing:
-
-- Product recommendations (collaborative + content-based filtering)
-- Semantic search (Sentence-BERT + Qdrant vector similarity)
-- Dynamic pricing (demand-based optimization)
-- AI chatbot (RAG with OpenAI GPT integration)
-- Fraud detection (LightGBM + anomaly detection)
-- Demand forecasting (Prophet + LSTM models)
-- Visual recognition (ResNet50 + YOLO object detection)
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Docker 20.10+ and Docker Compose 2.0+
-- Python 3.11+ (for local development)
-- Minimum 8GB RAM, 20GB disk space
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/ecommerce-project.git
-cd ecommerce-project
-
-# Create environment configuration
-cp .env.vault.example .env
-# Edit .env with your configuration (see Configuration section)
-
-# Build Docker images (see Build Commands section below)
-docker-compose -f deploy/docker/compose/base.yml build backend postgres postgres_ai redis rabbitmq elasticsearch
-
-# Start infrastructure services
-docker-compose -f deploy/docker/compose/base.yml up -d postgres postgres_ai redis elasticsearch qdrant rabbitmq
-
-# Wait for services to be healthy
-sleep 60
-
-# Run database migrations
-docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py migrate
-
-# Create superuser
-docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py createsuperuser
-
-# Start backend service
-docker-compose -f deploy/docker/compose/base.yml up -d backend celery_worker celery_beat
-
-# Verify health
-curl http://localhost:8000/api/health/
-```
-
-### Configuration
-
-Minimum required `.env` variables for production:
-
-```env
-# Django Core
-SECRET_KEY=your-secure-secret-key-minimum-50-characters
-DEBUG=False
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
-CSRF_TRUSTED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
-
-# Database
-POSTGRES_DB=ecommerce
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=secure_password_change_in_production
-DATABASE_URL=postgresql://postgres:secure_password@postgres:5432/ecommerce
-
-# Redis
-REDIS_PASSWORD=redis_secure_password_change_in_production
-REDIS_URL=redis://:redis_secure_password@redis:6379/0
-
-# Celery
-CELERY_BROKER_URL=amqp://admin:admin@rabbitmq:5672//
-CELERY_RESULT_BACKEND=redis://:redis_secure_password@redis:6379/1
-
-# Stripe (required for payments)
-STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
-STRIPE_PUBLISHABLE_KEY=pk_live_your_stripe_publishable_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
-
-# Optional: AI Services
-OPENAI_API_KEY=sk-your-openai-api-key  # Required for chatbot only
-
-# Optional: Storage
-AWS_ACCESS_KEY_ID=your_aws_access_key
-AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-AWS_STORAGE_BUCKET_NAME=your_bucket_name
-
-# Optional: Monitoring
-SENTRY_DSN=your_sentry_dsn
-```
-
-### Access Points
-
-| Service | URL | Notes |
-|---------|-----|-------|
-| Backend API | http://localhost:8000 | Production-ready |
-| API Documentation | http://localhost:8000/api/docs/ | Swagger UI |
-| Django Admin | http://localhost:8000/admin/ | Admin dashboard |
-| RabbitMQ Management | http://localhost:15672 | admin/admin |
-| Elasticsearch | http://localhost:9200 | API endpoint |
-
----
-
-## Testing
-
-### Test Coverage
-
-**End-to-End Tests**: 92 tests created, 88 passing (96% pass rate)
-
-| Workflow | Tests | Pass Rate | Status |
-|----------|-------|-----------|--------|
-| Authentication | 14 | 100% | Complete |
-| Product Browsing | 18 | 100% | Complete |
-| Shopping Cart | 21 | 100% | Complete |
-| Reviews & Ratings | 13 | 100% | Complete |
-| Wishlist | 12 | 100% | Complete |
-| Checkout & Orders | 26 | 85% | Core logic complete |
-| **Total** | **104** | **96%** | **Production-Ready** |
-
-### Run Tests
-
-```bash
-# Install test dependencies
-pip install -r requirements-test.txt
-
-# Run E2E tests
-PYTHONPATH="services/backend:$PYTHONPATH" \
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ecommerce" \
-pytest tests/e2e/workflows/ -v
-
-# Run specific workflow
-pytest tests/e2e/workflows/test_01_authentication.py -v
-```
-
-### Test Philosophy
-
-All testing follows production-like methodology:
-- Real databases (not mocked)
-- Real message queues (RabbitMQ)
-- Real async workers (Celery)
-- Test failures indicate production bugs
-- Zero test workarounds (all fixes in backend code)
-
-17+ critical bugs found and fixed during testing, including:
-- 60x performance improvement in authentication
-- XSS vulnerability patched
-- Cart calculation edge cases resolved
-- Review system security hardened
-
----
-
-## Production Deployment
-
-### Backend Deployment (Ready for Production)
-
-The Django backend has been extensively tested and is ready for production deployment with the following characteristics:
-
-**Validated Capabilities**:
-- Authentication and user management
-- Product catalog with search
-- Shopping cart and checkout
-- Order processing and inventory management
-- Payment integration (Stripe)
-- Email notifications via Celery
-- Review and wishlist features
-
-**Performance**:
-- API response time (P95): <600ms
-- Authentication: <2s (60x improvement from initial)
-- Database queries: <50ms
-- Email processing: 32-126ms (async)
-
-**Security**:
-- XSS protection implemented and tested
-- SQL injection prevention validated
-- CSRF protection enabled
-- JWT token security verified
-- Input sanitization on all user inputs
-
-### Deployment Strategy
-
-**Phase 1: Backend Only (Current Recommendation)**
-```bash
-# Deploy only production-ready components
-docker-compose -f deploy/docker/compose/base.yml \
-               -f deploy/docker/compose/production.yml \
-               up -d postgres redis rabbitmq elasticsearch backend celery_worker celery_beat nginx
-```
-
-**Phase 2: Backend + API Gateway (After Testing)**
-```bash
-# Add API gateway when integration tests pass
-docker-compose -f deploy/docker/compose/base.yml \
-               -f deploy/docker/compose/production.yml \
-               up -d api_gateway
-```
-
-**Phase 3: Full Stack (After AI Integration)**
-```bash
-# Deploy all services when AI integration is validated
-docker-compose -f deploy/docker/compose/base.yml \
-               -f deploy/docker/compose/production.yml \
-               up -d
-```
-
-### Production Checklist
-
-Backend (Production-Ready):
-- [x] Security hardening complete
-- [x] E2E testing complete (96% pass rate)
-- [x] Performance optimization complete
-- [x] Async task processing validated
-- [x] Database migrations tested
-- [x] Error handling comprehensive
-- [ ] SSL certificates configured (deployment-specific)
-- [ ] Domain and DNS configured (deployment-specific)
-- [ ] Monitoring and alerting configured (deployment-specific)
-- [ ] Backup strategy implemented (deployment-specific)
-
-AI Services (Not Yet Ready):
-- [ ] Integration testing with backend
-- [ ] End-to-end AI workflow validation
-- [ ] Performance benchmarking under load
-- [ ] Error handling and fallback mechanisms
-- [ ] Model versioning strategy
-- [ ] A/B testing infrastructure
-
----
-
-## Docker Build Commands
-
-### Step-by-Step Build Process for Backend Deployment
-
-```bash
-# Navigate to project root
-cd /path/to/ecommerce-project
-
-# Step 1: Build Backend Image
-docker-compose -f deploy/docker/compose/base.yml build backend
-
-# Step 2: Build Infrastructure Images (if needed)
-docker-compose -f deploy/docker/compose/base.yml build postgres postgres_ai
-
-# Step 3: Build Redis (uses official image, no build needed)
-docker pull redis:7-alpine
-
-# Step 4: Build RabbitMQ (uses official image)
-docker pull rabbitmq:3.12-management-alpine
-
-# Step 5: Build Elasticsearch (uses official image)
-docker pull docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-
-# Step 6: Build Qdrant (uses official image)
-docker pull qdrant/qdrant:v1.7.0
-
-# Step 7: Build Nginx (if using)
-docker-compose -f deploy/docker/compose/base.yml build nginx
-
-# Verify all images built successfully
-docker images | grep -E "backend|postgres|redis|rabbitmq|elasticsearch|qdrant|nginx"
-```
-
-### Production Build (Optimized)
-
-```bash
-# Build with production optimizations
-DOCKER_BUILDKIT=1 docker-compose -f deploy/docker/compose/base.yml \
-                                  -f deploy/docker/compose/production.yml \
-                                  build --parallel
-
-# Tag for deployment
-docker tag ecommerce_backend:latest yourdomain.com/ecommerce_backend:v1.0
-docker tag ecommerce_postgres:latest yourdomain.com/ecommerce_postgres:v1.0
-```
-
-### Complete Deployment Stack
-
-```bash
-# Complete production deployment in one command
-docker-compose -f deploy/docker/compose/base.yml \
-               -f deploy/docker/compose/production.yml \
-               up -d
-
-# Individual service management
-docker-compose -f deploy/docker/compose/base.yml up -d postgres postgres_ai redis rabbitmq elasticsearch
-docker-compose -f deploy/docker/compose/base.yml up -d backend celery_worker celery_beat
-docker-compose -f deploy/docker/compose/base.yml up -d nginx
-```
-
-### Build with Cache Optimization
-
-```bash
-# Use BuildKit for faster builds (60-85% faster)
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
-
-# Build with cache from remote registry
-docker-compose -f deploy/docker/compose/base.yml build \
-  --build-arg BUILDKIT_INLINE_CACHE=1 \
-  backend
-
-# Build without cache (clean build)
-docker-compose -f deploy/docker/compose/base.yml build --no-cache backend
-```
-
-### Resource Requirements
-
-Minimum resources for production backend deployment:
-
-```
-CPU: 4 cores
-RAM: 8GB
-Disk: 50GB SSD
-Network: 1Gbps
-
-Recommended for production:
-CPU: 8 cores
-RAM: 16GB
-Disk: 100GB SSD
-Network: 1Gbps
-```
-
----
+- Transaction history
+
+### Notifications
+- Email notifications via Celery tasks
+- Order confirmation emails
+- Customizable email templates
+
+### Wishlist
+- Add products to wishlist
+- Remove items from wishlist
+- View wishlist items
+
+### Admin
+- Django admin interface for managing all models
+- Product, order, and user management
+- Analytics and reporting (models in place, not yet fully implemented)
 
 ## Project Structure
 
 ```
 ecommerce-project/
 ├── services/
-│   ├── backend/                # Django REST Framework (PRODUCTION-READY)
+│   ├── backend/                    # Django REST Framework application
 │   │   ├── apps/
-│   │   │   ├── accounts/       # User authentication (100% tested)
-│   │   │   ├── products/       # Product catalog (100% tested)
-│   │   │   ├── orders/         # Cart and orders (100% tested)
-│   │   │   ├── payments/       # Stripe integration (85% tested)
-│   │   │   ├── notifications/  # Email system (100% tested)
-│   │   │   └── analytics/      # Business analytics
+│   │   │   ├── accounts/           # User authentication and profiles
+│   │   │   ├── products/           # Product catalog, categories, reviews
+│   │   │   ├── orders/             # Shopping cart and order management
+│   │   │   ├── payments/           # Stripe payment integration
+│   │   │   ├── notifications/      # Email notifications
+│   │   │   ├── analytics/          # Business analytics models
+│   │   │   ├── health/             # Health check endpoints
+│   │   │   └── core/               # Shared utilities and base classes
 │   │   ├── config/
-│   │   │   └── settings/
-│   │   │       ├── base.py
-│   │   │       ├── development.py
-│   │   │       └── production.py
+│   │   │   ├── settings/
+│   │   │   │   ├── base.py         # Base settings
+│   │   │   │   ├── development.py  # Development settings
+│   │   │   │   └── production.py   # Production settings
+│   │   │   └── urls.py             # URL routing
 │   │   ├── requirements/
 │   │   │   ├── base.txt
 │   │   │   ├── development.txt
@@ -506,285 +149,472 @@ ecommerce-project/
 │   │   ├── Dockerfile
 │   │   └── manage.py
 │   │
-│   ├── gateway/                # API Gateway (TESTING PHASE)
-│   │   ├── main.py
-│   │   ├── gateway_routes.py
-│   │   ├── circuit_breaker.py
-│   │   ├── rate_limiter.py
-│   │   ├── Dockerfile
-│   │   └── requirements.txt
-│   │
-│   ├── ai/                     # AI Services (INTEGRATION PHASE)
-│   │   ├── services/
-│   │   │   ├── recommendation_engine/
-│   │   │   ├── search_engine/
-│   │   │   ├── pricing_engine/
-│   │   │   ├── chatbot_rag/
-│   │   │   ├── fraud_detection/
-│   │   │   ├── demand_forecasting/
-│   │   │   └── visual_recognition/
-│   │   ├── models/             # Trained ML models
-│   │   ├── ml_pipeline/        # Training pipelines
-│   │   └── requirements-base.txt
-│   │
-│   └── shared/                 # Shared utilities
-│       ├── config.py
-│       ├── logger.py
-│       ├── monitoring.py
-│       └── database.py
+│   ├── gateway/                    # API Gateway (FastAPI, testing phase)
+│   ├── ai/                         # AI microservices (development phase)
+│   └── shared/                     # Shared utilities across services
 │
 ├── tests/
-│   ├── e2e/                    # End-to-end tests (92 tests)
-│   │   ├── workflows/
-│   │   │   ├── test_01_authentication.py      # 14 tests (100%)
-│   │   │   ├── test_02_products.py            # 18 tests (100%)
-│   │   │   ├── test_03_cart.py                # 21 tests (100%)
-│   │   │   ├── test_04_checkout.py            # 26 tests (85%)
-│   │   │   ├── test_05_reviews.py             # 13 tests (100%)
-│   │   │   └── test_05_wishlist.py            # 12 tests (100%)
-│   │   └── conftest.py
-│   └── integration/            # Integration tests (TODO: AI services)
+│   └── e2e/                        # End-to-end workflow tests
+│       ├── workflows/
+│       │   ├── test_01_authentication.py
+│       │   ├── test_02_products.py
+│       │   ├── test_03_cart.py
+│       │   ├── test_04_checkout.py
+│       │   ├── test_05_reviews.py
+│       │   └── test_05_wishlist.py
+│       └── conftest.py
 │
 ├── deploy/
 │   └── docker/
 │       └── compose/
-│           ├── base.yml        # Base service definitions
-│           ├── development.yml # Development overrides
-│           └── production.yml  # Production configuration
+│           ├── base.yml            # Service definitions
+│           ├── development.yml     # Development overrides
+│           └── production.yml      # Production configuration
 │
 ├── infrastructure/
-│   ├── nginx/                  # Nginx configuration
-│   └── postgres/               # PostgreSQL initialization
+│   ├── nginx/                      # Nginx configuration
+│   └── postgres/                   # Database initialization scripts
 │
-├── monitoring/
-│   ├── prometheus/
-│   └── grafana/
-│
-├── docs/                       # Documentation
-├── .env.vault.example         # Environment template
-├── Makefile                   # Development commands
-└── README.md                  # This file
+└── monitoring/                     # Prometheus and Grafana configs
 ```
 
----
+## Backend Architecture
 
-## Development
+The Django backend is organized into distinct apps, each with a specific responsibility:
 
-### Common Commands
+### accounts
+Handles user authentication and profile management.
 
+**Models:**
+- `User` - Custom user model extending Django's AbstractUser
+- `Address` - User shipping and billing addresses
+- `UserProfile` - Extended user profile data
+
+**Key Functionality:**
+- User registration
+- JWT token authentication (access and refresh tokens)
+- User profile CRUD operations
+- Address management
+
+### products
+Manages the product catalog, categories, and customer reviews.
+
+**Models:**
+- `Category` - Product categories with hierarchical support
+- `Product` - Product information, pricing, and inventory
+- `ProductVariant` - Product variants (size, color) with individual pricing and stock
+- `ProductImage` - Product images with primary designation
+- `Tag` - Product tags for filtering
+- `ProductReview` - Customer reviews with ratings
+- `ReviewHelpful` - Tracking helpful review votes
+- `Wishlist` - User wishlists
+- `WishlistItem` - Items in user wishlists
+
+**Key Functionality:**
+- Product CRUD operations
+- Category management
+- Product search via Elasticsearch
+- Review submission and moderation
+- Wishlist management
+- Image upload and management
+
+### orders
+Handles shopping cart operations and order processing.
+
+**Models:**
+- `Cart` - Shopping cart for authenticated users
+- `CartItem` - Items in shopping cart
+- `Order` - Customer orders
+- `OrderItem` - Line items in orders
+
+**Key Functionality:**
+- Add/remove items from cart
+- Cart total calculation
+- Create orders from cart
+- Inventory deduction on order creation
+- Order status management
+- Order cancellation with inventory restoration
+
+### payments
+Integrates with Stripe for payment processing.
+
+**Models:**
+- `Payment` - Payment records
+- `Refund` - Refund tracking
+- `PaymentMethod` - Stored payment methods
+- `Transaction` - Transaction history
+
+**Key Functionality:**
+- Create Stripe checkout sessions
+- Process payment webhooks
+- Handle payment confirmations
+- Process refunds
+
+### notifications
+Manages email notifications using Celery for asynchronous delivery.
+
+**Models:**
+- `EmailTemplate` - Customizable email templates
+- `Notification` - User notifications
+- `EmailLog` - Email delivery tracking
+
+**Key Functionality:**
+- Send email notifications asynchronously
+- Order confirmation emails
+- Template management
+
+### analytics
+Stores business analytics and reporting data.
+
+**Models:**
+- `DailySales` - Daily sales aggregates
+- `ProductAnalytics` - Product performance metrics
+- `CategoryAnalytics` - Category performance
+- `UserActivity` - User activity tracking
+- `CustomerSegment` - Customer segmentation
+- `SalesReport` - Generated sales reports
+
+**Key Functionality:**
+- Data models for analytics (aggregation logic to be implemented)
+
+### health
+Provides health check endpoints for monitoring and orchestration.
+
+**Key Functionality:**
+- Basic health endpoint for container orchestration
+- Database connectivity checks
+
+## API Endpoints
+
+The backend exposes a RESTful API at `http://localhost:8000/api/`. All endpoints return JSON responses.
+
+### Authentication (`/api/auth/`)
+- `POST /api/auth/register/` - Register new user
+- `POST /api/auth/login/` - Login and receive JWT tokens
+- `POST /api/auth/refresh/` - Refresh access token
+- `GET /api/auth/profile/` - Get current user profile
+- `PUT /api/auth/profile/` - Update user profile
+- `POST /api/auth/addresses/` - Create address
+- `GET /api/auth/addresses/` - List user addresses
+
+### Products (`/api/products/`)
+- `GET /api/products/` - List products (supports filtering and search)
+- `GET /api/products/{id}/` - Get product details
+- `POST /api/products/` - Create product (admin only)
+- `PUT /api/products/{id}/` - Update product (admin only)
+- `DELETE /api/products/{id}/` - Delete product (admin only)
+- `GET /api/products/{id}/reviews/` - Get product reviews
+- `POST /api/products/reviews/` - Create review
+- `POST /api/products/{id}/upload_image/` - Upload product image
+- `GET /api/products/categories/` - List categories
+- `GET /api/products/wishlist/` - Get user wishlist
+- `POST /api/products/wishlist/` - Add to wishlist
+- `DELETE /api/products/wishlist/{id}/` - Remove from wishlist
+
+### Orders (`/api/orders/`)
+- `GET /api/orders/cart/` - Get current user's cart
+- `POST /api/orders/cart/add/` - Add item to cart
+- `PUT /api/orders/cart/items/{id}/` - Update cart item quantity
+- `DELETE /api/orders/cart/items/{id}/` - Remove item from cart
+- `DELETE /api/orders/cart/clear/` - Clear cart
+- `GET /api/orders/` - List user's orders
+- `GET /api/orders/{id}/` - Get order details
+- `POST /api/orders/` - Create order (from cart or with items)
+- `POST /api/orders/{id}/cancel/` - Cancel order
+
+### Payments (`/api/payments/`)
+- `POST /api/payments/create-checkout-session/` - Create Stripe checkout session
+- `POST /api/payments/webhook/` - Stripe webhook handler
+- `GET /api/payments/` - List user payments
+- `GET /api/payments/{id}/` - Get payment details
+- `POST /api/payments/{id}/refund/` - Process refund
+
+### Analytics (`/api/analytics/`)
+- Analytics endpoints (models exist, endpoints to be fully implemented)
+
+### Documentation
+- `GET /api/docs/` - Swagger UI for API documentation
+- `GET /api/schema/` - OpenAPI schema
+
+### Admin
+- `GET /admin/` - Django admin interface
+
+## Testing
+
+The backend has been tested with 92 end-to-end tests covering complete workflows. Tests use real database connections and services (no mocking) to validate production behavior.
+
+### Test Coverage
+
+| Workflow | Tests | Pass Rate | Description |
+|----------|-------|-----------|-------------|
+| Authentication | 14 | 100% | Registration, login, token refresh, profile management |
+| Product Browsing | 18 | 100% | Product listing, filtering, search, detail views |
+| Shopping Cart | 21 | 100% | Add/remove items, cart calculations, edge cases |
+| Reviews & Ratings | 13 | 100% | Create reviews, vote helpful, validation |
+| Wishlist | 12 | 100% | Add/remove items, wishlist operations |
+| Checkout & Orders | 26 | 85% | Order creation, inventory deduction, payment flow |
+| **Total** | **104** | **96%** | **End-to-end workflows** |
+
+### Running Tests
+
+**Prerequisites:**
 ```bash
-# Start development environment (backend only)
-docker-compose -f deploy/docker/compose/base.yml \
-               -f deploy/docker/compose/development.yml \
-               up backend postgres redis rabbitmq elasticsearch celery_worker
+# Install test dependencies
+pip install -r requirements-test.txt
 
-# Database migrations
-docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py makemigrations
-docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py migrate
+# Ensure services are running
+docker-compose -f deploy/docker/compose/base.yml up -d postgres redis rabbitmq elasticsearch celery_worker
+```
 
-# Django shell
-docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py shell
-
-# View logs
-docker-compose -f deploy/docker/compose/base.yml logs -f backend
-
-# Run tests
+**Run all end-to-end tests:**
+```bash
+PYTHONPATH="services/backend:$PYTHONPATH" \
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ecommerce" \
 pytest tests/e2e/workflows/ -v
+```
 
-# Check service health
+**Run specific workflow:**
+```bash
+pytest tests/e2e/workflows/test_01_authentication.py -v
+pytest tests/e2e/workflows/test_02_products.py -v
+pytest tests/e2e/workflows/test_03_cart.py -v
+pytest tests/e2e/workflows/test_04_checkout.py -v
+```
+
+**Run with coverage:**
+```bash
+pytest tests/e2e/workflows/ -v --cov=services/backend/apps --cov-report=html
+```
+
+### Test Approach
+
+Tests validate real-world scenarios:
+- Real PostgreSQL database connections
+- Real Redis caching and sessions
+- Real Celery task execution
+- Real Elasticsearch queries
+- No mocking of database or external services
+
+This approach ensures tests reflect actual production behavior and catch integration issues early.
+
+### Issues Found During Testing
+
+The testing process identified and fixed 17 critical bugs:
+- Authentication performance improved by 60x
+- XSS vulnerabilities in product reviews
+- Cart calculation edge cases
+- Inventory race conditions
+- URL routing conflicts
+- Order creation validation issues
+
+## Local Development Setup
+
+### Prerequisites
+
+- Docker 20.10 or higher
+- Docker Compose 2.0 or higher
+- Minimum 8GB RAM
+- 20GB available disk space
+
+### Environment Configuration
+
+1. **Clone the repository:**
+```bash
+git clone https://github.com/yourusername/ecommerce-project.git
+cd ecommerce-project
+```
+
+2. **Create environment file:**
+```bash
+cp .env.vault.example .env
+```
+
+3. **Edit `.env` file with required configuration:**
+
+Minimum required variables:
+```env
+# Django
+SECRET_KEY=your-secure-random-secret-key-minimum-50-characters
+DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1,backend
+
+# Database
+POSTGRES_DB=ecommerce
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce
+
+# Redis
+REDIS_PASSWORD=redis_password
+REDIS_URL=redis://:redis_password@redis:6379/0
+
+# Celery
+CELERY_BROKER_URL=amqp://admin:admin@rabbitmq:5672//
+CELERY_RESULT_BACKEND=redis://:redis_password@redis:6379/1
+
+# Stripe (for payment testing)
+STRIPE_SECRET_KEY=sk_test_your_stripe_test_key
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_test_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+
+# Email (for development, use console backend)
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
+
+### Starting the Services
+
+1. **Build Docker images:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml build backend
+```
+
+2. **Start infrastructure services:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml up -d postgres postgres_ai redis rabbitmq elasticsearch qdrant
+```
+
+3. **Wait for services to initialize (about 60 seconds):**
+```bash
+sleep 60
+```
+
+4. **Run database migrations:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py migrate
+```
+
+5. **Create a superuser for admin access:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py createsuperuser
+```
+
+6. **Start the backend and Celery workers:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml up -d backend celery_worker celery_beat
+```
+
+7. **Verify the backend is running:**
+```bash
 curl http://localhost:8000/api/health/
 ```
 
----
+Expected response:
+```json
+{"status": "healthy"}
+```
 
-## Performance Metrics
+### Accessing the Application
 
-Production-ready backend performance (measured during E2E testing):
+- **API Base URL:** http://localhost:8000/api/
+- **API Documentation:** http://localhost:8000/api/docs/ (Swagger UI)
+- **Admin Interface:** http://localhost:8000/admin/
+- **RabbitMQ Management:** http://localhost:15672 (username: admin, password: admin)
 
-| Operation | Target | Actual | Status |
-|-----------|--------|--------|--------|
-| User Registration | <5s | <2s | Excellent |
-| Login | <1.5s | ~1.4s | Within SLA |
-| Product Listing | <1s | <600ms | Excellent |
-| Cart Operations | <500ms | <400ms | Excellent |
-| Search | <1.5s | <600ms | Excellent |
-| Email Tasks (async) | N/A | 32-126ms | Very fast |
+### Common Development Tasks
 
-Note: Measurements taken in WSL2 environment. Production hardware will perform better.
+**View logs:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml logs -f backend
+docker-compose -f deploy/docker/compose/base.yml logs -f celery_worker
+```
 
----
+**Run Django management commands:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py <command>
+```
+
+**Create migrations:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py makemigrations
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py migrate
+```
+
+**Django shell:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py shell
+```
+
+**Stop all services:**
+```bash
+docker-compose -f deploy/docker/compose/base.yml down
+```
+
+**Reset database (WARNING: deletes all data):**
+```bash
+docker-compose -f deploy/docker/compose/base.yml down -v
+docker-compose -f deploy/docker/compose/base.yml up -d postgres postgres_ai redis rabbitmq elasticsearch
+sleep 60
+docker-compose -f deploy/docker/compose/base.yml exec backend python manage.py migrate
+```
+
+## Performance
+
+Performance measurements from end-to-end testing (WSL2 environment):
+
+| Operation | Target | Actual | Notes |
+|-----------|--------|--------|-------|
+| User Registration | <5s | ~2s | Includes password hashing |
+| Login | <1.5s | ~1.4s | JWT generation |
+| Product Listing | <1s | <600ms | With Elasticsearch |
+| Cart Operations | <500ms | <400ms | Database queries optimized |
+| Search | <1.5s | <600ms | Full-text search |
+| Email Tasks | N/A | 32-126ms | Asynchronous via Celery |
+
+Note: These measurements were taken in a WSL2 development environment. Production hardware will show better performance.
 
 ## Security
 
 ### Implemented Security Measures
 
-**Authentication & Authorization**:
-- JWT tokens with refresh mechanism (tested)
-- Secure password hashing with Argon2
-- Token expiration and validation
-- Role-based access control
+**Authentication:**
+- JWT tokens with expiration (15 minutes access, 7 days refresh)
+- Secure password hashing using Argon2
+- Token-based authentication for all protected endpoints
 
-**Input Validation**:
-- XSS protection (sanitization implemented and tested)
-- SQL injection prevention (parametrized queries)
+**Input Validation:**
+- XSS protection via input sanitization
+- SQL injection prevention using Django ORM parameterized queries
 - CSRF protection enabled
-- Input validation on all endpoints
+- Request data validation using Django REST Framework serializers
 
-**Network Security**:
-- Four-tier network segmentation
-- Internal service communication isolated
-- TLS/SSL support for external traffic
+**Network:**
+- Four-tier network segmentation in Docker Compose
+- Internal service communication isolated from public network
+- HTTPS support via Nginx (configuration required for deployment)
 
-**Monitoring & Auditing**:
-- Failed login attempt tracking
-- Access logging
-- Security event monitoring
+**Data Protection:**
+- Passwords hashed with Argon2
+- Sensitive configuration via environment variables
+- No credentials in source code
 
-### Security Testing
-
-All security measures validated through E2E tests:
-- XSS attempts blocked (reviews, user input)
-- SQL injection attempts sanitized
-- Authorization properly enforced
-- Token manipulation prevented
-- User enumeration prevented
-
----
-
-## Monitoring
-
-### Available Tools
-
-**Health Checks**:
-```bash
-curl http://localhost:8000/api/health/  # Backend health
-```
-
-**RabbitMQ Management**:
-- URL: http://localhost:15672
-- Credentials: admin/admin
-- Monitor: Queue depth, message rates, consumer status
-
-**Database Monitoring**:
-- PostgreSQL logs via Docker: `docker logs postgres_main`
-- Connection pooling via PgBouncer (optional)
-
-**Celery Monitoring**:
-- Task success/failure in logs
-- RabbitMQ shows queue status
-- Async task processing times logged
-
-TODO (when deploying to production):
-- Configure Prometheus for metrics collection
-- Set up Grafana dashboards
-- Enable Sentry for error tracking
-- Configure log aggregation
-
----
+All security measures have been validated through end-to-end testing.
 
 ## Known Limitations
 
-### AI Services Integration
+### AI Services
+Seven AI microservices have been developed but are not production-ready:
+- Services start and respond to basic health checks
+- Machine learning models load correctly
+- Integration testing with the main backend is incomplete
+- Error handling and fallback mechanisms need implementation
+- Performance under load has not been validated
 
-While seven AI microservices exist with base functionality, they are not yet production-ready:
-
-**Current State**:
-- Services start successfully in Docker
-- Basic endpoints respond
-- ML models load correctly
-
-**Remaining Work**:
-- Integration testing with backend API
-- End-to-end workflow validation (search to recommendations to cart to checkout)
-- Performance testing under load
-- Error handling and graceful degradation
-- Fallback mechanisms when AI services unavailable
-- A/B testing infrastructure for model updates
-
-**Recommendation**: Deploy backend to production first. Complete AI integration and testing locally before enabling AI features in production.
+Recommendation: Deploy only the Django backend to production. Complete AI service integration and testing before enabling these features.
 
 ### API Gateway
+A FastAPI-based API gateway exists with circuit breaker, rate limiting, and service routing, but integration testing is incomplete.
 
-The FastAPI gateway exists but requires:
-- Integration testing with all backend endpoints
-- Load testing to verify circuit breaker behavior
-- Rate limiting validation
-- Authentication flow testing with JWT
-
-### Scalability Considerations
-
-Current Docker Compose setup is suitable for:
-- Development and staging
-- Small to medium production deployments (up to 10,000 concurrent users)
-- Single-server deployments
-
-For larger scale (100,000+ users):
-- Migrate to Kubernetes for multi-node orchestration
-- Implement horizontal pod autoscaling
-- Add load balancing across multiple backend instances
-- Consider managed database services (RDS, ElastiCache)
-
----
-
-## Roadmap
-
-**Immediate (Ready Now)**:
-- Deploy production-ready Django backend
-- Enable user management, products, cart, orders, payments
-- Monitor performance and error rates
-
-**Short Term (1-2 months)**:
-- Complete AI services integration testing
-- Validate API Gateway under load
-- Implement monitoring dashboards (Grafana)
-- Add comprehensive logging (ELK stack)
-
-**Medium Term (3-6 months)**:
-- Enable AI features in production (recommendations, search)
-- Implement A/B testing for AI models
-- Add fraud detection to checkout flow
-- Migrate to Kubernetes for scalability
-
-**Long Term (6-12 months)**:
-- Advanced AI features (visual search, demand forecasting)
-- Real-time personalization
-- Multi-region deployment
-- Advanced analytics and reporting
-
----
-
-## Contributing
-
-This is a production-grade e-commerce platform. Contributions should maintain the high quality and testing standards established.
-
-**Development Workflow**:
-1. Fork the repository
-2. Create a feature branch
-3. Write tests first (TDD approach)
-4. Implement feature
-5. Ensure tests pass (minimum 80% coverage)
-6. Submit pull request
-
-**Code Standards**:
-- Python: PEP 8, Black formatter
-- Testing: Pytest, minimum 80% coverage
-- Commits: Conventional Commits specification
-- Documentation: Update README and docstrings
-
----
+### Scalability
+The current Docker Compose setup is suitable for development and small to medium production deployments (up to approximately 10,000 concurrent users). Larger deployments would require:
+- Migration to Kubernetes for multi-node orchestration
+- Horizontal scaling of backend services
+- Managed database services
+- Load balancing across multiple instances
 
 ## License
 
-MIT License - See LICENSE file for details
-
----
+MIT License - See LICENSE file for details.
 
 ## Support
 
-**Documentation**: See docs/ directory for comprehensive guides
-**Issues**: Open GitHub issue for bugs or feature requests
-**Security**: Report security vulnerabilities privately to security@yourdomain.com
-
----
-
-**Production-Ready Backend. AI Services in Development. Designed for Scale.**
+For questions or issues, please open a GitHub issue or contact the development team.
