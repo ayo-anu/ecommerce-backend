@@ -81,10 +81,14 @@ class Order(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.order_number:
-            # Generate unique order number
+            # Generate unique order number with ORD- prefix
             import random
             import string
-            self.order_number = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
+            import time
+            # Format: ORD-TIMESTAMP-RANDOM (e.g., ORD-20251229-ABC123)
+            timestamp = str(int(time.time()))[-8:]  # Last 8 digits of timestamp
+            random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            self.order_number = f'ORD-{timestamp}-{random_part}'
         super().save(*args, **kwargs)
 
 

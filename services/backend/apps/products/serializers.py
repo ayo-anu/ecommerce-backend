@@ -141,7 +141,41 @@ class CreateReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductReview
-        fields = ['product', 'rating', 'title', 'comment']
+        fields = ['id', 'product', 'rating', 'title', 'comment', 'is_verified_purchase', 'is_approved', 'helpful_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'is_verified_purchase', 'is_approved', 'helpful_count', 'created_at', 'updated_at']
+
+    def validate_title(self, value):
+        """Sanitize title to prevent XSS attacks"""
+        from django.utils.html import strip_tags
+        sanitized = strip_tags(value).strip()
+        if not sanitized:
+            raise serializers.ValidationError("Title cannot be empty")
+        return sanitized
+
+    def validate_comment(self, value):
+        """Sanitize comment to prevent XSS attacks"""
+        from django.utils.html import strip_tags
+        import re
+
+        # First, strip HTML tags
+        sanitized = strip_tags(value).strip()
+
+        # Remove dangerous protocols (javascript:, data:, vbscript:, etc.)
+        dangerous_protocols = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:']
+        for protocol in dangerous_protocols:
+            sanitized = re.sub(re.escape(protocol), '', sanitized, flags=re.IGNORECASE)
+
+        # Clean up any remaining whitespace
+        sanitized = sanitized.strip()
+
+        if not sanitized:
+            raise serializers.ValidationError("Comment cannot be empty")
+
+        # Limit comment length
+        if len(sanitized) > 5000:
+            return sanitized[:5000]
+
+        return sanitized
 
     def validate_rating(self, value):
         if value < 1 or value > 5:

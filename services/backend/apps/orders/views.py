@@ -9,7 +9,8 @@ from .models import Order, Cart, CartItem
 from apps.products.models import ProductImage
 from .serializers import (
     OrderListSerializer, OrderDetailSerializer,
-    OrderCreateSerializer, CartSerializer, CartItemSerializer
+    OrderCreateSerializer, OrderFromCartSerializer,
+    CartSerializer, CartItemSerializer
 )
 from apps.products.models import Product, ProductVariant
 
@@ -33,11 +34,21 @@ class OrderViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return OrderListSerializer
         elif self.action == 'create':
-            return OrderCreateSerializer
+            # Auto-detect: if shipping_address_id provided, use cart-based order creation
+            if 'shipping_address_id' in self.request.data:
+                return OrderFromCartSerializer
+            else:
+                return OrderCreateSerializer
         return OrderDetailSerializer
     
     def create(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger(__name__)
+
         serializer = self.get_serializer(data=request.data)
+        logger.info(f"ORDER CREATE: Using serializer: {serializer.__class__.__name__}")
+        logger.info(f"ORDER CREATE: Request data keys: {list(request.data.keys())}")
+
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
         
@@ -64,6 +75,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         
         with transaction.atomic():
             # Restore inventory
+            from django.core.cache import cache
             for item in order.items.select_related('product', 'variant'):
                 if item.variant:
                     item.variant.stock_quantity += item.quantity
@@ -71,7 +83,11 @@ class OrderViewSet(viewsets.ModelViewSet):
                 else:
                     item.product.stock_quantity += item.quantity
                     item.product.save()
-            
+
+                # Invalidate product cache when inventory changes
+                cache.delete(f'product_detail_{item.product.id}')
+                cache.delete(f'product_list_{item.product.id}')
+
             order.status = 'cancelled'
             order.save()
         

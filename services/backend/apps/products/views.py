@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, filters, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAdminUser
@@ -113,21 +113,38 @@ class ProductViewSet(viewsets.ModelViewSet):
         """Upload product image"""
         product = self.get_object()
         image_file = request.FILES.get('image')
-        
+
         if not image_file:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         image = ProductImage.objects.create(
             product=product,
             image=image_file,
             alt_text=request.data.get('alt_text', ''),
             is_primary=request.data.get('is_primary', False)
         )
-        
+
         # Invalidate cache
         cache.delete(f'product_detail_{product.id}')
-        
+
         return Response({'id': image.id, 'url': image.image.url}, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticatedOrReadOnly])
+    def reviews(self, request, pk=None):
+        """Get all reviews for a specific product"""
+        product = self.get_object()
+
+        # Optimized query with select_related for user and prefetch for helpful_votes
+        queryset = product.reviews.select_related('user').prefetch_related('helpful_votes')
+
+        # Show only approved reviews to non-staff users
+        if not request.user.is_staff:
+            queryset = queryset.filter(is_approved=True)
+
+        queryset = queryset.order_by('-created_at')
+
+        serializer = ProductReviewSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -153,6 +170,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ProductReviewViewSet(viewsets.ModelViewSet):
     """Product review management"""
     permission_classes = [IsAuthenticatedOrReadOnly]
+    queryset = ProductReview.objects.all()  # Required by DRF ModelViewSet
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['product', 'rating', 'is_approved']
     ordering_fields = ['created_at', 'helpful_count', 'rating']
@@ -224,33 +242,55 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
 
 
 class WishlistViewSet(viewsets.ModelViewSet):
-    """User wishlist management"""
-    permission_classes = [IsAuthenticatedOrReadOnly]
-    serializer_class = WishlistSerializer
+    """
+    User wishlist management
+
+    API Endpoints:
+    - GET /api/products/wishlist/ - List all wishlist items
+    - POST /api/products/wishlist/ - Add item to wishlist (body: {"product_id": "uuid"})
+    - DELETE /api/products/wishlist/{item_id}/ - Remove item from wishlist
+    """
+    permission_classes = [permissions.IsAuthenticated]  # Require authentication
+    serializer_class = WishlistItemSerializer  # Use WishlistItem serializer for list/create/destroy
+    queryset = WishlistItem.objects.all()  # Required by DRF ModelViewSet
 
     def get_queryset(self):
-        """Return current user's wishlist"""
-        return Wishlist.objects.filter(user=self.request.user).prefetch_related(
-            'items__product__images',
-            'items__product__category'
-        )
+        """Return current user's wishlist items"""
+        if not self.request.user.is_authenticated:
+            return WishlistItem.objects.none()
 
-    def get_object(self):
-        """Get or create wishlist for current user"""
-        wishlist, created = Wishlist.objects.get_or_create(user=self.request.user)
-        return wishlist
+        # Get or create wishlist for user
+        wishlist, _ = Wishlist.objects.get_or_create(user=self.request.user)
 
-    @action(detail=False, methods=['get'])
-    def my_wishlist(self, request):
-        """Get current user's wishlist"""
-        wishlist = self.get_object()
-        serializer = self.get_serializer(wishlist)
+        return WishlistItem.objects.filter(wishlist=wishlist).select_related(
+            'product__category'
+        ).prefetch_related('product__images')
+
+    def list(self, request, *args, **kwargs):
+        """
+        List all wishlist items for the authenticated user
+
+        Returns:
+            200: List of wishlist items with product details
+        """
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['post'])
-    def add_item(self, request):
-        """Add item to wishlist"""
-        wishlist = self.get_object()
+    def create(self, request, *args, **kwargs):
+        """
+        Add a product to the wishlist
+
+        Body: {"product_id": "uuid", "variant_id": "uuid" (optional), "notes": "..." (optional)}
+
+        Returns:
+            201: Wishlist item created with product details
+            400: Product already in wishlist or missing product_id
+            404: Product not found
+        """
+        # Get or create wishlist for user
+        wishlist, _ = Wishlist.objects.get_or_create(user=request.user)
+
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
         notes = request.data.get('notes', '')
@@ -285,25 +325,23 @@ class WishlistViewSet(viewsets.ModelViewSet):
             notes=notes
         )
 
-        serializer = WishlistItemSerializer(item)
+        serializer = self.get_serializer(item)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['delete'])
-    def remove_item(self, request):
-        """Remove item from wishlist"""
-        wishlist = self.get_object()
-        item_id = request.query_params.get('item_id')
+    def destroy(self, request, *args, **kwargs):
+        """
+        Remove a specific item from the wishlist
 
-        if not item_id:
-            return Response(
-                {'error': 'item_id is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        URL: DELETE /api/products/wishlist/{item_id}/
 
+        Returns:
+            204: Item removed successfully
+            404: Item not found or doesn't belong to user
+        """
         try:
-            item = WishlistItem.objects.get(id=item_id, wishlist=wishlist)
+            item = self.get_queryset().get(pk=kwargs.get('pk'))
             item.delete()
-            return Response({'message': 'Item removed from wishlist'})
+            return Response(status=status.HTTP_204_NO_CONTENT)
         except WishlistItem.DoesNotExist:
             return Response(
                 {'error': 'Item not found'},
@@ -312,7 +350,15 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def clear(self, request):
-        """Clear all items from wishlist"""
-        wishlist = self.get_object()
-        WishlistItem.objects.filter(wishlist=wishlist).delete()
-        return Response({'message': 'Wishlist cleared'})
+        """
+        Clear all items from the wishlist
+
+        Returns:
+            200: Wishlist cleared successfully
+        """
+        wishlist, _ = Wishlist.objects.get_or_create(user=request.user)
+        deleted_count = WishlistItem.objects.filter(wishlist=wishlist).delete()[0]
+        return Response({
+            'message': 'Wishlist cleared',
+            'deleted_count': deleted_count
+        })
