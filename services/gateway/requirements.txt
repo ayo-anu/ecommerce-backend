@@ -1,0 +1,35 @@
+# ==============================================================================
+# API Gateway Requirements
+# Lightweight orchestrator - NO ML dependencies
+# ==============================================================================
+
+# Core Framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.0
+
+# Database & Caching
+redis==5.2.1
+qdrant-client==1.12.1
+
+# Authentication & Security
+PyJWT==2.10.1
+python-jose==3.3.0
+passlib==1.7.4
+bcrypt==5.0.0
+cryptography==41.0.7
+
+# HTTP & Async
+aiohttp==3.9.1
+aiofiles==25.1.0
+async-timeout==5.0.1
+
+# Circuit Breaker & Resilience (for proxy functionality)
+tenacity==9.1.2
+
+# Rate Limiting
+# (Using custom implementation, no external dependencies needed)
+
+# Additional utilities
+python-multipart==0.0.6
