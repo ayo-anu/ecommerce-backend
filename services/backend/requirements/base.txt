@@ -1,4 +1,4 @@
-﻿alabaster==0.7.16
+alabaster==0.7.16
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.11.0
@@ -93,7 +93,7 @@ prompt-toolkit==3.0.39
 psycopg2-binary==2.9.11
 pure_eval==0.2.3
 pycparser==2.23
-pydantic==2.12.4
+pydantic==2.12.5
 pydantic_core==2.41.5
 pyflakes>=3.4.0,<3.5.0
 Pygments==2.19.2
