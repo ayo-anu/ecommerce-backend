@@ -1,4 +1,5 @@
 from .base import *
+import importlib.util
 import logging
 
 DEBUG = True
@@ -28,8 +29,14 @@ CACHES = {
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-# Email - Console backend for development
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Email - Default to Mailhog SMTP in dev, allow override via env
+EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = config('EMAIL_HOST', default='mailhog')
+EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@example.com')
 
 # Static/Media - Local file storage
 USE_S3 = False
@@ -47,9 +54,12 @@ DEVELOPMENT_APPS = [
 ]
 
 for app in DEVELOPMENT_APPS:
-    if app not in INSTALLED_APPS:
+    try:
+        available = importlib.util.find_spec(app) is not None
+    except ModuleNotFoundError:
+        available = False
+    if available and app not in INSTALLED_APPS:
         INSTALLED_APPS.append(app)
-
 
 DEVELOPMENT_MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -58,8 +68,16 @@ DEVELOPMENT_MIDDLEWARE = [
 ]
 
 for middleware in DEVELOPMENT_MIDDLEWARE:
-    if middleware not in MIDDLEWARE:
-        MIDDLEWARE.append(middleware)
+    module_name = middleware.rsplit('.', 1)[0]
+    try:
+        available = importlib.util.find_spec(module_name) is not None
+    except ModuleNotFoundError:
+        available = False
+    if available and middleware not in MIDDLEWARE:
+        if 'django_prometheus.middleware.PrometheusAfterMiddleware' in MIDDLEWARE:
+            MIDDLEWARE.insert(-1, middleware)
+        else:
+            MIDDLEWARE.append(middleware)
 
 INTERNAL_IPS = [
     '127.0.0.1',
@@ -98,12 +116,15 @@ REST_FRAMEWORK = {
 
 # Override broker/backend URLs for local development
 # RabbitMQ is the broker, Redis is the result backend
-CELERY_BROKER_URL = 'amqp://admin:admin@localhost:5672//'
-CELERY_RESULT_BACKEND = 'redis://:redis_password@localhost:6379/1'  # Added password for Redis auth
+CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='amqp://admin:admin@rabbitmq:5672//')
+CELERY_RESULT_BACKEND = config(
+    'CELERY_RESULT_BACKEND',
+    default='redis://:redis_password@redis:6379/1'
+)
 
-# Elasticsearch - Use localhost to connect to Docker Elasticsearch
+# Elasticsearch - Prefer env override for Docker usage
 ELASTICSEARCH_DSL = {
     'default': {
-        'hosts': 'http://localhost:9200'
+        'hosts': config('ELASTICSEARCH_URL', default='http://localhost:9200')
     },
 }

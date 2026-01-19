@@ -1,6 +1,3 @@
-"""
-Base settings shared across all environments
-"""
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
@@ -8,29 +5,16 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# ==============================================================================
-# Vault Integration (Optional)
-# ==============================================================================
-# When USE_VAULT=true, secrets are loaded from Hashicorp Vault
-# When USE_VAULT=false (default), secrets are loaded from environment variables
-#
-# This provides a safe migration path: applications work with or without Vault
-# ==============================================================================
-
 USE_VAULT = os.getenv('USE_VAULT', 'false').lower() in ('true', '1', 'yes')
 
-# Import vault client if available (optional dependency)
 try:
     from core.vault_client import get_vault_secret
     VAULT_CLIENT_AVAILABLE = True
 except ImportError:
     VAULT_CLIENT_AVAILABLE = False
-    # Fallback function that only uses environment variables
     def get_vault_secret(env_var_name, vault_path=None, vault_key=None, default=None):
-        """Fallback when vault_client is not available"""
         return os.getenv(env_var_name, default)
 
-# If USE_VAULT is enabled but vault client is not available, warn and fall back
 if USE_VAULT and not VAULT_CLIENT_AVAILABLE:
     import logging
     logger = logging.getLogger(__name__)
@@ -69,6 +53,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django_elasticsearch_dsl',
     'django_celery_beat',  # Celery Beat scheduler
+    'django_prometheus',
     'storages',
     
     # Local apps
@@ -81,6 +66,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', 
     'corsheaders.middleware.CorsMiddleware',
@@ -90,6 +76,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 ]
 
 
@@ -208,11 +195,12 @@ CELERY_TIMEZONE = TIME_ZONE
 
 
 # Elasticsearch
+ELASTICSEARCH_URL = config('ELASTICSEARCH_URL', default='')
 ELASTICSEARCH_DSL = {
     'default': {
-        'hosts': config('ELASTICSEARCH_URL', default='')
+        'hosts': ELASTICSEARCH_URL
     },
-} if config('ELASTICSEARCH_URL', default='') else {}
+} if ELASTICSEARCH_URL else {}
 
 
 # Frontend URL

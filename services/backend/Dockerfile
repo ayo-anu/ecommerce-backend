@@ -52,6 +52,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     libpq5 \
+    bash \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -88,16 +89,16 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Run gunicorn with production settings
-CMD ["gunicorn", "config.wsgi:application", \
-     "--bind", "0.0.0.0:8000", \
-     "--workers", "3", \
-     "--threads", "1", \
-     "--worker-class", "sync", \
-     "--worker-tmp-dir", "/dev/shm", \
-     "--max-requests", "1000", \
-     "--max-requests-jitter", "50", \
-     "--timeout", "30", \
-     "--preload-app", \
-     "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
+CMD ["sh", "-c", "gunicorn config.wsgi:application \
+     --bind 0.0.0.0:${PORT:-8000} \
+     --workers 3 \
+     --threads 1 \
+     --worker-class sync \
+     --worker-tmp-dir /dev/shm \
+     --max-requests 1000 \
+     --max-requests-jitter 50 \
+     --timeout 30 \
+     --preload-app \
+     --access-logfile - \
+     --error-logfile - \
+     --log-level info"]

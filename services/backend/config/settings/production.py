@@ -1,4 +1,5 @@
 import dj_database_url
+from copy import deepcopy
 from .base import *
 from .base import get_vault_secret, USE_VAULT
 import sentry_sdk
@@ -13,7 +14,13 @@ DEBUG = False
 # ==============================================================================
 # Add observability middleware at the beginning of the stack
 MIDDLEWARE.insert(0, 'core.middleware.request_id.RequestIDMiddleware')
-MIDDLEWARE.append('core.middleware.error_logging.ErrorLoggingMiddleware')
+if 'django_prometheus.middleware.PrometheusAfterMiddleware' in MIDDLEWARE:
+    MIDDLEWARE.insert(
+        MIDDLEWARE.index('django_prometheus.middleware.PrometheusAfterMiddleware'),
+        'core.middleware.error_logging.ErrorLoggingMiddleware'
+    )
+else:
+    MIDDLEWARE.append('core.middleware.error_logging.ErrorLoggingMiddleware')
 
 # ==============================================================================
 # CRITICAL: ALLOWED_HOSTS validation
@@ -59,14 +66,12 @@ def validate_required_settings():
         if not setting_value:
             missing_settings.append(setting_name)
 
-    # Check SECRET_KEY is not insecure
     secret_key = required_settings['SECRET_KEY']
     if secret_key and ('insecure' in secret_key.lower() or
                        'change' in secret_key.lower() or
                        'django-secret' in secret_key.lower()):
         insecure_settings.append('SECRET_KEY (contains insecure placeholder)')
 
-    # Check service auth keys
     for key_name in required_service_keys:
         key_value = config(key_name, default='')
         if not key_value:
@@ -74,7 +79,6 @@ def validate_required_settings():
         elif 'CHANGE_ME' in key_value or len(key_value) < 32:
             insecure_settings.append(f'{key_name} (placeholder or too short)')
 
-    # Report errors
     errors = []
 
     if missing_settings:
@@ -183,6 +187,11 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 
+# Logging - disable file handler in production (stdout only on Render)
+LOGGING = deepcopy(LOGGING)
+LOGGING['handlers'].pop('file', None)
+LOGGING['root']['handlers'] = ['console']
+
 
 # ==============================================================================
 # CDN & Static Files Configuration
@@ -243,8 +252,6 @@ if USE_S3:
     AWS_LOCATION = 'static'
 
 else:
-    # Local file serving with WhiteNoise
-    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     STATIC_ROOT = BASE_DIR / 'staticfiles'
     STATIC_URL = '/static/'
