@@ -1,6 +1,4 @@
-"""
-Database connection and session management
-"""
+"""Database connection and session management."""
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import DeclarativeMeta
@@ -13,7 +11,6 @@ from .config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Create async engine
 engine = create_async_engine(
     settings.DATABASE_URL.replace('postgresql://', 'postgresql+asyncpg://'),
     echo=settings.DEBUG,
@@ -23,7 +20,6 @@ engine = create_async_engine(
     pool_recycle=3600,
 )
 
-# Create async session factory
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
@@ -32,15 +28,11 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
 )
 
-# Base class for models
 Base: DeclarativeMeta = declarative_base()
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Dependency to get database session
-    Usage: db: AsyncSession = Depends(get_db)
-    """
+    """Dependency to get a database session."""
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -55,10 +47,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 @asynccontextmanager
 async def get_db_context():
-    """
-    Context manager for database session
-    Usage: async with get_db_context() as db:
-    """
+    """Context manager for a database session."""
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -72,13 +61,13 @@ async def get_db_context():
 
 
 async def init_db():
-    """Initialize database - create all tables"""
+    """Initialize database tables."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     logger.info("Database initialized successfully")
 
 
 async def close_db():
-    """Close database connections"""
+    """Close database connections."""
     await engine.dispose()
     logger.info("Database connections closed")

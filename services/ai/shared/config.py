@@ -1,51 +1,32 @@
-"""
-Shared configuration management
-"""
+"""Shared configuration."""
 from pydantic_settings import BaseSettings
 from typing import List
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    """Application settings from environment variables"""
+    """Application settings."""
     
     # Django Backend Integration
-    # SECURITY FIX: Use Docker DNS names as defaults (not localhost)
     DJANGO_BACKEND_URL: str = "http://backend:8000"
     DJANGO_API_KEY: str = ""
 
-    # ==============================================================================
-    # DATABASE ACCESS - DEPRECATED
-    # ==============================================================================
-    # WARNING: Direct database access from AI services is deprecated and will be
-    # removed in a future release. AI services MUST communicate with the backend
-    # via the API (DJANGO_BACKEND_URL) for all data operations.
-    #
-    # These fields are kept for backward compatibility but should not be used.
-    # Production values provided for legacy compatibility.
-    # ==============================================================================
+    # Deprecated: AI services should use the backend API.
     DATABASE_URL: str = "postgresql://postgres:postgres@postgres_ai:5432/ecommerce_ai"
     DB_POOL_SIZE: int = 25  # Production: 25 connections per service
     DB_MAX_OVERFLOW: int = 50  # Production: Up to 50 overflow connections during peak load
 
     # Redis
-    # SECURITY FIX: Use Docker DNS names as defaults (not localhost)
     REDIS_URL: str = "redis://redis:6379/0"
     REDIS_MAX_CONNECTIONS: int = 50
 
     # Qdrant Vector DB
-    # SECURITY FIX: Use Docker DNS names as defaults (not localhost)
     QDRANT_URL: str = "http://qdrant:6333"
     QDRANT_API_KEY: str = ""
     QDRANT_COLLECTION_PRODUCTS: str = "products"
     QDRANT_VECTOR_SIZE: int = 384
     
-    # ==============================================================================
     # Security & Authentication
-    # ==============================================================================
-    # NOTE: Service secrets should be loaded from Vault in production
-    # For now, these are loaded from environment variables
-    # Future: Integrate with backend's Vault client for service-level secrets
     SECRET_KEY: str = "change-this-secret-key"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
@@ -71,7 +52,6 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000"]
     
     # Service URLs
-    # SECURITY FIX: Use Docker DNS names as defaults (not localhost)
     RECOMMENDATION_SERVICE_URL: str = "http://recommender:8001"
     SEARCH_SERVICE_URL: str = "http://search:8002"
     PRICING_SERVICE_URL: str = "http://pricing:8003"
@@ -103,5 +83,5 @@ class Settings(BaseSettings):
 
 @lru_cache()
 def get_settings() -> Settings:
-    """Get cached settings instance"""
+    """Get cached settings instance."""
     return Settings()

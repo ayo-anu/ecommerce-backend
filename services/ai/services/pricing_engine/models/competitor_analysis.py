@@ -1,7 +1,4 @@
-"""
-Competitor Analysis - Track and analyze competitor pricing
-Monitor market positioning and recommend adjustments
-"""
+"""Competitor price analysis."""
 import numpy as np
 from typing import List, Dict, Tuple
 from collections import defaultdict
@@ -11,14 +8,10 @@ logger = logging.getLogger(__name__)
 
 
 class CompetitorAnalyzer:
-    """
-    Analyze competitor pricing and market position
-    
-    Provides insights for competitive positioning
-    """
+    """Analyze competitor pricing and positioning."""
     
     def __init__(self):
-        """Initialize competitor analyzer"""
+        """Initialize competitor analyzer."""
         self.competitor_history = defaultdict(list)
         logger.info("Competitor analyzer initialized")
     
@@ -27,42 +20,28 @@ class CompetitorAnalyzer:
         our_price: float,
         competitor_prices: List[float]
     ) -> Dict:
-        """
-        Analyze our market position vs competitors
-        
-        Args:
-            our_price: Our current price
-            competitor_prices: List of competitor prices
-            
-        Returns:
-            Analysis with position and recommendations
-        """
+        """Analyze market position vs competitors."""
         if not competitor_prices:
             return {
                 'position': 'unknown',
                 'recommendation': 'Need competitor data for analysis'
             }
-        
-        # Calculate statistics
+
         comp_min = np.min(competitor_prices)
         comp_max = np.max(competitor_prices)
         comp_avg = np.mean(competitor_prices)
         comp_median = np.median(competitor_prices)
         comp_std = np.std(competitor_prices)
-        
-        # Determine position
+
         position = self._determine_position(our_price, comp_min, comp_max, comp_avg)
-        
-        # Calculate price gap
+
         price_gap = our_price - comp_avg
         gap_percent = (price_gap / comp_avg) * 100
-        
-        # Generate recommendation
+
         recommendation = self._generate_recommendation(
             our_price, position, comp_avg, comp_min, gap_percent
         )
-        
-        # Suggest optimal price
+
         suggested_price = self._suggest_competitive_price(
             our_price, comp_avg, comp_min, position
         )
@@ -97,8 +76,7 @@ class CompetitorAnalyzer:
         comp_max: float,
         comp_avg: float
     ) -> str:
-        """Determine market position"""
-        # Categorize position
+        """Determine market position."""
         if our_price < comp_min:
             return "lowest"
         elif our_price <= comp_avg * 0.95:
@@ -118,7 +96,7 @@ class CompetitorAnalyzer:
         comp_min: float,
         gap_percent: float
     ) -> str:
-        """Generate pricing recommendation based on position"""
+        """Generate a pricing recommendation."""
         if position == "lowest":
             return "You have the lowest price. Consider small increase to improve margins."
         
@@ -144,17 +122,14 @@ class CompetitorAnalyzer:
         comp_min: float,
         position: str
     ) -> float:
-        """Suggest optimal competitive price"""
+        """Suggest a competitive price."""
         if position in ["lowest", "competitive_low", "competitive"]:
-            # Already well positioned
             return None
         
         elif position == "premium":
-            # Slight reduction to be more competitive
             return comp_avg * 1.05
         
         elif position == "very_premium":
-            # Significant reduction needed
             return comp_avg * 1.02
         
         return None

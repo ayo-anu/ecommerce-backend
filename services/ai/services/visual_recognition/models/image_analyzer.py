@@ -1,7 +1,4 @@
-"""
-Image Analyzer - Computer vision for product images
-Quality assessment, object detection, and feature extraction
-"""
+"""Image analysis for product images."""
 from PIL import Image
 import numpy as np
 import io
@@ -15,11 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ImageAnalyzer:
-    """
-    Computer vision analyzer for product images
-    
-    Provides quality assessment, object detection, and feature extraction
-    """
+    """Computer vision analyzer for product images."""
     
     def __init__(self):
         self.stats = {
@@ -36,48 +29,29 @@ class ImageAnalyzer:
         extract_colors: bool = True,
         generate_tags: bool = True
     ) -> Dict:
-        """
-        Comprehensive image analysis
-        
-        Args:
-            image_base64: Base64 encoded image
-            analyze_quality: Perform quality assessment
-            detect_objects: Detect objects in image
-            extract_colors: Extract dominant colors
-            generate_tags: Generate descriptive tags
-            
-        Returns:
-            Analysis results
-        """
-        # Decode image
+        """Analyze an image and return features."""
         image = self._decode_image(image_base64)
         if image is None:
             raise ValueError("Invalid image data")
         
         results = {}
         
-        # Quality assessment
         if analyze_quality:
             results['quality_metrics'] = self._assess_quality(image)
         
-        # Object detection (simplified - would use YOLO/Faster R-CNN in production)
         if detect_objects:
             results['detected_objects'] = self._detect_objects(image)
             if results['detected_objects']:
                 results['primary_object'] = results['detected_objects'][0]['label']
         
-        # Color extraction
         if extract_colors:
             results['dominant_colors'] = self._extract_colors(image)
         
-        # Category prediction
         results['predicted_category'], results['category_confidence'] = self._predict_category(image)
         
-        # Tag generation
         if generate_tags:
             results['tags'] = self._generate_tags(image, results)
         
-        # Scene understanding
         results['scene_description'] = self._understand_scene(image)
         
         self.stats['images_processed'] += 1
@@ -85,7 +59,7 @@ class ImageAnalyzer:
         return results
     
     def _decode_image(self, image_base64: str) -> Image.Image:
-        """Decode base64 image"""
+        """Decode a base64 image."""
         try:
             image_data = base64.b64decode(image_base64)
             image = Image.open(io.BytesIO(image_data)).convert('RGB')
@@ -95,11 +69,7 @@ class ImageAnalyzer:
             return None
     
     def _assess_quality(self, image: Image.Image) -> Dict:
-        """
-        Assess image quality
-        
-        Checks resolution, sharpness, brightness, contrast
-        """
+        """Assess image quality."""
         width, height = image.size
         
         # Calculate file size estimate
@@ -272,19 +242,10 @@ class ImageAnalyzer:
         return "unknown"
     
     def _predict_category(self, image: Image.Image) -> Tuple[str, float]:
-        """
-        Predict product category (simplified)
-        
-        In production: use trained CNN classifier
-        """
-        # Simplified category prediction based on color analysis
+        """Predict product category."""
         img_array = np.array(image)
         
-        # Get average color
         avg_color = np.mean(img_array, axis=(0, 1))
-        
-        # Simple heuristics (would use ML model in production)
-        # This is a placeholder - real implementation would use ResNet/EfficientNet
         
         return "other", 0.5
     

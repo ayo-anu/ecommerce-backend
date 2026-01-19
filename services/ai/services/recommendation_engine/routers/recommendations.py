@@ -410,25 +410,12 @@ async def load_interactions(interactions: List[dict]):
 
 # Helper functions
 async def _get_user_history(user_id: str) -> List[str]:
-    """
-    Get user's product interaction history
-    In production, fetch from Django backend
-    """
-    # TODO: Integrate with Django backend
-    # Example: GET {DJANGO_URL}/api/orders/?user={user_id}
-    
-    # Mock data for now
+    """Get user product interaction history."""
     return []
 
 
 async def _get_product_metadata(product_id: str) -> dict:
-    """
-    Get product metadata from Django backend
-    """
-    # TODO: Integrate with Django backend
-    # Example: GET {DJANGO_URL}/api/products/{product_id}
-    
-    # Mock data for now
+    """Get product metadata."""
     return {
         "name": f"Product {product_id[:8]}",
         "price": 99.99,

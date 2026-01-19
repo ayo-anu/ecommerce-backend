@@ -1,6 +1,4 @@
-"""
-Redis client for caching and session management
-"""
+"""Redis client for caching."""
 import redis.asyncio as redis
 from typing import Optional, Any
 import json
@@ -14,13 +12,13 @@ settings = get_settings()
 
 
 class RedisClient:
-    """Async Redis client wrapper"""
+    """Async Redis client wrapper."""
     
     def __init__(self):
         self.redis: Optional[redis.Redis] = None
         
     async def connect(self):
-        """Connect to Redis"""
+        """Connect to Redis."""
         try:
             self.redis = await redis.from_url(
                 settings.REDIS_URL,
@@ -35,13 +33,13 @@ class RedisClient:
             raise
     
     async def close(self):
-        """Close Redis connection"""
+        """Close Redis connection."""
         if self.redis:
             await self.redis.close()
             logger.info("Redis connection closed")
     
     async def get(self, key: str) -> Optional[Any]:
-        """Get value from Redis"""
+        """Get a value from Redis."""
         try:
             value = await self.redis.get(key)
             if value:
@@ -57,7 +55,7 @@ class RedisClient:
         value: Any, 
         expire: Optional[int] = None
     ) -> bool:
-        """Set value in Redis with optional expiration (seconds)"""
+        """Set a value in Redis with optional expiration."""
         try:
             serialized = json.dumps(value)
             if expire:
@@ -70,7 +68,7 @@ class RedisClient:
             return False
     
     async def delete(self, key: str) -> bool:
-        """Delete key from Redis"""
+        """Delete a key from Redis."""
         try:
             await self.redis.delete(key)
             return True
@@ -79,7 +77,7 @@ class RedisClient:
             return False
     
     async def exists(self, key: str) -> bool:
-        """Check if key exists"""
+        """Check if a key exists."""
         try:
             return await self.redis.exists(key) > 0
         except Exception as e:
@@ -87,7 +85,7 @@ class RedisClient:
             return False
     
     async def increment(self, key: str, amount: int = 1) -> int:
-        """Increment value (for rate limiting)"""
+        """Increment a value."""
         try:
             return await self.redis.incrby(key, amount)
         except Exception as e:
@@ -95,7 +93,7 @@ class RedisClient:
             return 0
     
     async def expire(self, key: str, seconds: int) -> bool:
-        """Set expiration on key"""
+        """Set expiration on a key."""
         try:
             return await self.redis.expire(key, seconds)
         except Exception as e:
@@ -103,7 +101,7 @@ class RedisClient:
             return False
     
     async def get_many(self, keys: list[str]) -> dict:
-        """Get multiple keys at once"""
+        """Get multiple keys."""
         try:
             values = await self.redis.mget(keys)
             result = {}
@@ -116,7 +114,7 @@ class RedisClient:
             return {}
     
     async def set_many(self, mapping: dict, expire: Optional[int] = None) -> bool:
-        """Set multiple keys at once"""
+        """Set multiple keys."""
         try:
             serialized = {k: json.dumps(v) for k, v in mapping.items()}
             await self.redis.mset(serialized)
@@ -133,7 +131,7 @@ class RedisClient:
             return False
     
     async def flush_pattern(self, pattern: str) -> int:
-        """Delete all keys matching pattern"""
+        """Delete keys matching a pattern."""
         try:
             keys = []
             async for key in self.redis.scan_iter(match=pattern):
@@ -147,10 +145,9 @@ class RedisClient:
             return 0
 
 
-# Global Redis client instance
 redis_client = RedisClient()
 
 
 async def get_redis() -> RedisClient:
-    """Dependency to get Redis client"""
+    """Dependency to get Redis client."""
     return redis_client

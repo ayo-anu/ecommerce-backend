@@ -94,11 +94,7 @@ async def bulk_price_recommendations(request: BulkPricingRequest):
 
 @router.post("/competitor/analyze", response_model=CompetitorAnalysisResponse)
 async def analyze_competitors(request: CompetitorAnalysisRequest):
-    """
-    Analyze competitor pricing and market position
-    
-    Provides insights on competitive positioning
-    """
+    """Analyze competitor pricing and market position."""
     try:
         analysis = competitor_analyzer.analyze(
             product_id=request.product_id,
@@ -120,11 +116,7 @@ async def analyze_competitors(request: CompetitorAnalysisRequest):
 
 @router.post("/discount/optimize", response_model=DiscountRecommendation)
 async def optimize_discount(request: DiscountOptimizationRequest):
-    """
-    Calculate optimal discount to achieve target sales
-    
-    Balances discount depth with profit margins
-    """
+    """Calculate an optimal discount."""
     try:
         recommendation = pricing_engine.optimize_discount(request.dict())
         

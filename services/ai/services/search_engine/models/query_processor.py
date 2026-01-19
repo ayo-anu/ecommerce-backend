@@ -79,22 +79,15 @@ class QueryProcessor:
         return query
     
     def tokenize(self, query: str) -> List[str]:
-        """Tokenize query into words"""
+        """Tokenize query into words."""
         return query.split()
     
     def remove_stop_words(self, tokens: List[str]) -> List[str]:
-        """Remove common stop words"""
+        """Remove common stop words."""
         return [token for token in tokens if token not in self.stop_words]
     
     def spell_correct(self, word: str) -> str:
-        """
-        Basic spell correction
-        In production, use more sophisticated library like pyspellchecker
-        """
-        # For now, return as-is
-        # TODO: Integrate proper spell checking
-        
-        # Check against popular terms
+        """Basic spell correction."""
         if self.popular_terms:
             matches = get_close_matches(word, self.popular_terms, n=1, cutoff=0.8)
             if matches:
@@ -103,17 +96,7 @@ class QueryProcessor:
         return word
     
     def expand_query(self, tokens: List[str]) -> List[str]:
-        """
-        Expand query with synonyms
-        
-        Args:
-            tokens: Query tokens
-            
-        Returns:
-            Expanded list of terms
-        """
-        # Basic synonym expansion
-        # In production, use WordNet or custom synonym dictionary
+        """Expand query with synonyms."""
         synonyms = {
             'phone': ['mobile', 'smartphone', 'cell'],
             'laptop': ['notebook', 'computer'],

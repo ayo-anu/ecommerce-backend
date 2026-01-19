@@ -1,8 +1,4 @@
-"""
-Global Exception Handlers for AI Microservices.
-
-Provides consistent error handling and responses across all services.
-"""
+"""Exception handling for AI services."""
 
 import logging
 import traceback
@@ -17,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceException(Exception):
-    """Base exception for service-specific errors."""
+    """Base exception for service errors."""
 
     def __init__(
         self,
@@ -112,19 +108,7 @@ def create_error_response(
     details: Optional[dict] = None,
     request_id: Optional[str] = None
 ) -> JSONResponse:
-    """
-    Create a standardized error response.
-
-    Args:
-        error_code: Machine-readable error code
-        message: Human-readable error message
-        status_code: HTTP status code
-        details: Additional error details
-        request_id: Request ID for tracing
-
-    Returns:
-        JSONResponse with error details
-    """
+    """Create a standardized error response."""
     content = {
         "error": {
             "code": error_code,
@@ -146,15 +130,7 @@ def create_error_response(
 
 
 def setup_exception_handlers(app):
-    """
-    Setup global exception handlers for FastAPI application.
-
-    Usage:
-        from shared.exceptions import setup_exception_handlers
-
-        app = FastAPI()
-        setup_exception_handlers(app)
-    """
+    """Register global exception handlers."""
 
     @app.exception_handler(ServiceException)
     async def service_exception_handler(request: Request, exc: ServiceException):
@@ -232,7 +208,6 @@ def setup_exception_handlers(app):
         """Handle Pydantic validation errors."""
         request_id = request.headers.get("X-Request-ID")
 
-        # Format validation errors
         errors = []
         for error in exc.errors():
             errors.append({
@@ -264,7 +239,6 @@ def setup_exception_handlers(app):
         """Handle Pydantic ValidationError."""
         request_id = request.headers.get("X-Request-ID")
 
-        # Format validation errors
         errors = []
         for error in exc.errors():
             errors.append({
@@ -296,7 +270,6 @@ def setup_exception_handlers(app):
         """Handle all uncaught exceptions."""
         request_id = request.headers.get("X-Request-ID")
 
-        # Log full stack trace for debugging
         logger.error(
             f"Unhandled exception: {type(exc).__name__} - {str(exc)}",
             extra={
@@ -310,14 +283,12 @@ def setup_exception_handlers(app):
             exc_info=True
         )
 
-        # Don't expose internal error details in production
         return create_error_response(
             error_code="INTERNAL_ERROR",
             message="An internal error occurred. Please try again later.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={
                 "type": type(exc).__name__
-                # Don't include full traceback in response for security
             },
             request_id=request_id
         )
@@ -325,27 +296,17 @@ def setup_exception_handlers(app):
     logger.info("✅ Global exception handlers registered")
 
 
-# Decorator for handling exceptions in async functions
 def handle_exceptions(
     error_message: str = "Operation failed",
     error_code: str = "OPERATION_ERROR",
     reraise: bool = False
 ):
-    """
-    Decorator to handle exceptions in service functions.
-
-    Usage:
-        @handle_exceptions(error_message="Failed to load model")
-        async def load_model():
-            # Your code here
-            pass
-    """
+    """Decorator for handling exceptions in service functions."""
     def decorator(func: Callable):
         async def wrapper(*args, **kwargs):
             try:
                 return await func(*args, **kwargs)
             except ServiceException:
-                # Re-raise our custom exceptions
                 raise
             except Exception as e:
                 logger.error(

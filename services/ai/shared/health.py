@@ -1,19 +1,4 @@
-"""
-Standardized Health Check Module for AI Microservices.
-
-Provides consistent health check endpoints across all AI services.
-
-Usage in FastAPI service:
-
-    from shared.health import create_health_router
-
-    app = FastAPI()
-    app.include_router(create_health_router(
-        service_name="recommendation-engine",
-        version="1.0.0",
-        dependencies=["postgres", "redis"]
-    ))
-"""
+"""Health endpoints for AI services."""
 
 import time
 import logging
@@ -27,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class HealthStatus(BaseModel):
-    """Health check response model."""
+    """Health check response."""
     status: str  # "healthy", "degraded", "unhealthy"
     service: str
     version: str
@@ -37,13 +22,13 @@ class HealthStatus(BaseModel):
 
 
 class LivenessResponse(BaseModel):
-    """Liveness probe response."""
+    """Liveness response."""
     status: str  # "alive"
     service: str
 
 
 class ReadinessResponse(BaseModel):
-    """Readiness probe response."""
+    """Readiness response."""
     status: str  # "ready", "not_ready"
     service: str
     checks: Dict[str, bool]
@@ -172,23 +157,11 @@ def create_health_router(
     dependencies: Optional[List[str]] = None,
     custom_checks: Optional[Dict[str, Callable]] = None
 ) -> APIRouter:
-    """
-    Create a health check router for a FastAPI service.
-
-    Args:
-        service_name: Name of the service (e.g., "recommendation-engine")
-        version: Service version
-        dependencies: List of dependencies to check ["postgres", "redis", "elasticsearch", "qdrant"]
-        custom_checks: Dictionary of custom check functions {name: callable}
-
-    Returns:
-        FastAPI APIRouter with health check endpoints
-    """
+    """Create a health check router for a FastAPI service."""
     router = APIRouter(tags=["health"])
     dependencies = dependencies or []
     custom_checks = custom_checks or {}
 
-    # Map dependency names to check functions
     DEPENDENCY_CHECKS = {
         "postgres": check_postgres,
         "redis": check_redis,
@@ -198,18 +171,9 @@ def create_health_router(
 
     @router.get("/health", response_model=HealthStatus, status_code=200)
     async def health():
-        """
-        Detailed health check endpoint.
-
-        Returns comprehensive health information including:
-        - Overall service status
-        - Individual dependency checks with latency
-        - System resource metrics
-        """
         checks = {}
         overall_status = "healthy"
 
-        # Check configured dependencies
         for dep in dependencies:
             check_func = DEPENDENCY_CHECKS.get(dep)
             if check_func:
@@ -218,7 +182,6 @@ def create_health_router(
                 if result["status"] != "healthy":
                     overall_status = "degraded"
 
-        # Run custom checks
         for check_name, check_func in custom_checks.items():
             try:
                 result = check_func()
@@ -243,12 +206,6 @@ def create_health_router(
 
     @router.get("/health/live", response_model=LivenessResponse, status_code=200)
     async def liveness():
-        """
-        Kubernetes liveness probe.
-
-        Checks if the service process is alive.
-        If this fails, Kubernetes will restart the pod.
-        """
         return LivenessResponse(
             status="alive",
             service=service_name
@@ -256,17 +213,10 @@ def create_health_router(
 
     @router.get("/health/ready", response_model=ReadinessResponse)
     async def readiness(response: Response):
-        """
-        Kubernetes readiness probe.
-
-        Checks if the service is ready to accept traffic.
-        If this fails, Kubernetes will stop routing traffic to the pod.
-        """
         checks_status = {}
         errors = []
         all_ready = True
 
-        # Check critical dependencies only
         critical_deps = [dep for dep in dependencies if dep in ["postgres", "redis"]]
 
         for dep in critical_deps:

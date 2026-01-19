@@ -1,20 +1,4 @@
-"""
-Service-to-Service Authentication Middleware
-
-Zero-trust internal authentication:
-- Validates X-Service-Auth header on all requests
-- Rejects requests with missing or invalid service tokens
-- Prevents service impersonation attacks
-- Each service validates using its own SERVICE_AUTH_SECRET
-
-Usage:
-    from shared.service_auth_middleware import ServiceAuthMiddleware
-    from shared.config import get_settings
-
-    app = FastAPI()
-    settings = get_settings()
-    app.add_middleware(ServiceAuthMiddleware, settings=settings)
-"""
+"""Service-to-service auth middleware."""
 
 import logging
 import secrets
@@ -28,16 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceAuthMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware to validate internal service-to-service authentication.
-
-    Features:
-    - Validates X-Service-Auth header against SERVICE_AUTH_SECRET
-    - Rejects unauthenticated internal requests
-    - Allows public health/metrics endpoints
-    - Prevents timing attacks using constant-time comparison
-    - Logs authentication failures for security monitoring
-    """
+    """Validate internal service authentication."""
 
     def __init__(
         self,
@@ -45,20 +20,11 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
         settings,
         public_paths: Optional[Set[str]] = None,
     ):
-        """
-        Initialize service authentication middleware.
-
-        Args:
-            app: ASGI application
-            settings: Settings object with SERVICE_AUTH_SECRET
-            public_paths: Set of paths that don't require auth (default: health/metrics)
-        """
         super().__init__(app)
         self.settings = settings
         self.service_auth_secret = settings.SERVICE_AUTH_SECRET
         self.service_name = settings.SERVICE_NAME
 
-        # Default public paths (no auth required)
         self.public_paths = public_paths or {
             "/",
             "/health",
@@ -70,7 +36,6 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
             "/openapi.json",
         }
 
-        # Validate configuration
         if not self.service_auth_secret:
             logger.error(
                 f"SERVICE_AUTH_SECRET is not configured for {self.service_name}! "
@@ -86,25 +51,13 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
         )
 
     async def dispatch(self, request: Request, call_next):
-        """
-        Validate service authentication before processing request.
-
-        Args:
-            request: Incoming HTTP request
-            call_next: Next middleware/handler
-
-        Returns:
-            Response or JSONResponse with 401 error
-        """
-        # Allow public paths without authentication
+        """Validate service authentication before processing a request."""
         if request.url.path in self.public_paths:
             return await call_next(request)
 
-        # Allow OPTIONS requests for CORS preflight
         if request.method == "OPTIONS":
             return await call_next(request)
 
-        # Extract X-Service-Auth header
         service_auth_header = request.headers.get("X-Service-Auth")
 
         if not service_auth_header:
@@ -127,8 +80,6 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        # Validate service auth token using constant-time comparison
-        # This prevents timing attacks
         if not secrets.compare_digest(service_auth_header, self.service_auth_secret):
             logger.warning(
                 f"Rejected request to {request.url.path}: Invalid X-Service-Auth token",
@@ -150,24 +101,14 @@ class ServiceAuthMiddleware(BaseHTTPMiddleware):
                 },
             )
 
-        # Authentication successful - add service info to request state
         request.state.authenticated_service = True
         request.state.service_name = self.service_name
 
-        # Process request
         response = await call_next(request)
 
         return response
 
 
 def verify_service_auth(request: Request) -> bool:
-    """
-    Helper function to check if request is service-authenticated.
-
-    Args:
-        request: FastAPI request
-
-    Returns:
-        True if request has valid service authentication
-    """
+    """Check if request is service-authenticated."""
     return getattr(request.state, "authenticated_service", False)
