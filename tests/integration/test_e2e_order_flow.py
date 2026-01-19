@@ -238,9 +238,7 @@ class TestServiceIntegration:
 
     def test_backend_to_celery(self, base_url):
         """Test Celery task execution."""
-        # Would test by triggering async task
-        # Example: sending email, generating report
-        pass
+        pytest.skip("Needs an endpoint that triggers a Celery task.")
 
     def test_api_gateway_to_backend(self, api_gateway_url):
         """Test API Gateway proxying to backend."""

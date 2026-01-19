@@ -374,16 +374,10 @@ class TestCeleryIntegration:
     """Test Celery task execution and monitoring."""
 
     def test_celery_worker_health(self):
-        """Test Celery worker is running."""
-        # This would require Celery Flower or inspect API
-        # For now, just verify via backend that uses Celery
-        pass
+        pytest.skip("Needs Celery Flower or inspect API for worker status.")
 
     def test_async_task_execution(self, backend_url):
-        """Test that async tasks can be triggered."""
-        # Example: trigger email sending
-        # This would require a test endpoint that triggers Celery task
-        pass
+        pytest.skip("Needs a test endpoint that triggers a Celery task.")
 
 
 class TestDataProtection:

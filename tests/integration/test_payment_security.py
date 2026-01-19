@@ -257,9 +257,7 @@ class TestPaymentIsolation:
         if not authenticated_headers:
             pytest.skip("Authentication failed")
 
-        # This would test that long-running payment processes timeout gracefully
-        # In practice, this requires Stripe integration
-        pass
+        pytest.skip("Requires Stripe integration to simulate long-running payments.")
 
 
 class TestPaymentTransactionIntegrity:
@@ -270,9 +268,7 @@ class TestPaymentTransactionIntegrity:
         if not authenticated_headers:
             pytest.skip("Authentication failed")
 
-        # This would test that if payment fails, order is not created
-        # Requires full integration with order system
-        pass
+        pytest.skip("Requires full payment/order integration to validate atomicity.")
 
     def test_payment_consistency(self, backend_url, authenticated_headers):
         """Test payment data consistency."""
