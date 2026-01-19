@@ -1,29 +1,10 @@
-# ==============================================================================
-# OPA Policy: Dockerfile Security
-# ==============================================================================
-# Enforces security best practices for Dockerfile builds
-#
-# Policies Enforced:
-#   - No privileged mode
-#   - Non-root user required
-#   - Health check required
-#   - No 'latest' tags
-#   - Approved base images only
-#   - Pinned versions for dependencies
-#
-# Usage:
-#   conftest test <Dockerfile> --policy config/policies/docker.rego
-# ==============================================================================
+# OPA policy: Dockerfile security.
 
 package docker
 
 import future.keywords.contains
 import future.keywords.if
 import future.keywords.in
-
-# ==============================================================================
-# DENY RULES - Block these patterns
-# ==============================================================================
 
 # Deny privileged containers
 deny[msg] {

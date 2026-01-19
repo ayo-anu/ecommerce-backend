@@ -1,31 +1,10 @@
-# ==============================================================================
-# OPA Policy: Docker Compose Security
-# ==============================================================================
-# Enforces security best practices for Docker Compose configurations
-#
-# Policies Enforced:
-#   - Resource limits required
-#   - Health checks required
-#   - Restart policies required
-#   - No privileged mode
-#   - Security options enforced
-#   - Logging configuration required
-#   - No host network mode
-#   - No latest image tags
-#
-# Usage:
-#   conftest test <docker-compose.yml> --policy config/policies/compose.rego
-# ==============================================================================
+# OPA policy: Docker Compose security.
 
 package compose
 
 import future.keywords.contains
 import future.keywords.if
 import future.keywords.in
-
-# ==============================================================================
-# DENY RULES - Block these patterns
-# ==============================================================================
 
 # Require resource limits for all services
 deny[msg] {
