@@ -1,24 +1,7 @@
 
-# ==============================================================================
-# E-Commerce Platform - BASE Configuration
-# ==============================================================================
-# This is the base Docker Compose configuration for development.
-# For production, use: docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
-#
-# SECURITY MODEL:
-# - Development: Services expose ports for debugging
-# - Production: Only Nginx exposes ports (80, 443)
-# ==============================================================================
+# Base Docker Compose configuration.
 
-# ==============================================================================
-# NETWORKS
-# ==============================================================================
-# Network segmentation for security and isolation
-# - public_network:     Nginx ↔ API Gateway (public-facing traffic)
-# - backend_network:    API Gateway ↔ Backend + Databases + Queue
-# - ai_network:         API Gateway ↔ AI Services + AI Databases
-# - monitoring_network: Prometheus ↔ All Services (metrics collection)
-# ==============================================================================
+# Networks
 
 networks:
   public_network:
@@ -28,13 +11,13 @@ networks:
         - subnet: 172.20.0.0/24
   backend_network:
     driver: bridge
-    internal: false  # Set to true in production
+    internal: false
     ipam:
       config:
         - subnet: 172.21.0.0/24
   ai_network:
     driver: bridge
-    internal: false  # Set to true in production
+    internal: false
     ipam:
       config:
         - subnet: 172.22.0.0/24
@@ -56,16 +39,8 @@ volumes:
   backend_media:
   backend_static:
 
-# ==============================================================================
-# SERVICES
-# ==============================================================================
-
 services:
-  # ============================================================================
-  # DATABASE SERVICES
-  # ============================================================================
-
-  # Main PostgreSQL Database (Backend)
+  # Databases
   postgres:
     image: postgres:15-alpine
     container_name: ecommerce_postgres
@@ -79,7 +54,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=en_US.UTF-8 --lc-ctype=en_US.UTF-8"
     ports:
-      - "5432:5432"  # Exposed in dev only, removed in prod
+      - "5432:5432"
     networks:
       - backend_network
       - monitoring_network
@@ -101,7 +76,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5433:5432"  # Exposed in dev only, removed in prod
+      - "5433:5432"
     networks:
       - ai_network
       - monitoring_network
@@ -123,7 +98,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/ecommerce
     ports:
-      - "6432:6432"  # Exposed in dev only, removed in prod
+      - "6432:6432"
     networks:
       - backend_network
     depends_on:
@@ -137,11 +112,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ============================================================================
-  # CACHE & QUEUE SERVICES
-  # ============================================================================
-
-  # Redis Cache (shared across backend and AI services)
+  # Cache and queue
   redis:
     image: redis:7-alpine
     container_name: ecommerce_redis
@@ -150,7 +121,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"  # Exposed in dev only, removed in prod
+      - "6379:6379"
     networks:
       - backend_network
       - ai_network
@@ -173,8 +144,8 @@ services:
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     ports:
-      - "9200:9200"  # Exposed in dev only, removed in prod
-      - "9300:9300"  # Exposed in dev only, removed in prod
+      - "9200:9200"
+      - "9300:9300"
     networks:
       - backend_network
       - monitoring_network
@@ -195,8 +166,8 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     ports:
-      - "6333:6333"  # HTTP - Exposed in dev only, removed in prod
-      - "6334:6334"  # gRPC - Exposed in dev only, removed in prod
+      - "6333:6333"
+      - "6334:6334"
     networks:
       - ai_network
       - monitoring_network
@@ -217,8 +188,8 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
-      - "5672:5672"   # AMQP - Exposed in dev only, removed in prod
-      - "15672:15672" # Management UI - Exposed in dev only, removed in prod
+      - "5672:5672"
+      - "15672:15672"
     networks:
       - backend_network
       - ai_network
@@ -229,11 +200,7 @@ services:
       timeout: 10s
       retries: 5
 
-  # ============================================================================
-  # BACKEND SERVICES
-  # ============================================================================
-
-  # Django Backend API
+  # Backend
   backend:
     build:
       context: ../../../services/backend
@@ -242,13 +209,20 @@ services:
     restart: unless-stopped
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120
     volumes:
-      - ../services/backend:/app
+      - ../../../services/backend:/app
       - backend_media:/app/media
       - backend_static:/app/staticfiles
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=${POSTGRES_DB:-ecommerce}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - DB_HOST=postgres
+      - DB_PORT=5432
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
-      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-admin}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - SECRET_KEY=${SECRET_KEY:-django-insecure-dev-key-change-in-production}
       - DEBUG=${DEBUG:-True}
@@ -264,7 +238,7 @@ services:
       - OTEL_SERVICE_NAME=ecommerce-backend
       - OTEL_TRACES_EXPORTER=jaeger
     ports:
-      - "8000:8000"  # Exposed in dev only, removed in prod
+      - "8000:8000"
     networks:
       - backend_network
       - monitoring_network
@@ -276,7 +250,7 @@ services:
       elasticsearch:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -290,7 +264,7 @@ services:
     restart: unless-stopped
     command: celery -A config worker -l info --concurrency=4
     volumes:
-      - ../services/backend:/app
+      - ../../../services/backend:/app
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
@@ -320,7 +294,7 @@ services:
     restart: unless-stopped
     command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
-      - ../services/backend:/app
+      - ../../../services/backend:/app
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
       - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/0
@@ -340,10 +314,7 @@ services:
       timeout: 5s
       retries: 3
 
-  # ============================================================================
-  # API GATEWAY (Single Control Plane)
-  # ============================================================================
-
+  # API gateway
   api_gateway:
     build:
       context: ../../../services
@@ -370,11 +341,11 @@ services:
       - OTEL_SERVICE_NAME=api-gateway
       - OTEL_TRACES_EXPORTER=jaeger
     ports:
-      - "8080:8080"  # Exposed in dev only, removed in prod
+      - "8080:8080"
     networks:
-      - public_network    # Receives traffic from Nginx
-      - backend_network   # Routes to Backend
-      - ai_network        # Routes to AI Services
+      - public_network
+      - backend_network
+      - ai_network
       - monitoring_network
     depends_on:
       - redis
@@ -384,10 +355,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # ============================================================================
-  # AI MICROSERVICES
-  # ============================================================================
 
   # 1. Recommendation Engine
   recommender:
@@ -407,7 +374,7 @@ services:
       - MODEL_PATH=/models/recommendation
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8001:8001"  # Exposed in dev only, removed in prod
+      - "8001:8001"
     networks:
       - ai_network
       - monitoring_network
@@ -441,7 +408,7 @@ services:
       - MODEL_PATH=/models/search
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8002:8002"  # Exposed in dev only, removed in prod
+      - "8002:8002"
     networks:
       - ai_network
       - monitoring_network
@@ -476,7 +443,7 @@ services:
       - MODEL_PATH=/models/pricing
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8003:8003"  # Exposed in dev only, removed in prod
+      - "8003:8003"
     networks:
       - ai_network
       - monitoring_network
@@ -511,7 +478,7 @@ services:
       - MODEL_PATH=/models/chatbot
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8004:8004"  # Exposed in dev only, removed in prod
+      - "8004:8004"
     networks:
       - ai_network
       - monitoring_network
@@ -546,7 +513,7 @@ services:
       - MODEL_PATH=/models/fraud
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8005:8005"  # Exposed in dev only, removed in prod
+      - "8005:8005"
     networks:
       - ai_network
       - monitoring_network
@@ -579,7 +546,7 @@ services:
       - MODEL_PATH=/models/forecasting
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8006:8006"  # Exposed in dev only, removed in prod
+      - "8006:8006"
     networks:
       - ai_network
       - monitoring_network
@@ -613,7 +580,7 @@ services:
       - MODEL_PATH=/models/vision
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
-      - "8007:8007"  # Exposed in dev only, removed in prod
+      - "8007:8007"
     networks:
       - ai_network
       - monitoring_network
@@ -630,11 +597,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # ============================================================================
-  # MONITORING SERVICES
-  # ============================================================================
-
-  # Prometheus
+  # Monitoring
   prometheus:
     image: prom/prometheus:latest
     container_name: ecommerce_prometheus
@@ -652,7 +615,7 @@ services:
       - ../monitoring/prometheus/recording_rules:/etc/prometheus/recording_rules
       - prometheus_data:/prometheus
     ports:
-      - "9090:9090"  # Exposed in dev only, removed in prod
+      - "9090:9090"
     networks:
       - monitoring_network
     healthcheck:
@@ -661,7 +624,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Grafana
   grafana:
     image: grafana/grafana:latest
     container_name: ecommerce_grafana
@@ -670,12 +632,17 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+      - POSTGRES_DB=${POSTGRES_DB:-ecommerce}
+      - POSTGRES_AI_DB=${POSTGRES_AI_DB:-ecommerce_ai}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ../monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ../../../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../../../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ../../../monitoring/grafana/dashboards:/etc/grafana/dashboards
     ports:
-      - "3001:3000"  # Exposed in dev only, removed in prod
+      - "3001:3000"
     networks:
       - monitoring_network
     depends_on:
@@ -688,18 +655,18 @@ services:
 
   # Jaeger - Distributed Tracing
   jaeger:
-    image: jaegertracing/all-in-one:1.51
+    image: jaegertracing/all-in-one:latest
     container_name: ecommerce_jaeger
     restart: unless-stopped
     environment:
       - COLLECTOR_ZIPKIN_HOST_PORT=:9411
       - COLLECTOR_OTLP_ENABLED=true
     ports:
-      - "16686:16686"  # Jaeger UI - Exposed in dev only, removed in prod
-      - "6831:6831/udp"  # Jaeger agent
-      - "14268:14268"  # Jaeger collector
-      - "4317:4317"  # OTLP gRPC
-      - "4318:4318"  # OTLP HTTP
+      - "16686:16686"
+      - "6831:6831/udp"
+      - "14268:14268"
+      - "4317:4317"
+      - "4318:4318"
     networks:
       - monitoring_network
     healthcheck:
@@ -707,33 +674,3 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # ============================================================================
-  # NGINX REVERSE PROXY (Disabled in dev, enabled in prod)
-  # ============================================================================
-  # Uncomment for production or to test with Nginx locally
-  # Run: docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
-  # ============================================================================
-
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: ecommerce_nginx
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./nginx/conf.d:/etc/nginx/conf.d:ro
-  #     - ./nginx/ssl:/etc/nginx/ssl:ro
-  #     - backend_static:/var/www/static:ro
-  #     - backend_media:/var/www/media:ro
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   networks:
-  #     - public_network
-  #   depends_on:
-  #     - api_gateway
-  #   healthcheck:
-  #     test: ["CMD", "nginx", "-t"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3

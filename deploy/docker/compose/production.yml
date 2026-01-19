@@ -1,38 +1,14 @@
 
-# ==============================================================================
-# E-Commerce Platform - PRODUCTION Override
-# ==============================================================================
-# This file secures the platform for production deployment.
-#
-# USAGE:
-#   docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
-#
-# SECURITY ENHANCEMENTS:
-#   ✓ NO exposed ports except Nginx (80, 443)
-#   ✓ Internal networks isolated from public access
-#   ✓ Production environment variables
-#   ✓ Resource limits for stability
-#   ✓ Automatic restart policies
-#   ✓ Security headers via Nginx
-#
-# ARCHITECTURE:
-#   Client → Nginx (public) → API Gateway (internal) → Backend + AI Services
-# ==============================================================================
 
 services:
-  # ============================================================================
-  # SECURITY: Remove all port exposures (services are internal-only)
-  # ============================================================================
-
-  # Database services - NO external access
   postgres:
     ports: []
     restart: always
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # Must be set in production
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
-      - database    # Database tier only
-      - monitoring  # For metrics collection
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -65,8 +41,8 @@ services:
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     networks:
-      - database    # Database tier only
-      - monitoring  # For metrics collection
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -97,9 +73,9 @@ services:
     ports: []
     restart: always
     networks:
-      - database    # Connects to databases
-      - application # Backend services connect here
-      - monitoring  # For metrics collection
+      - database
+      - application
+      - monitoring
     deploy:
       resources:
         limits:
@@ -112,15 +88,14 @@ services:
         max-file: "3"
         labels: "service=pgbouncer"
 
-  # Cache & queue services - NO external access
   redis:
     ports: []
     restart: always
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD} --maxmemory 1gb --maxmemory-policy allkeys-lru
     networks:
-      - database    # Shared cache/queue tier
-      - application # Application services access
-      - monitoring  # For metrics collection
+      - database
+      - application
+      - monitoring
     deploy:
       resources:
         limits:
@@ -149,9 +124,9 @@ services:
     environment:
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     networks:
-      - database    # Database tier
-      - application # Backend search access
-      - monitoring  # For metrics collection
+      - database
+      - application
+      - monitoring
     deploy:
       resources:
         limits:
@@ -171,9 +146,9 @@ services:
     ports: []
     restart: always
     networks:
-      - database    # Vector database tier
-      - application # AI services access
-      - monitoring  # For metrics collection
+      - database
+      - application
+      - monitoring
     deploy:
       resources:
         limits:
@@ -193,9 +168,9 @@ services:
     ports: []
     restart: always
     networks:
-      - database    # Message queue tier
-      - application # Services publish/consume
-      - monitoring  # For metrics collection
+      - database
+      - application
+      - monitoring
     deploy:
       resources:
         limits:
@@ -211,17 +186,16 @@ services:
         max-file: "3"
         labels: "service=rabbitmq"
 
-  # Backend services - NO external access (only via API Gateway)
   backend:
     ports: []
     restart: always
-    user: "1000:1000"  # Run as appuser (non-root)
+    user: "1000:1000"
     command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 8 --threads 4 --timeout 120 --max-requests 1000 --max-requests-jitter 50
     environment:
       - DEBUG=False
       - ENVIRONMENT=production
-      - SECRET_KEY=${SECRET_KEY}  # MUST be set in production
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}  # e.g., yourdomain.com,api.yourdomain.com
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - SECURE_SSL_REDIRECT=True
       - SESSION_COOKIE_SECURE=True
       - CSRF_COOKIE_SECURE=True
@@ -230,10 +204,15 @@ services:
       - SECURE_HSTS_SECONDS=31536000
       - SECURE_HSTS_INCLUDE_SUBDOMAINS=True
       - SECURE_HSTS_PRELOAD=True
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      - OTEL_SERVICE_NAME=ecommerce-backend
+      - OTEL_TRACES_EXPORTER=jaeger
     networks:
-      - application # Application tier
-      - database    # Access to databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -258,14 +237,14 @@ services:
 
   celery_worker:
     restart: always
-    user: "1000:1000"  # Run as appuser (non-root)
+    user: "1000:1000"
     command: celery -A config worker -l warning --concurrency=8 --max-tasks-per-child=1000
     environment:
       - ENVIRONMENT=production
     networks:
-      - application # Application tier
-      - database    # Access to databases and queues
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -283,13 +262,13 @@ services:
 
   celery_beat:
     restart: always
-    user: "1000:1000"  # Run as appuser (non-root)
+    user: "1000:1000"
     environment:
       - ENVIRONMENT=production
     networks:
-      - application # Application tier
-      - database    # Access to databases and queues
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -302,19 +281,22 @@ services:
         max-file: "3"
         labels: "service=celery_beat"
 
-  # API Gateway - NO external access (only via Nginx)
   api_gateway:
     ports: []
     restart: always
-    user: "1000:1000"  # Run as appuser (non-root)
+    user: "1000:1000"
     command: uvicorn main:app --host 0.0.0.0 --port 8080 --workers 8 --loop uvloop --no-access-log
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=WARNING
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      - OTEL_SERVICE_NAME=api-gateway
+      - OTEL_TRACES_EXPORTER=jaeger
     networks:
-      - application # Application tier - communicates with all services
-      - database    # Access to cache/queue
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -337,18 +319,17 @@ services:
         max-file: "3"
         labels: "service=api_gateway"
 
-  # AI Services - NO external access
   recommender:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8001 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -367,14 +348,14 @@ services:
   search:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8002 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -393,14 +374,14 @@ services:
   pricing:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8003 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -419,14 +400,14 @@ services:
   chatbot:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8004 --workers 2 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -445,14 +426,14 @@ services:
   fraud:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8005 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -471,14 +452,14 @@ services:
   forecasting:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8006 --workers 4 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -497,14 +478,14 @@ services:
   vision:
     ports: []
     restart: always
-    user: "1001:1001"  # Run as aiuser (non-root)
+    user: "1001:1001"
     command: uvicorn main:app --host 0.0.0.0 --port 8007 --workers 2 --loop uvloop --no-access-log
     environment:
       - LOG_LEVEL=WARNING
     networks:
-      - application # Application tier
-      - database    # Access to AI databases
-      - monitoring  # Expose metrics
+      - application
+      - database
+      - monitoring
     deploy:
       resources:
         limits:
@@ -520,12 +501,11 @@ services:
         max-file: "3"
         labels: "service=vision"
 
-  # Monitoring services - NO external access (internal monitoring only)
   prometheus:
     ports: []
     restart: always
     networks:
-      - monitoring  # Collects metrics from all services
+      - monitoring
     deploy:
       resources:
         limits:
@@ -545,11 +525,11 @@ services:
     ports: []
     restart: always
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}  # MUST be set in production
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_SERVER_ROOT_URL=https://${DOMAIN}/grafana
       - GF_ANALYTICS_REPORTING_ENABLED=false
     networks:
-      - monitoring  # Access to Prometheus and other data sources
+      - monitoring
     deploy:
       resources:
         limits:
@@ -566,7 +546,7 @@ services:
     ports: []
     restart: always
     networks:
-      - monitoring  # Collects traces from all services
+      - monitoring
     deploy:
       resources:
         limits:
@@ -579,12 +559,6 @@ services:
         max-file: "3"
         labels: "service=jaeger"
 
-  # ============================================================================
-  # NGINX - THE ONLY PUBLIC-FACING SERVICE
-  # ============================================================================
-  # This is the ONLY service with exposed ports in production
-  # All traffic flows: Client → Nginx → API Gateway → Internal Services
-  # ============================================================================
 
   nginx:
     image: nginx:alpine
@@ -597,12 +571,12 @@ services:
       - backend_static:/var/www/static:ro
       - backend_media:/var/www/media:ro
     ports:
-      - "80:80"      # HTTP (redirects to HTTPS)
-      - "443:443"    # HTTPS (secure traffic only)
+      - "80:80"
+      - "443:443"
     networks:
-      - frontend      # Public-facing network
-      - application   # To communicate with API Gateway
-      - monitoring    # For metrics exposure
+      - frontend
+      - application
+      - monitoring
     depends_on:
       - api_gateway
     healthcheck:
@@ -632,91 +606,32 @@ services:
         max-file: "3"
         labels: "service=nginx"
 
-# ==============================================================================
-# PRODUCTION NETWORKS - 3-Tier Architecture
-# ==============================================================================
-# Network segmentation for enhanced security:
-# - Frontend: Public-facing (nginx only)
-# - Application: Internal services (API gateway, backend, AI services)
-# - Database: Database tier (postgres, redis, etc.)
-# - Monitoring: Observability services (prometheus, grafana, jaeger)
-# ==============================================================================
 
 networks:
-  # Frontend network - ONLY nginx can access, connected to external
   frontend:
     driver: bridge
-    internal: false  # Connected to external for public access
+    internal: false
     ipam:
       config:
         - subnet: 172.20.0.0/24
 
-  # Application network - Backend services, no external access
   application:
     driver: bridge
-    internal: true  # No external connectivity
+    internal: true
     ipam:
       config:
         - subnet: 172.21.0.0/24
 
-  # Database network - Database tier only, no external access
   database:
     driver: bridge
-    internal: true  # No external connectivity
+    internal: true
     ipam:
       config:
         - subnet: 172.22.0.0/24
 
-  # Monitoring network - Cross-cutting for metrics collection
   monitoring:
     driver: bridge
-    internal: true  # No external connectivity
+    internal: true
     ipam:
       config:
         - subnet: 172.23.0.0/24
-
-# ==============================================================================
-# IMPORTANT PRODUCTION CHECKLIST
-# ==============================================================================
-# Before deploying:
-#
-# 1. ENVIRONMENT VARIABLES (create .env.prod file):
-#    - SECRET_KEY=<strong-random-key>
-#    - POSTGRES_PASSWORD=<strong-db-password>
-#    - REDIS_PASSWORD=<strong-redis-password>
-#    - ALLOWED_HOSTS=yourdomain.com,api.yourdomain.com
-#    - GRAFANA_PASSWORD=<strong-grafana-password>
-#    - DOMAIN=yourdomain.com
-#    - STRIPE_SECRET_KEY=<your-stripe-key>
-#    - AWS_ACCESS_KEY_ID=<your-aws-key>
-#    - AWS_SECRET_ACCESS_KEY=<your-aws-secret>
-#    - SENTRY_DSN=<your-sentry-dsn>
-#    - OPENAI_API_KEY=<your-openai-key>
-#
-# 2. SSL CERTIFICATES:
-#    - Place SSL certs in: ./nginx/ssl/
-#    - Required files: fullchain.pem, privkey.pem
-#    - Use Let's Encrypt or your certificate provider
-#
-# 3. DNS CONFIGURATION:
-#    - Point your domain to server IP
-#    - Configure A records for api.yourdomain.com
-#
-# 4. FIREWALL:
-#    - Open ports: 80, 443
-#    - Close all other ports
-#    - Configure security groups (AWS) or firewall rules
-#
-# 5. BACKUP STRATEGY:
-#    - Set up automated backups for volumes
-#    - postgres_data, postgres_ai_data, redis_data
-#
-# 6. MONITORING:
-#    - Configure external monitoring (Datadog, New Relic, etc.)
-#    - Set up alerting for critical errors
-#    - Monitor disk space, CPU, memory
-#
-# 7. DEPLOYMENT:
-#    docker-compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
-#
-# ==============================================================================

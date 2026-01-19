@@ -1,40 +1,17 @@
-# ==============================================================================
-# Network Security Policy Overlay
-# ==============================================================================
-# This overlay enforces strict network isolation and least privilege access.
-#
-# Usage:
-#   docker-compose -f docker-compose.yaml -f docker-compose.network-policy.yaml up
-#
-# Security Model:
-#   - Backend and AI networks are INTERNAL (no direct internet access)
-#   - Only API Gateway can communicate between networks
-#   - Databases cannot communicate with each other
-#   - Monitoring has read-only access to all services
-#
-# Network Access Matrix:
-#   Service              | public | backend | ai | monitoring |
-#   ---------------------|--------|---------|----|-----------
-#   nginx                |   RW   |    -    | -  |     -      |
-#   api-gateway          |   RW   |   RW    | RW |     R      |
-#   backend              |   -    |   RW    | -  |     R      |
-#   ai-services          |   -    |    -    | RW |     R      |
-#   databases            |   -    |   RW    | RW |     R      |
-#   monitoring           |   R    |    R    | R  |     RW     |
-# ==============================================================================
+# Network policy overlay.
 
 version: '3.8'
 
 networks:
-  # Backend network - INTERNAL, no internet access
+  # Backend network
   backend_network:
     internal: true
     driver: bridge
     driver_opts:
-      com.docker.network.bridge.enable_icc: "true"  # Inter-container communication
-      com.docker.network.bridge.enable_ip_masquerade: "false"  # No NAT to internet
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "false"
 
-  # AI network - INTERNAL, no internet access
+  # AI network
   ai_network:
     internal: true
     driver: bridge

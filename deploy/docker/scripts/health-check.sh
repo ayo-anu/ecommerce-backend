@@ -1,40 +1,19 @@
 #!/bin/bash
-# ==============================================================================
-# Health Check Validation Script
-# ==============================================================================
-# Validates that all services are healthy before switching traffic
-#
-# Usage:
-#   ./health-check.sh [OPTIONS]
-#
-# Options:
-#   --timeout SECONDS    Maximum time to wait for health (default: 300)
-#   --interval SECONDS   Time between checks (default: 5)
-#   --service SERVICE    Check specific service only
-#   --verbose            Show detailed output
-#
-# Exit codes:
-#   0 - All services healthy
-#   1 - One or more services unhealthy
-# ==============================================================================
 
 set -e
 set -u
 set -o pipefail
 
-# Configuration
 TIMEOUT=300
 INTERVAL=5
 SERVICE=""
 VERBOSE=false
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Service definitions (service_name:port:health_endpoint)
 declare -a SERVICES=(
     "api_gateway:8080:/health"
     "backend:8000:/api/health/"
@@ -47,7 +26,6 @@ declare -a SERVICES=(
     "vision:8007:/health"
 )
 
-# Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --timeout) TIMEOUT="$2"; shift 2 ;;
@@ -74,9 +52,8 @@ check_service() {
     log "${YELLOW}Checking $service...${NC}"
 
     while [ $attempt -lt $max_attempts ]; do
-        # Try using docker exec to nginx to check internal service
         if docker exec ecommerce_nginx curl -sf "http://$service:$port$endpoint" > /dev/null 2>&1; then
-            echo -e "${GREEN}✓${NC} $service is healthy"
+            echo -e "${GREEN}$service is healthy${NC}"
             return 0
         fi
 
@@ -85,7 +62,7 @@ check_service() {
         sleep $INTERVAL
     done
 
-    echo -e "${RED}✗${NC} $service is unhealthy (timeout after ${TIMEOUT}s)"
+    echo -e "${RED}$service is unhealthy (timeout after ${TIMEOUT}s)${NC}"
     return 1
 }
 
@@ -93,15 +70,11 @@ main() {
     local failed=0
     local checked=0
 
-    echo "================================================================================"
-    echo "Health Check Validation"
-    echo "Timeout: ${TIMEOUT}s | Interval: ${INTERVAL}s"
-    echo "================================================================================"
+    echo "Health check (timeout ${TIMEOUT}s, interval ${INTERVAL}s)"
 
     for service_def in "${SERVICES[@]}"; do
         IFS=':' read -r name port endpoint <<< "$service_def"
 
-        # Skip if specific service requested and this isn't it
         if [ -n "$SERVICE" ] && [ "$SERVICE" != "$name" ]; then
             continue
         fi
@@ -113,10 +86,8 @@ main() {
         fi
     done
 
-    echo "================================================================================"
-
     if [ $failed -eq 0 ]; then
-        echo -e "${GREEN}All services healthy${NC} ($checked/$checked)"
+        echo -e "${GREEN}All services healthy ($checked/$checked)${NC}"
         exit 0
     else
         echo -e "${RED}$failed services unhealthy${NC} ($((checked - failed))/$checked healthy)"

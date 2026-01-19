@@ -1,17 +1,4 @@
-# ==============================================================================
-# E-Commerce Platform - DEVELOPMENT Override
-# ==============================================================================
-# This file adds development-specific configurations:
-# - Exposes ports for debugging
-# - Enables hot reload
-# - Adds development volumes
-#
-# Usage:
-#   docker-compose -f docker-compose.base.yaml -f docker-compose.dev.yaml up
-# ==============================================================================
-
 services:
-  # Expose ports for development debugging
   postgres:
     ports:
       - "5432:5432"
@@ -44,7 +31,7 @@ services:
       - "8000:8000"
     volumes:
       # Mount source code for hot reload
-      - ../services/backend:/app
+      - ../../../services/backend:/app
     environment:
       - DEBUG=True
 
@@ -108,7 +95,7 @@ services:
   celery_worker:
     volumes:
       # Mount source code for hot reload
-      - ../services/backend:/app
+      - ../../../services/backend:/app
     environment:
       - DEBUG=True
       - CELERY_TASK_ALWAYS_EAGER=False  # In dev, run real worker (not eager mode)
@@ -118,7 +105,7 @@ services:
   celery_beat:
     volumes:
       # Mount source code for hot reload
-      - ../services/backend:/app
+      - ../../../services/backend:/app
     environment:
       - DEBUG=True
     command: celery -A config beat -l debug --scheduler django_celery_beat.schedulers:DatabaseScheduler

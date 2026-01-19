@@ -54,9 +54,8 @@ services:
   # Backend under test
   backend-test:
     build:
-      context: ../../backend
-      dockerfile: Dockerfile.optimized
-      target: development
+      context: ../../../services/backend
+      dockerfile: Dockerfile
     environment:
       - DATABASE_URL=postgresql://test_user:test_password@postgres-test:5432/test_ecommerce
       - REDIS_URL=redis://redis-test:6379/0
@@ -64,8 +63,11 @@ services:
       - ELASTICSEARCH_URL=http://elasticsearch-test:9200
       - SECRET_KEY=test-secret-key-for-integration-tests-only
       - DEBUG=False
-      - DJANGO_SETTINGS_MODULE=config.settings.test
+      - DJANGO_SETTINGS_MODULE=config.settings.staging
       - ALLOWED_HOSTS=backend-test,localhost
+      - SERVICE_AUTH_SECRET_DJANGO_BACKEND=integration-backend-secret-32chars-minimum
+      - SERVICE_AUTH_SECRET_API_GATEWAY=integration-gateway-secret-32chars-minimum
+      - SERVICE_AUTH_SECRET_CELERY_WORKER=integration-celery-secret-32chars-minimum
     ports:
       - "8001:8000"
     depends_on:
@@ -80,7 +82,7 @@ services:
              python manage.py collectstatic --noinput &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -88,8 +90,8 @@ services:
   # API Gateway under test
   api-gateway-test:
     build:
-      context: ../../ai-services
-      dockerfile: api_gateway/Dockerfile
+      context: ../../../services/gateway
+      dockerfile: Dockerfile
     environment:
       - REDIS_URL=redis://redis-test:6379/2
       - BACKEND_URL=http://backend-test:8000
@@ -110,7 +112,7 @@ services:
   # Integration test runner
   test-runner:
     build:
-      context: ../../
+      context: ../../..
       dockerfile: tests/integration/Dockerfile.test
     environment:
       - BACKEND_URL=http://backend-test:8000
@@ -124,7 +126,7 @@ services:
       api-gateway-test:
         condition: service_healthy
     volumes:
-      - ../../tests:/tests:ro
+      - ../../../tests:/tests:ro
       - test-reports:/reports
     command: >
       sh -c "pytest /tests/integration

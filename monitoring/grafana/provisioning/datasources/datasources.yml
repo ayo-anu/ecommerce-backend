@@ -21,7 +21,7 @@ datasources:
   - name: PostgreSQL-Backend
     type: postgres
     access: proxy
-    url: postgres-backend:5432
+    url: postgres:5432
     database: ${POSTGRES_DB}
     user: ${POSTGRES_USER}
     isDefault: false
@@ -41,13 +41,13 @@ datasources:
   - name: PostgreSQL-AI
     type: postgres
     access: proxy
-    url: postgres-ai:5433
-    database: ${AI_POSTGRES_DB}
-    user: ${AI_POSTGRES_USER}
+    url: postgres_ai:5432
+    database: ${POSTGRES_AI_DB}
+    user: ${POSTGRES_USER}
     isDefault: false
     editable: false
     secureJsonData:
-      password: ${AI_POSTGRES_PASSWORD}
+      password: ${POSTGRES_PASSWORD}
     jsonData:
       sslmode: disable
       maxOpenConns: 5

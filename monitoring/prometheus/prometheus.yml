@@ -1,5 +1,4 @@
 # Prometheus Configuration for E-Commerce Platform
-# This configuration monitors all 19 services in the platform
 
 global:
   scrape_interval: 15s      # Scrape targets every 15 seconds
@@ -39,7 +38,7 @@ scrape_configs:
   # 2. BACKEND SERVICES
   # ===========================================
   - job_name: 'backend-api'
-    metrics_path: '/api/metrics/'
+    metrics_path: '/metrics'
     static_configs:
       - targets: ['backend:8000']
         labels:
@@ -47,44 +46,25 @@ scrape_configs:
           tier: 'api'
           component: 'django'
 
-  - job_name: 'celery-worker'
-    static_configs:
-      - targets: ['backend:9100']  # Celery worker metrics port
-        labels:
-          service: 'celery-worker'
-          tier: 'worker'
-          component: 'task-queue'
-
   # ===========================================
-  # 3. FRONTEND
-  # ===========================================
-  - job_name: 'frontend'
-    static_configs:
-      - targets: ['frontend:3000']
-        labels:
-          service: 'frontend'
-          tier: 'web'
-          component: 'nextjs'
-
-  # ===========================================
-  # 4. API GATEWAY
+  # 3. API GATEWAY
   # ===========================================
   - job_name: 'api-gateway'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['api-gateway:8080']
+      - targets: ['api_gateway:8080']
         labels:
           service: 'api-gateway'
           tier: 'gateway'
           component: 'fastapi'
 
   # ===========================================
-  # 5. AI MICROSERVICES
+  # 4. AI MICROSERVICES
   # ===========================================
   - job_name: 'ai-recommendation-engine'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['recommendation-engine:8001']
+      - targets: ['recommender:8001']
         labels:
           service: 'recommendation-engine'
           tier: 'ai'
@@ -93,7 +73,7 @@ scrape_configs:
   - job_name: 'ai-search-engine'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['search-engine:8002']
+      - targets: ['search:8002']
         labels:
           service: 'search-engine'
           tier: 'ai'
@@ -102,7 +82,7 @@ scrape_configs:
   - job_name: 'ai-pricing-engine'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['pricing-engine:8003']
+      - targets: ['pricing:8003']
         labels:
           service: 'pricing-engine'
           tier: 'ai'
@@ -120,7 +100,7 @@ scrape_configs:
   - job_name: 'ai-fraud-detection'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['fraud-detection:8005']
+      - targets: ['fraud:8005']
         labels:
           service: 'fraud-detection'
           tier: 'ai'
@@ -129,7 +109,7 @@ scrape_configs:
   - job_name: 'ai-demand-forecasting'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['demand-forecasting:8006']
+      - targets: ['forecasting:8006']
         labels:
           service: 'demand-forecasting'
           tier: 'ai'
@@ -138,58 +118,15 @@ scrape_configs:
   - job_name: 'ai-visual-recognition'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['visual-recognition:8007']
+      - targets: ['vision:8007']
         labels:
           service: 'visual-recognition'
           tier: 'ai'
           component: 'ml-service'
 
   # ===========================================
-  # 6. DATABASE SERVICES
+  # 5. VECTOR DB
   # ===========================================
-  - job_name: 'postgres-backend'
-    static_configs:
-      - targets: ['postgres-exporter-backend:9187']
-        labels:
-          service: 'postgres-backend'
-          tier: 'database'
-          database: 'backend'
-
-  - job_name: 'postgres-ai'
-    static_configs:
-      - targets: ['postgres-exporter-ai:9187']
-        labels:
-          service: 'postgres-ai'
-          tier: 'database'
-          database: 'ai-services'
-
-  # ===========================================
-  # 7. CACHE & MESSAGE QUEUE
-  # ===========================================
-  - job_name: 'redis'
-    static_configs:
-      - targets: ['redis-exporter:9121']
-        labels:
-          service: 'redis'
-          tier: 'cache'
-
-  - job_name: 'rabbitmq'
-    static_configs:
-      - targets: ['rabbitmq:15692']
-        labels:
-          service: 'rabbitmq'
-          tier: 'messaging'
-
-  # ===========================================
-  # 8. SEARCH & VECTOR DB
-  # ===========================================
-  - job_name: 'elasticsearch'
-    static_configs:
-      - targets: ['elasticsearch:9200']
-        labels:
-          service: 'elasticsearch'
-          tier: 'search'
-
   - job_name: 'qdrant'
     metrics_path: '/metrics'
     static_configs:
@@ -197,26 +134,6 @@ scrape_configs:
         labels:
           service: 'qdrant'
           tier: 'vector-db'
-
-  # ===========================================
-  # 9. NGINX REVERSE PROXY
-  # ===========================================
-  - job_name: 'nginx'
-    static_configs:
-      - targets: ['nginx-exporter:9113']
-        labels:
-          service: 'nginx'
-          tier: 'proxy'
-
-  # ===========================================
-  # 10. NODE EXPORTER (System Metrics)
-  # ===========================================
-  - job_name: 'node-exporter'
-    static_configs:
-      - targets: ['node-exporter:9100']
-        labels:
-          service: 'node-exporter'
-          tier: 'infrastructure'
 
 # Recording rules for pre-computed metrics
 # These improve dashboard query performance

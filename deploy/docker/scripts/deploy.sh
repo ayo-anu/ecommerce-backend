@@ -1,15 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# ==============================================================================
-# Unified Deployment Script
-# Supports: development, staging, production
-# ==============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
@@ -21,22 +16,16 @@ warn() { echo -e "${YELLOW}[$(date +'%H:%M:%S')] WARNING:${NC} $1"; }
 error() { echo -e "${RED}[$(date +'%H:%M:%S')] ERROR:${NC} $1" >&2; }
 info() { echo -e "${BLUE}[$(date +'%H:%M:%S')] INFO:${NC} $1"; }
 
-# ==============================================================================
-# Configuration
-# ==============================================================================
-
 ENVIRONMENT="${1:-development}"
 VERSION="${2:-latest}"
 DRY_RUN="${DRY_RUN:-false}"
 
-# Validate environment
 if [[ ! "$ENVIRONMENT" =~ ^(development|staging|production)$ ]]; then
     error "Invalid environment: $ENVIRONMENT"
     error "Usage: $0 <development|staging|production> [version]"
     exit 1
 fi
 
-# Set compose file based on environment
 COMPOSE_FILE="$PROJECT_ROOT/deploy/docker/compose/${ENVIRONMENT}.yml"
 BASE_COMPOSE_FILE="$PROJECT_ROOT/deploy/docker/compose/base.yml"
 
@@ -45,52 +34,39 @@ if [ ! -f "$COMPOSE_FILE" ]; then
     exit 1
 fi
 
-# ==============================================================================
-# Pre-deployment Checks
-# ==============================================================================
-
 pre_deployment_checks() {
-    log "🔍 Running pre-deployment checks..."
+    log "Running pre-deployment checks..."
 
-    # Check Docker
     if ! command -v docker &> /dev/null; then
         error "Docker is not installed"
         exit 1
     fi
 
-    # Check docker-compose
     if ! command -v docker-compose &> /dev/null; then
         error "docker-compose is not installed"
         exit 1
     fi
 
-    # Check environment file
     ENV_FILE="$PROJECT_ROOT/config/environments/${ENVIRONMENT}.env"
     if [ ! -f "$ENV_FILE" ]; then
         warn "Environment file not found: $ENV_FILE"
     fi
 
-    # Check disk space
     AVAILABLE_SPACE=$(df -h "$PROJECT_ROOT" | awk 'NR==2 {print $4}')
     info "Available disk space: $AVAILABLE_SPACE"
 
-    # Check if services are running
     if docker-compose -f "$BASE_COMPOSE_FILE" -f "$COMPOSE_FILE" ps | grep -q "Up"; then
         info "Some services are already running"
     fi
 
-    log "✅ Pre-deployment checks passed"
+    log "Pre-deployment checks passed"
 }
 
-# ==============================================================================
-# Pull Images
-# ==============================================================================
-
 pull_images() {
-    log "📦 Pulling Docker images..."
+    log "Pulling Docker images..."
 
     if [ "$DRY_RUN" = "true" ]; then
-        info "DRY RUN: Would pull images"
+        info "DRY RUN: would pull images"
         return 0
     fi
 
@@ -100,37 +76,29 @@ pull_images() {
         exit 1
     }
 
-    log "✅ Images pulled successfully"
+    log "Images pulled"
 }
 
-# ==============================================================================
-# Database Migrations
-# ==============================================================================
-
 run_migrations() {
-    log "🔄 Running database migrations..."
+    log "Running database migrations..."
 
     if [ "$DRY_RUN" = "true" ]; then
-        info "DRY RUN: Would run migrations"
+        info "DRY RUN: would run migrations"
         return 0
     fi
 
-    # Check if backend service exists in compose file
     if docker-compose -f "$BASE_COMPOSE_FILE" -f "$COMPOSE_FILE" config --services | grep -q "backend"; then
         docker-compose -f "$BASE_COMPOSE_FILE" -f "$COMPOSE_FILE" run --rm backend \
             python manage.py migrate --noinput || {
             error "Database migration failed"
             return 1
         }
-        log "✅ Migrations completed"
+        log "Migrations completed"
     else
         warn "Backend service not found, skipping migrations"
     fi
 }
 
-# ==============================================================================
-# Collect Static Files
-# ==============================================================================
 
 collect_static() {
     if [ "$ENVIRONMENT" != "production" ]; then
@@ -138,7 +106,7 @@ collect_static() {
         return 0
     fi
 
-    log "📦 Collecting static files..."
+    log "Collecting static files..."
 
     if [ "$DRY_RUN" = "true" ]; then
         info "DRY RUN: Would collect static files"
@@ -150,22 +118,18 @@ collect_static() {
         warn "Static file collection failed (non-fatal)"
     }
 
-    log "✅ Static files collected"
+    log "Static files collected"
 }
 
-# ==============================================================================
-# Deploy Services
-# ==============================================================================
 
 deploy_services() {
-    log "🚀 Deploying services..."
+    log "Deploying services..."
 
     if [ "$DRY_RUN" = "true" ]; then
         info "DRY RUN: Would deploy services"
         return 0
     fi
 
-    # For production, use blue-green deployment
     if [ "$ENVIRONMENT" = "production" ]; then
         if [ -f "$PROJECT_ROOT/deploy/docker/scripts/blue-green-deploy.sh" ]; then
             log "Using blue-green deployment for production..."
@@ -176,19 +140,15 @@ deploy_services() {
         fi
     fi
 
-    # Standard deployment
     export VERSION
     docker-compose -f "$BASE_COMPOSE_FILE" -f "$COMPOSE_FILE" up -d --remove-orphans || {
         error "Service deployment failed"
         exit 1
     }
 
-    log "✅ Services deployed"
+    log "Services deployed"
 }
 
-# ==============================================================================
-# Health Checks
-# ==============================================================================
 
 wait_for_healthy() {
     log "🏥 Waiting for services to be healthy..."
@@ -203,11 +163,10 @@ wait_for_healthy() {
     fi
 
     while [ $ELAPSED -lt $MAX_WAIT ]; do
-        # Check if all services are healthy
         UNHEALTHY=$(docker-compose -f "$BASE_COMPOSE_FILE" -f "$COMPOSE_FILE" ps | grep -c "unhealthy" || true)
 
         if [ "$UNHEALTHY" -eq 0 ]; then
-            log "✅ All services are healthy"
+            log "All services are healthy"
             return 0
         fi
 
@@ -221,9 +180,6 @@ wait_for_healthy() {
     return 1
 }
 
-# ==============================================================================
-# Post-deployment Tests
-# ==============================================================================
 
 run_smoke_tests() {
     log "🧪 Running smoke tests..."
@@ -243,7 +199,6 @@ run_smoke_tests() {
     else
         warn "Smoke test script not found: $SMOKE_TEST_SCRIPT"
 
-        # Basic health check
         local BACKEND_URL="http://localhost:8000"
         if [ "$ENVIRONMENT" = "production" ]; then
             BACKEND_URL="${PRODUCTION_URL:-https://api.example.com}"
@@ -252,19 +207,16 @@ run_smoke_tests() {
         fi
 
         if curl -sf "$BACKEND_URL/health/" > /dev/null; then
-            log "✅ Basic health check passed"
+            log "Basic health check passed"
         else
             error "Basic health check failed"
             return 1
         fi
     fi
 
-    log "✅ Smoke tests passed"
+    log "Smoke tests passed"
 }
 
-# ==============================================================================
-# Cleanup
-# ==============================================================================
 
 cleanup_old_images() {
     log "🧹 Cleaning up old Docker images..."
@@ -274,21 +226,16 @@ cleanup_old_images() {
         return 0
     fi
 
-    # Remove dangling images
     docker image prune -f || true
 
-    # Remove images older than 7 days (except latest)
     docker images --format "{{.Repository}}:{{.Tag}} {{.CreatedAt}}" | \
         grep -v "latest" | \
         awk '$2 < "'$(date -d '7 days ago' +%Y-%m-%d)'" {print $1}' | \
         xargs -r docker rmi || true
 
-    log "✅ Cleanup complete"
+    log "Cleanup complete"
 }
 
-# ==============================================================================
-# Rollback on Failure
-# ==============================================================================
 
 rollback_on_failure() {
     error "Deployment failed! Initiating rollback..."
@@ -303,9 +250,6 @@ rollback_on_failure() {
     fi
 }
 
-# ==============================================================================
-# Main Deployment Flow
-# ==============================================================================
 
 main() {
     log "=========================================="
@@ -316,10 +260,8 @@ main() {
     log "Dry Run: $DRY_RUN"
     log "=========================================="
 
-    # Change to project root
     cd "$PROJECT_ROOT"
 
-    # Execute deployment steps
     pre_deployment_checks || exit 1
     pull_images || exit 1
     run_migrations || { rollback_on_failure; exit 1; }
@@ -330,24 +272,18 @@ main() {
     cleanup_old_images || true  # Non-fatal
 
     log "=========================================="
-    log "✅ Deployment Complete!"
+    log "Deployment complete"
     log "=========================================="
     log "Environment: $ENVIRONMENT"
     log "Version: $VERSION"
     log "Time: $(date)"
     log "=========================================="
 
-    # Show running services
     info "Running services:"
     docker-compose -f "$BASE_COMPOSE_FILE" -f "$COMPOSE_FILE" ps
 }
 
-# ==============================================================================
-# Script Entry Point
-# ==============================================================================
 
-# Trap errors and rollback
 trap 'error "Deployment failed at line $LINENO"' ERR
 
-# Run main function
 main "$@"

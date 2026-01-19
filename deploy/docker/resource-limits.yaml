@@ -1,18 +1,8 @@
-# ==============================================================================
-# Docker Resource Limits for All Services
-# Enterprise-Grade Production Configuration
-# ==============================================================================
-# Usage: Include this file in docker-compose.yml with:
-#   include:
-#     - infrastructure/docker/resource-limits.yaml
-# ==============================================================================
+# Docker resource limits for shared service profiles.
 
 version: '3.8'
 
-# ==============================================================================
-# Small Services (API endpoints, lightweight services)
-# CPU: 0.5 cores, Memory: 512MB
-# ==============================================================================
+# Small services: 0.5 CPU, 512MB
 x-resource-limits-small: &resource-limits-small
   deploy:
     resources:
@@ -36,10 +26,7 @@ x-resource-limits-small: &resource-limits-small
     - no-new-privileges:true
   read_only: false
 
-# ==============================================================================
-# Medium Services (Backend API, AI Gateway, Application Services)
-# CPU: 1.0 cores, Memory: 1GB
-# ==============================================================================
+# Medium services: 1 CPU, 1GB
 x-resource-limits-medium: &resource-limits-medium
   deploy:
     resources:
@@ -63,10 +50,7 @@ x-resource-limits-medium: &resource-limits-medium
     - no-new-privileges:true
   read_only: false
 
-# ==============================================================================
-# Large Services (Database, Redis, Heavy AI Services)
-# CPU: 2.0 cores, Memory: 2GB
-# ==============================================================================
+# Large services: 2 CPU, 2GB
 x-resource-limits-large: &resource-limits-large
   deploy:
     resources:
@@ -90,10 +74,7 @@ x-resource-limits-large: &resource-limits-large
     - no-new-privileges:true
   read_only: false
 
-# ==============================================================================
-# Extra Large Services (Databases with high load, ML model servers)
-# CPU: 4.0 cores, Memory: 4GB
-# ==============================================================================
+# Extra large services: 4 CPU, 4GB
 x-resource-limits-xlarge: &resource-limits-xlarge
   deploy:
     resources:
@@ -117,10 +98,7 @@ x-resource-limits-xlarge: &resource-limits-xlarge
     - no-new-privileges:true
   read_only: false
 
-# ==============================================================================
-# Database-Specific Limits (PostgreSQL)
-# Includes additional database-specific configurations
-# ==============================================================================
+# PostgreSQL-specific limits
 x-resource-limits-postgres: &resource-limits-postgres
   deploy:
     resources:
@@ -148,10 +126,7 @@ x-resource-limits-postgres: &resource-limits-postgres
   read_only: false
   shm_size: 256M
 
-# ==============================================================================
-# Redis-Specific Limits
-# Optimized for caching and session storage
-# ==============================================================================
+# Redis-specific limits
 x-resource-limits-redis: &resource-limits-redis
   deploy:
     resources:
@@ -175,10 +150,7 @@ x-resource-limits-redis: &resource-limits-redis
     - no-new-privileges:true
   read_only: false
 
-# ==============================================================================
-# Nginx-Specific Limits
-# Optimized for reverse proxy and static file serving
-# ==============================================================================
+# Nginx-specific limits
 x-resource-limits-nginx: &resource-limits-nginx
   deploy:
     resources:
@@ -202,9 +174,7 @@ x-resource-limits-nginx: &resource-limits-nginx
     - no-new-privileges:true
   read_only: false
 
-# ==============================================================================
-# Usage Examples:
-# ==============================================================================
+# Example usage
 # services:
 #   backend:
 #     <<: *resource-limits-medium
@@ -220,4 +190,3 @@ x-resource-limits-nginx: &resource-limits-nginx
 #     <<: *resource-limits-redis
 #     image: redis:7-alpine
 #     # ... other configurations
-# ==============================================================================
