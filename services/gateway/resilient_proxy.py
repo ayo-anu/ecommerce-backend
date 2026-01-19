@@ -1,13 +1,4 @@
-"""
-Resilient HTTP Proxy with Circuit Breakers and Retry Logic
-
-Provides fault-tolerant HTTP proxying with:
-- Circuit breakers to prevent cascading failures
-- Exponential backoff retry logic
-- Configurable timeouts
-- Comprehensive error handling
-- Request/response metrics
-"""
+"""Resilient HTTP proxy with circuit breakers and retries."""
 
 import asyncio
 import logging
@@ -28,7 +19,6 @@ from .circuit_breaker import (
 logger = logging.getLogger(__name__)
 
 
-# Prometheus metrics
 proxy_requests_total = Counter(
     'gateway_proxy_requests_total',
     'Total proxy requests',
@@ -56,35 +46,25 @@ circuit_breaker_state = Counter(
 
 @dataclass
 class RetryConfig:
-    """Configuration for retry logic"""
+    """Retry settings."""
     max_retries: int = 3
-    base_delay: float = 0.1  # seconds
-    max_delay: float = 10.0  # seconds
+    base_delay: float = 0.1
+    max_delay: float = 10.0
     exponential_base: float = 2.0
     jitter: bool = True
 
 
 @dataclass
 class TimeoutConfig:
-    """Configuration for request timeouts"""
-    connect_timeout: float = 5.0  # seconds
-    read_timeout: float = 30.0    # seconds
-    write_timeout: float = 10.0   # seconds
-    pool_timeout: float = 5.0     # seconds
+    """Request timeout settings."""
+    connect_timeout: float = 5.0
+    read_timeout: float = 30.0
+    write_timeout: float = 10.0
+    pool_timeout: float = 5.0
 
 
 class ResilientProxy:
-    """
-    Resilient HTTP proxy with circuit breakers and retry logic.
-
-    Features:
-    - Circuit breaker per service
-    - Exponential backoff retry
-    - Configurable timeouts
-    - Automatic failover
-    - Request/response logging
-    - Prometheus metrics
-    """
+    """Resilient HTTP proxy with circuit breakers and retries."""
 
     def __init__(
         self,
@@ -94,16 +74,6 @@ class ResilientProxy:
         retry_config: Optional[RetryConfig] = None,
         timeout_config: Optional[TimeoutConfig] = None,
     ):
-        """
-        Initialize resilient proxy.
-
-        Args:
-            service_name: Name of the service (for circuit breaker and metrics)
-            service_auth_secret: Secret for X-Service-Auth header (zero-trust)
-            circuit_config: Circuit breaker configuration
-            retry_config: Retry configuration
-            timeout_config: Timeout configuration
-        """
         self.service_name = service_name
         self.service_auth_secret = service_auth_secret
         self.circuit_breaker = circuit_breaker_registry.get_breaker(
@@ -112,10 +82,9 @@ class ResilientProxy:
         self.retry_config = retry_config or RetryConfig()
         self.timeout_config = timeout_config or TimeoutConfig()
 
-        # Log warning if service auth secret is not configured
         if not self.service_auth_secret:
             logger.warning(
-                f"⚠️  Service auth secret not configured for {service_name}. "
+                f"Service auth secret not configured for {service_name}. "
                 "Internal requests will be rejected by the service."
             )
 
@@ -125,21 +94,10 @@ class ResilientProxy:
         target_url: str,
         allow_retries: bool = True,
     ) -> JSONResponse:
-        """
-        Proxy request to target service with resilience patterns.
-
-        Args:
-            request: FastAPI request object
-            target_url: Target service URL
-            allow_retries: Whether to retry on failure
-
-        Returns:
-            JSONResponse with proxied response or error
-        """
+        """Proxy a request to the target service."""
         correlation_id = getattr(request.state, 'correlation_id', 'unknown')
 
         try:
-            # Execute with circuit breaker protection
             result = await self.circuit_breaker.call(
                 self._execute_request,
                 request,
@@ -148,7 +106,6 @@ class ResilientProxy:
                 allow_retries,
             )
 
-            # Track successful request
             proxy_requests_total.labels(
                 service=self.service_name,
                 method=request.method,
@@ -158,7 +115,6 @@ class ResilientProxy:
             return result
 
         except CircuitBreakerError as e:
-            # Circuit is open - fail fast
             logger.warning(
                 f"Circuit breaker open for {self.service_name}: {e}",
                 extra={'correlation_id': correlation_id}
@@ -183,7 +139,6 @@ class ResilientProxy:
             )
 
         except Exception as e:
-            # Unexpected error
             logger.error(
                 f"Unexpected error proxying to {self.service_name}: {e}",
                 extra={'correlation_id': correlation_id},
@@ -214,25 +169,10 @@ class ResilientProxy:
         correlation_id: str,
         allow_retries: bool,
     ) -> JSONResponse:
-        """
-        Execute the actual HTTP request with retry logic.
-
-        Args:
-            request: FastAPI request
-            target_url: Target URL
-            correlation_id: Request correlation ID
-            allow_retries: Whether retries are allowed
-
-        Returns:
-            JSONResponse
-
-        Raises:
-            Exception: If all retries fail
-        """
+        """Execute a request with retries."""
         retry_count = 0
         last_exception = None
 
-        # Configure httpx client with timeouts
         timeout = httpx.Timeout(
             connect=self.timeout_config.connect_timeout,
             read=self.timeout_config.read_timeout,
@@ -243,16 +183,11 @@ class ResilientProxy:
         while retry_count <= (self.retry_config.max_retries if allow_retries else 0):
             try:
                 async with httpx.AsyncClient(timeout=timeout) as client:
-                    # Get request body
                     body = await request.body()
 
-                    # Prepare headers (add correlation ID)
                     headers = dict(request.headers)
                     headers['X-Correlation-ID'] = correlation_id
 
-                    # ============================================================
-                    # ZERO-TRUST: Inject X-Service-Auth header
-                    # ============================================================
                     if self.service_auth_secret:
                         headers['X-Service-Auth'] = self.service_auth_secret
                         logger.debug(
@@ -265,21 +200,17 @@ class ResilientProxy:
                             extra={'correlation_id': correlation_id}
                         )
 
-                    # Inject trace context for distributed tracing
                     try:
                         from opentelemetry.propagate import inject
                         inject(headers)
                     except ImportError:
-                        pass  # OpenTelemetry not installed
+                        logger.debug("OpenTelemetry not installed; skipping trace headers")
 
-                    # Remove problematic headers
                     headers.pop('host', None)
                     headers.pop('content-length', None)
 
-                    # NEVER leak internal auth headers to external clients
                     headers.pop('authorization', None)
 
-                    # Log request attempt
                     if retry_count > 0:
                         logger.info(
                             f"Retry attempt {retry_count}/{self.retry_config.max_retries} "
@@ -288,7 +219,6 @@ class ResilientProxy:
                         )
                         proxy_retries_total.labels(service=self.service_name).inc()
 
-                    # Execute request with timing
                     with proxy_request_duration.labels(
                         service=self.service_name,
                         method=request.method
@@ -301,14 +231,12 @@ class ResilientProxy:
                             params=dict(request.query_params),
                         )
 
-                    # Log successful response
                     logger.info(
                         f"Successful proxy to {self.service_name}: "
                         f"{response.status_code}",
                         extra={'correlation_id': correlation_id}
                     )
 
-                    # Return response
                     return JSONResponse(
                         content=response.json() if response.text else {},
                         status_code=response.status_code,
@@ -352,7 +280,6 @@ class ResilientProxy:
                 # Don't retry on unexpected errors
                 raise
 
-            # Calculate retry delay with exponential backoff
             if retry_count < self.retry_config.max_retries and allow_retries:
                 delay = min(
                     self.retry_config.base_delay * (
@@ -361,7 +288,6 @@ class ResilientProxy:
                     self.retry_config.max_delay
                 )
 
-                # Add jitter to prevent thundering herd
                 if self.retry_config.jitter:
                     import random
                     delay = delay * (0.5 + random.random() * 0.5)
@@ -374,26 +300,17 @@ class ResilientProxy:
 
             retry_count += 1
 
-        # All retries exhausted
         logger.error(
             f"All retries exhausted for {self.service_name} "
             f"after {retry_count} attempts",
             extra={'correlation_id': correlation_id}
         )
 
-        # Raise last exception to trigger circuit breaker
         raise last_exception or Exception("Request failed after all retries")
 
 
 class ProxyRegistry:
-    """
-    Registry to manage resilient proxies for multiple services.
-
-    Usage:
-        registry = ProxyRegistry()
-        proxy = registry.get_proxy("recommendation-service")
-        response = await proxy.proxy_request(request, url)
-    """
+    """Registry for resilient proxies."""
 
     def __init__(self):
         self._proxies: Dict[str, ResilientProxy] = {}
@@ -406,19 +323,6 @@ class ProxyRegistry:
         retry_config: Optional[RetryConfig] = None,
         timeout_config: Optional[TimeoutConfig] = None,
     ) -> ResilientProxy:
-        """
-        Get or create a resilient proxy for a service.
-
-        Args:
-            service_name: Service name
-            service_auth_secret: Service authentication secret for X-Service-Auth
-            circuit_config: Optional circuit breaker config
-            retry_config: Optional retry config
-            timeout_config: Optional timeout config
-
-        Returns:
-            ResilientProxy instance
-        """
         if service_name not in self._proxies:
             self._proxies[service_name] = ResilientProxy(
                 service_name,
@@ -431,12 +335,11 @@ class ProxyRegistry:
         return self._proxies[service_name]
 
     def get_all_circuit_states(self) -> Dict[str, Any]:
-        """Get circuit breaker states for all proxies"""
+        """Get circuit breaker states for all proxies."""
         return {
             name: proxy.circuit_breaker.get_state()
             for name, proxy in self._proxies.items()
         }
 
 
-# Global proxy registry
 proxy_registry = ProxyRegistry()

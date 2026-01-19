@@ -1,6 +1,4 @@
-"""
-Custom middleware for CORS, rate limiting, and logging
-"""
+"""Gateway middleware."""
 from fastapi import Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -17,8 +15,6 @@ from shared.monitoring import (
 )
 
 import uuid
-from starlette.middleware.base import BaseHTTPMiddleware
-
 class TraceMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         trace_id = request.headers.get("X-Trace-ID", str(uuid.uuid4()))
@@ -34,41 +30,26 @@ settings = get_settings()
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Rate limiting middleware using Redis"""
+    """Rate limiting with Redis."""
     
     async def dispatch(
         self,
         request: Request,
         call_next: Callable
     ) -> Response:
-        # Skip rate limiting for health checks
         if request.url.path in ["/health", "/metrics"]:
             return await call_next(request)
         
-        # Get client identifier (IP or user ID)
         client_ip = request.client.host
-        
-        # Try to get user from token
-        user_id = None
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            # Extract user_id from token if needed
-            # For now, use IP
-            pass
-        
-        # Rate limit key
-        identifier = user_id if user_id else client_ip
+        identifier = client_ip
         rate_limit_key = f"rate_limit:{identifier}:{int(time.time() / 60)}"
         
         try:
-            # Increment request count
             request_count = await redis_client.increment(rate_limit_key)
             
-            # Set expiration on first request
             if request_count == 1:
                 await redis_client.expire(rate_limit_key, 60)
             
-            # Check if rate limit exceeded
             if request_count > settings.RATE_LIMIT_PER_MINUTE:
                 return JSONResponse(
                     status_code=429,
@@ -79,7 +60,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     headers={"Retry-After": "60"}
                 )
             
-            # Add rate limit headers
             response = await call_next(request)
             response.headers["X-RateLimit-Limit"] = str(settings.RATE_LIMIT_PER_MINUTE)
             response.headers["X-RateLimit-Remaining"] = str(
@@ -91,12 +71,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             
         except Exception as e:
             logger.error(f"Rate limiting error: {e}")
-            # If Redis fails, allow request to proceed
             return await call_next(request)
 
 
 class MetricsMiddleware(BaseHTTPMiddleware):
-    """Middleware to track request metrics"""
+    """Track request metrics."""
     
     async def dispatch(
         self,
@@ -105,13 +84,10 @@ class MetricsMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         start_time = time.time()
         
-        # Process request
         response = await call_next(request)
         
-        # Calculate duration
         duration = time.time() - start_time
         
-        # Record metrics
         http_requests_total.labels(
             method=request.method,
             endpoint=request.url.path,
@@ -123,21 +99,19 @@ class MetricsMiddleware(BaseHTTPMiddleware):
             endpoint=request.url.path
         ).observe(duration)
         
-        # Add custom headers
         response.headers["X-Process-Time"] = str(duration)
         
         return response
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware for request/response logging"""
+    """Request/response logging."""
     
     async def dispatch(
         self,
         request: Request,
         call_next: Callable
     ) -> Response:
-        # Log request
         logger.info(
             f"Request: {request.method} {request.url.path}",
             extra={
@@ -153,7 +127,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         try:
             response = await call_next(request)
             
-            # Log response
             duration = time.time() - start_time
             logger.info(
                 f"Response: {response.status_code} {request.url.path}",
@@ -180,7 +153,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
 
 def setup_cors(app):
-    """Configure CORS middleware"""
+    """Configure CORS middleware."""
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
@@ -192,7 +165,7 @@ def setup_cors(app):
 
 
 class WAFMiddleware(BaseHTTPMiddleware):
-    """Web Application Firewall middleware"""
+    """Web application firewall middleware."""
 
     def __init__(self, app, waf_instance):
         super().__init__(app)

@@ -1,15 +1,4 @@
-"""
-Web Application Firewall (WAF) Implementation.
-
-Provides request validation and security filtering:
-- SQL injection detection
-- XSS (Cross-Site Scripting) prevention
-- Request body size limits
-- Header validation
-- Path traversal detection
-- Command injection detection
-- Suspicious pattern blocking
-"""
+"""Web application firewall helpers."""
 
 import re
 import logging
@@ -21,11 +10,6 @@ from starlette.datastructures import Headers
 logger = logging.getLogger(__name__)
 
 
-# ==============================================================================
-# Security Patterns
-# ==============================================================================
-
-# SQL Injection patterns
 SQL_INJECTION_PATTERNS = [
     r"(\%27)|(\')|(\-\-)|(\%23)|(#)",  # SQL meta-characters
     r"((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))",  # SQL operators
@@ -39,7 +23,6 @@ SQL_INJECTION_PATTERNS = [
     r"UPDATE\s+.*SET",  # UPDATE
 ]
 
-# XSS patterns
 XSS_PATTERNS = [
     r"<script[^>]*>.*?</script>",  # Script tags
     r"javascript:",  # JavaScript protocol
@@ -50,7 +33,6 @@ XSS_PATTERNS = [
     r"eval\(",  # eval function
 ]
 
-# Path traversal patterns
 PATH_TRAVERSAL_PATTERNS = [
     r"\.\./",  # Directory traversal
     r"\.\.\\",  # Windows directory traversal
@@ -58,7 +40,6 @@ PATH_TRAVERSAL_PATTERNS = [
     r"c:\\windows",  # Windows system directory
 ]
 
-# Command injection patterns
 COMMAND_INJECTION_PATTERNS = [
     r";.*\s*(ls|cat|wget|curl|nc|bash|sh|cmd|powershell)",  # Command chaining
     r"\|.*\s*(ls|cat|wget|curl|nc|bash|sh|cmd|powershell)",  # Pipe commands
@@ -79,17 +60,6 @@ class WAF:
         enable_path_traversal_check: bool = True,
         enable_command_injection_check: bool = True,
     ):
-        """
-        Initialize WAF.
-
-        Args:
-            max_body_size: Maximum request body size in bytes
-            max_header_size: Maximum header size in bytes
-            enable_sql_injection_check: Enable SQL injection detection
-            enable_xss_check: Enable XSS detection
-            enable_path_traversal_check: Enable path traversal detection
-            enable_command_injection_check: Enable command injection detection
-        """
         self.max_body_size = max_body_size
         self.max_header_size = max_header_size
         self.enable_sql_injection_check = enable_sql_injection_check
@@ -97,7 +67,6 @@ class WAF:
         self.enable_path_traversal_check = enable_path_traversal_check
         self.enable_command_injection_check = enable_command_injection_check
 
-        # Compile patterns for performance
         self.sql_patterns = [re.compile(p, re.IGNORECASE) for p in SQL_INJECTION_PATTERNS]
         self.xss_patterns = [re.compile(p, re.IGNORECASE) for p in XSS_PATTERNS]
         self.path_patterns = [re.compile(p, re.IGNORECASE) for p in PATH_TRAVERSAL_PATTERNS]
@@ -144,12 +113,7 @@ class WAF:
         return None
 
     def check_value(self, value: str) -> Optional[str]:
-        """
-        Check a string value against all patterns.
-
-        Returns:
-            Error message if malicious pattern detected, None otherwise
-        """
+        """Check a string value against all patterns."""
         checks = [
             self.check_sql_injection(value),
             self.check_xss(value),
@@ -164,16 +128,7 @@ class WAF:
         return None
 
     async def validate_request(self, request: Request) -> None:
-        """
-        Validate incoming request.
-
-        Args:
-            request: FastAPI request
-
-        Raises:
-            HTTPException: If request is malicious or invalid
-        """
-        # 1. Check request body size
+        """Validate an incoming request."""
         content_length = request.headers.get("content-length")
         if content_length and int(content_length) > self.max_body_size:
             logger.warning(
@@ -185,7 +140,6 @@ class WAF:
                 detail=f"Request body too large. Max size: {self.max_body_size} bytes"
             )
 
-        # 2. Check headers size
         headers_size = sum(len(k) + len(v) for k, v in request.headers.items())
         if headers_size > self.max_header_size:
             logger.warning(
@@ -197,7 +151,6 @@ class WAF:
                 detail="Request headers too large"
             )
 
-        # 3. Validate URL path
         path = str(request.url.path)
         error = self.check_value(path)
         if error:
@@ -207,7 +160,6 @@ class WAF:
                 detail="Invalid request: malicious pattern detected in URL"
             )
 
-        # 4. Validate query parameters
         for key, value in request.query_params.items():
             error = self.check_value(str(key)) or self.check_value(str(value))
             if error:

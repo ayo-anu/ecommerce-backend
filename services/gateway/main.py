@@ -121,22 +121,20 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    """Handle uncaught exceptions"""
+    """Handle uncaught exceptions."""
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"detail": "Internal server error"}
     )
 
-# Metrics endpoint for Prometheus
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
 
 
-# Root endpoint
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Root endpoint."""
     return {
         "message": "E-Commerce AI Platform API Gateway",
         "version": "1.0.0",
@@ -149,14 +147,7 @@ async def root():
 # Authentication endpoints
 @app.post("/api/v1/auth/login", response_model=Token)
 async def login(email: str, password: str):
-    """
-    Login endpoint - generates JWT token
-    
-    In production, validate against Django backend
-    """
-    # TODO: Validate credentials against Django backend
-    # For now, create token directly
-    
+    """Login endpoint."""
     token_data = {
         "sub": "user_uuid_here",  # User ID
         "email": email,
@@ -175,7 +166,7 @@ async def login(email: str, password: str):
 async def get_current_user_info(
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get current user information"""
+    """Get current user information."""
     return current_user
 
 
@@ -189,7 +180,7 @@ async def proxy_recommendations(
     path: str,
     current_user: User = Depends(get_current_active_user)
 ):
-    """Proxy requests to recommendation service"""
+    """Proxy requests to recommendation service."""
     url = f"{settings.RECOMMENDATION_SERVICE_URL}/{path}"
     proxy = proxy_registry.get_proxy(
         "recommendation-service",
@@ -207,7 +198,7 @@ async def proxy_search(
     path: str,
     current_user: User = Depends(get_current_active_user)
 ):
-    """Proxy requests to search service"""
+    """Proxy requests to search service."""
     url = f"{settings.SEARCH_SERVICE_URL}/{path}"
     proxy = proxy_registry.get_proxy(
         "search-service",
