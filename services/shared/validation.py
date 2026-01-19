@@ -1,12 +1,4 @@
-"""
-Input Validation Middleware and Utilities for AI Services.
-
-Provides comprehensive input validation to prevent:
-- Injection attacks
-- Buffer overflows
-- Malformed data
-- Resource exhaustion
-"""
+"""Input validation middleware and helpers."""
 
 import re
 import logging
@@ -17,10 +9,6 @@ from pydantic import BaseModel, Field, validator
 
 logger = logging.getLogger(__name__)
 
-
-# ==============================================================================
-# Configuration
-# ==============================================================================
 
 class ValidationConfig:
     """Validation configuration constants."""
@@ -75,10 +63,6 @@ class ValidationConfig:
         r"\\windows\\system32",
     ]
 
-
-# ==============================================================================
-# Validation Functions
-# ==============================================================================
 
 def validate_string_length(value: str, max_length: int, field_name: str = "field") -> str:
     """Validate string length."""
@@ -136,40 +120,20 @@ def validate_no_path_traversal(value: str, field_name: str = "field") -> str:
 
 
 def sanitize_input(value: str, max_length: Optional[int] = None) -> str:
-    """
-    Sanitize user input by validating against common attack patterns.
-
-    Args:
-        value: Input string to sanitize
-        max_length: Maximum allowed length
-
-    Returns:
-        Sanitized string
-
-    Raises:
-        HTTPException: If input contains dangerous patterns
-    """
     if not isinstance(value, str):
         return value
 
-    # Strip whitespace
     value = value.strip()
 
-    # Check length
     if max_length:
         value = validate_string_length(value, max_length, "input")
 
-    # Check for attacks
     value = validate_no_sql_injection(value, "input")
     value = validate_no_xss(value, "input")
     value = validate_no_path_traversal(value, "input")
 
     return value
 
-
-# ==============================================================================
-# Pydantic Base Models with Validation
-# ==============================================================================
 
 class SafeString(BaseModel):
     """String field with built-in security validation."""
@@ -233,32 +197,13 @@ class QuantityInput(BaseModel):
     )
 
 
-# ==============================================================================
-# Request Validation Middleware
-# ==============================================================================
-
 class InputValidationMiddleware(BaseHTTPMiddleware):
-    """
-    Middleware to validate all incoming requests.
-
-    Validates:
-    - Request size
-    - Content type
-    - Common attack patterns in query parameters
-
-    Usage:
-        from shared.validation import InputValidationMiddleware
-
-        app = FastAPI()
-        app.add_middleware(InputValidationMiddleware)
-    """
+    """Validate incoming requests."""
 
     async def dispatch(self, request: Request, call_next):
-        # Skip validation for health check endpoints
         if request.url.path in ["/health", "/health/live", "/health/ready", "/metrics"]:
             return await call_next(request)
 
-        # Validate request size
         content_length = request.headers.get("content-length")
         if content_length:
             content_length = int(content_length)
@@ -281,17 +226,14 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
                     }
                 )
 
-        # Validate query parameters
         try:
             for key, value in request.query_params.items():
-                # Basic length check
                 if len(str(value)) > ValidationConfig.MAX_STRING_LENGTH:
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
                         detail=f"Query parameter '{key}' exceeds maximum length"
                     )
 
-                # Security checks
                 sanitize_input(str(value), ValidationConfig.MAX_STRING_LENGTH)
 
         except HTTPException as e:
@@ -313,27 +255,12 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
                 }
             )
 
-        # Process request
         response = await call_next(request)
         return response
 
 
-# ==============================================================================
-# Validation Utilities
-# ==============================================================================
-
 def validate_json_depth(data: Any, max_depth: int = ValidationConfig.MAX_JSON_DEPTH, current_depth: int = 0) -> None:
-    """
-    Validate JSON nesting depth to prevent DoS attacks.
-
-    Args:
-        data: JSON data to validate
-        max_depth: Maximum allowed nesting depth
-        current_depth: Current depth (used internally)
-
-    Raises:
-        HTTPException: If depth exceeds maximum
-    """
+    """Validate JSON nesting depth."""
     if current_depth > max_depth:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -349,17 +276,7 @@ def validate_json_depth(data: Any, max_depth: int = ValidationConfig.MAX_JSON_DE
 
 
 def validate_array_length(data: List, max_length: int = ValidationConfig.MAX_ARRAY_LENGTH, field_name: str = "array") -> None:
-    """
-    Validate array length to prevent resource exhaustion.
-
-    Args:
-        data: List to validate
-        max_length: Maximum allowed length
-        field_name: Name of the field for error messages
-
-    Raises:
-        HTTPException: If array exceeds maximum length
-    """
+    """Validate array length."""
     if len(data) > max_length:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -368,20 +285,9 @@ def validate_array_length(data: List, max_length: int = ValidationConfig.MAX_ARR
 
 
 def validate_recommendation_request(user_id: str, limit: Optional[int] = None) -> None:
-    """
-    Validate recommendation request parameters.
-
-    Args:
-        user_id: User ID
-        limit: Number of recommendations to return
-
-    Raises:
-        HTTPException: If parameters are invalid
-    """
-    # Validate user ID
+    """Validate recommendation request parameters."""
     sanitize_input(user_id, ValidationConfig.MAX_USER_ID_LENGTH)
 
-    # Validate limit
     if limit is not None:
         if not isinstance(limit, int) or limit < 1 or limit > 100:
             raise HTTPException(
@@ -391,17 +297,7 @@ def validate_recommendation_request(user_id: str, limit: Optional[int] = None) -
 
 
 def validate_search_query(query: str, filters: Optional[Dict] = None) -> None:
-    """
-    Validate search query parameters.
-
-    Args:
-        query: Search query string
-        filters: Optional filters dictionary
-
-    Raises:
-        HTTPException: If parameters are invalid
-    """
-    # Validate query
+    """Validate search query parameters."""
     if not query or not query.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -410,7 +306,6 @@ def validate_search_query(query: str, filters: Optional[Dict] = None) -> None:
 
     sanitize_input(query, ValidationConfig.MAX_STRING_LENGTH)
 
-    # Validate filters
     if filters:
         validate_json_depth(filters)
         for key, value in filters.items():
@@ -418,12 +313,8 @@ def validate_search_query(query: str, filters: Optional[Dict] = None) -> None:
                 sanitize_input(value, ValidationConfig.MAX_STRING_LENGTH)
 
 
-# ==============================================================================
-# Example Usage in Pydantic Models
-# ==============================================================================
-
 class RecommendationRequest(BaseModel):
-    """Example validated recommendation request."""
+    """Recommendation request."""
     user_id: str = Field(..., max_length=128)
     limit: int = Field(default=10, ge=1, le=100)
     context: Optional[Dict[str, Any]] = None
@@ -440,7 +331,7 @@ class RecommendationRequest(BaseModel):
 
 
 class SearchRequest(BaseModel):
-    """Example validated search request."""
+    """Search request."""
     query: str = Field(..., min_length=1, max_length=1000)
     filters: Optional[Dict[str, Any]] = None
     limit: int = Field(default=20, ge=1, le=100)
@@ -457,4 +348,4 @@ class SearchRequest(BaseModel):
         return v
 
 
-logger.info("✅ Input validation utilities loaded")
+logger.info("Input validation utilities loaded")

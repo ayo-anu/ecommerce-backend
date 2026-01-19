@@ -1,13 +1,4 @@
-"""
-Standardized Health Check Module for AI Services
-
-Provides comprehensive health checks including:
-- Service availability
-- Database connectivity
-- Model readiness
-- Dependency checks
-- Resource utilization
-"""
+"""Health checks for AI services."""
 
 import time
 import psutil
@@ -21,24 +12,24 @@ logger = logging.getLogger(__name__)
 
 
 class HealthStatus(Enum):
-    """Health check status levels"""
-    HEALTHY = "healthy"      # All checks passed
-    DEGRADED = "degraded"    # Some non-critical checks failed
-    UNHEALTHY = "unhealthy"  # Critical checks failed
+    """Health status levels."""
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    UNHEALTHY = "unhealthy"
 
 
 @dataclass
 class HealthCheck:
-    """Individual health check"""
+    """Individual health check."""
     name: str
     check_func: Callable
-    critical: bool = True  # Whether failure makes service unhealthy
-    timeout: float = 5.0   # Timeout in seconds
+    critical: bool = True
+    timeout: float = 5.0
 
 
 @dataclass
 class HealthCheckResult:
-    """Result of a single health check"""
+    """Result of a single health check."""
     name: str
     status: HealthStatus
     message: str
@@ -48,29 +39,9 @@ class HealthCheckResult:
 
 
 class HealthChecker:
-    """
-    Comprehensive health checker for AI services.
-
-    Usage:
-        checker = HealthChecker(service_name="recommendation-service")
-
-        # Register checks
-        checker.add_check("database", check_database_connection, critical=True)
-        checker.add_check("model", check_model_loaded, critical=True)
-        checker.add_check("redis", check_redis_connection, critical=False)
-
-        # Run all checks
-        result = await checker.check_health()
-    """
+    """Health checker for AI services."""
 
     def __init__(self, service_name: str, version: str = "1.0.0"):
-        """
-        Initialize health checker.
-
-        Args:
-            service_name: Name of the service
-            version: Service version
-        """
         self.service_name = service_name
         self.version = version
         self.checks: List[HealthCheck] = []
@@ -83,15 +54,6 @@ class HealthChecker:
         critical: bool = True,
         timeout: float = 5.0
     ):
-        """
-        Add a health check.
-
-        Args:
-            name: Name of the check
-            check_func: Function that performs the check (should return dict with status/message)
-            critical: Whether failure makes service unhealthy
-            timeout: Timeout in seconds
-        """
         self.checks.append(HealthCheck(
             name=name,
             check_func=check_func,
@@ -100,31 +62,21 @@ class HealthChecker:
         ))
 
     async def check_health(self) -> Dict[str, Any]:
-        """
-        Run all health checks.
-
-        Returns:
-            Health check result dictionary
-        """
         check_results = []
         overall_status = HealthStatus.HEALTHY
 
-        # Run each check
         for check in self.checks:
             result = await self._run_check(check)
             check_results.append(result)
 
-            # Determine overall status
             if result.status == HealthStatus.UNHEALTHY:
                 if check.critical:
                     overall_status = HealthStatus.UNHEALTHY
                 elif overall_status == HealthStatus.HEALTHY:
                     overall_status = HealthStatus.DEGRADED
 
-        # Get system metrics
         system_metrics = self._get_system_metrics()
 
-        # Calculate uptime
         uptime_seconds = time.time() - self.start_time
 
         return {
@@ -147,19 +99,9 @@ class HealthChecker:
         }
 
     async def _run_check(self, check: HealthCheck) -> HealthCheckResult:
-        """
-        Run a single health check with timeout.
-
-        Args:
-            check: Health check to run
-
-        Returns:
-            HealthCheckResult
-        """
         start_time = time.time()
 
         try:
-            # Run the check function
             import asyncio
 
             if asyncio.iscoroutinefunction(check.check_func):
@@ -172,7 +114,6 @@ class HealthChecker:
 
             duration_ms = (time.time() - start_time) * 1000
 
-            # Parse result
             if isinstance(result, dict):
                 status = HealthStatus.HEALTHY if result.get('status') == 'ok' else HealthStatus.UNHEALTHY
                 message = result.get('message', 'Check passed')
@@ -215,12 +156,7 @@ class HealthChecker:
             )
 
     def _get_system_metrics(self) -> Dict[str, Any]:
-        """
-        Get system resource metrics.
-
-        Returns:
-            Dictionary with system metrics
-        """
+        """Get system resource metrics."""
         try:
             cpu_percent = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
@@ -241,17 +177,8 @@ class HealthChecker:
             return {}
 
 
-# Common check functions
 async def check_redis_connection(redis_client) -> Dict[str, Any]:
-    """
-    Check Redis connectivity.
-
-    Args:
-        redis_client: Redis client instance
-
-    Returns:
-        Check result dictionary
-    """
+    """Check Redis connectivity."""
     try:
         await redis_client.redis.ping()
         return {
@@ -266,15 +193,7 @@ async def check_redis_connection(redis_client) -> Dict[str, Any]:
 
 
 async def check_postgres_connection(database) -> Dict[str, Any]:
-    """
-    Check PostgreSQL connectivity.
-
-    Args:
-        database: Database instance
-
-    Returns:
-        Check result dictionary
-    """
+    """Check PostgreSQL connectivity."""
     try:
         await database.execute("SELECT 1")
         return {
@@ -289,15 +208,7 @@ async def check_postgres_connection(database) -> Dict[str, Any]:
 
 
 async def check_vector_db_connection(vector_db_client) -> Dict[str, Any]:
-    """
-    Check vector database (Qdrant) connectivity.
-
-    Args:
-        vector_db_client: Vector DB client instance
-
-    Returns:
-        Check result dictionary
-    """
+    """Check vector DB connectivity."""
     try:
         vector_db_client.client.get_collections()
         return {
@@ -312,16 +223,7 @@ async def check_vector_db_connection(vector_db_client) -> Dict[str, Any]:
 
 
 def check_model_loaded(model_dict: Dict, model_name: str) -> Dict[str, Any]:
-    """
-    Check if ML model is loaded.
-
-    Args:
-        model_dict: Dictionary containing models
-        model_name: Name of the model to check
-
-    Returns:
-        Check result dictionary
-    """
+    """Check if a model is loaded."""
     if model_name in model_dict and model_dict[model_name] is not None:
         return {
             "status": "ok",
@@ -335,17 +237,8 @@ def check_model_loaded(model_dict: Dict, model_name: str) -> Dict[str, Any]:
 
 
 def create_readiness_check(dependencies: List[str]) -> Callable:
-    """
-    Create a readiness check that verifies all dependencies are ready.
-
-    Args:
-        dependencies: List of dependency names
-
-    Returns:
-        Check function
-    """
+    """Create a readiness check for dependencies."""
     def check() -> Dict[str, Any]:
-        # In a real implementation, check actual dependencies
         return {
             "status": "ok",
             "message": "Service is ready",
@@ -355,12 +248,7 @@ def create_readiness_check(dependencies: List[str]) -> Callable:
 
 
 def create_liveness_check() -> Callable:
-    """
-    Create a simple liveness check.
-
-    Returns:
-        Check function
-    """
+    """Create a simple liveness check."""
     def check() -> Dict[str, Any]:
         return {
             "status": "ok",

@@ -1,6 +1,4 @@
-"""
-Qdrant vector database client for embeddings and similarity search
-"""
+"""Qdrant vector database client."""
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
 from typing import List, Dict, Any, Optional
@@ -14,7 +12,7 @@ settings = get_settings()
 
 
 class VectorDBClient:
-    """Qdrant vector database client"""
+    """Qdrant vector database client."""
     
     def __init__(self):
         self.client: Optional[QdrantClient] = None
@@ -22,7 +20,7 @@ class VectorDBClient:
         self.vector_size = settings.QDRANT_VECTOR_SIZE
         
     def connect(self):
-        """Connect to Qdrant"""
+        """Connect to Qdrant."""
         try:
             self.client = QdrantClient(
                 url=settings.QDRANT_URL,
@@ -39,7 +37,7 @@ class VectorDBClient:
         vector_size: int = None,
         distance: Distance = Distance.COSINE
     ):
-        """Create a new collection"""
+        """Create a collection."""
         try:
             if vector_size is None:
                 vector_size = self.vector_size
@@ -57,7 +55,7 @@ class VectorDBClient:
             raise
     
     def collection_exists(self, collection_name: str) -> bool:
-        """Check if collection exists"""
+        """Check if a collection exists."""
         try:
             collections = self.client.get_collections().collections
             return any(col.name == collection_name for col in collections)
@@ -72,7 +70,7 @@ class VectorDBClient:
         payloads: List[Dict[str, Any]],
         ids: Optional[List[str]] = None
     ):
-        """Insert or update vectors with metadata"""
+        """Insert or update vectors with metadata."""
         try:
             if ids is None:
                 ids = [str(uuid.uuid4()) for _ in vectors]
@@ -103,7 +101,7 @@ class VectorDBClient:
         score_threshold: Optional[float] = None,
         filter_conditions: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
-        """Search for similar vectors"""
+        """Search for similar vectors."""
         try:
             search_filter = None
             if filter_conditions:
@@ -142,7 +140,7 @@ class VectorDBClient:
         collection_name: str,
         point_id: str
     ) -> Optional[Dict[str, Any]]:
-        """Get vector by ID"""
+        """Get a vector by ID."""
         try:
             result = self.client.retrieve(
                 collection_name=collection_name,
@@ -166,7 +164,7 @@ class VectorDBClient:
         collection_name: str,
         ids: List[str]
     ):
-        """Delete vectors by IDs"""
+        """Delete vectors by IDs."""
         try:
             self.client.delete(
                 collection_name=collection_name,
@@ -178,7 +176,7 @@ class VectorDBClient:
             raise
     
     def delete_collection(self, collection_name: str):
-        """Delete entire collection"""
+        """Delete a collection."""
         try:
             self.client.delete_collection(collection_name=collection_name)
             logger.info(f"Deleted collection: {collection_name}")
@@ -187,7 +185,7 @@ class VectorDBClient:
             raise
     
     def get_collection_info(self, collection_name: str) -> Dict[str, Any]:
-        """Get collection information"""
+        """Get collection info."""
         try:
             info = self.client.get_collection(collection_name=collection_name)
             return {
@@ -200,10 +198,9 @@ class VectorDBClient:
             return {}
 
 
-# Global vector DB client instance
 vector_db_client = VectorDBClient()
 
 
 def get_vector_db() -> VectorDBClient:
-    """Dependency to get vector DB client"""
+    """Dependency to get vector DB client."""
     return vector_db_client
