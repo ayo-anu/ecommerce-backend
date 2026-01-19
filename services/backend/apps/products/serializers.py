@@ -22,7 +22,6 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
 
 class ProductListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for product lists"""
     primary_image = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True)
 
@@ -32,17 +31,15 @@ class ProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'price', 'compare_at_price',
             'is_on_sale', 'discount_percentage', 'primary_image',
             'category_name', 'stock_quantity', 'is_low_stock',
-            'is_active', 'is_featured'  # Added for filtering and tests
+            'is_active', 'is_featured'
         ]
     
     def get_primary_image(self, obj):
-        # Use select_related in view to avoid N+1 queries
         primary = obj.images.filter(is_primary=True).first()
         return primary.image.url if primary else None
 
 
 class ProductDetailSerializer(serializers.ModelSerializer):
-    """Detailed serializer for single product view"""
     images = ProductImageSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
@@ -59,7 +56,6 @@ class ProductDetailSerializer(serializers.ModelSerializer):
         ]
     
     def to_representation(self, instance):
-        # Try to get from cache first
         cache_key = f'product_detail_{instance.id}'
         cached_data = cache.get(cache_key)
         
@@ -67,12 +63,11 @@ class ProductDetailSerializer(serializers.ModelSerializer):
             return cached_data
         
         data = super().to_representation(instance)
-        cache.set(cache_key, data, 60 * 15)  # Cache for 15 minutes
+        cache.set(cache_key, data, 60 * 15)
         return data
 
 
 class ProductCreateUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for creating/updating products"""
     
     class Meta:
         model = Product
@@ -111,14 +106,12 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         if tags is not None:
             instance.tags.set(tags)
         
-        # Invalidate cache
         cache.delete(f'product_detail_{instance.id}')
 
         return instance
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
-    """Serializer for product reviews"""
     user_name = serializers.SerializerMethodField()
     user_email = serializers.EmailField(source='user.email', read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
@@ -137,7 +130,6 @@ class ProductReviewSerializer(serializers.ModelSerializer):
 
 
 class CreateReviewSerializer(serializers.ModelSerializer):
-    """Serializer for creating product reviews"""
 
     class Meta:
         model = ProductReview
@@ -145,7 +137,6 @@ class CreateReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'is_verified_purchase', 'is_approved', 'helpful_count', 'created_at', 'updated_at']
 
     def validate_title(self, value):
-        """Sanitize title to prevent XSS attacks"""
         from django.utils.html import strip_tags
         sanitized = strip_tags(value).strip()
         if not sanitized:
@@ -153,25 +144,20 @@ class CreateReviewSerializer(serializers.ModelSerializer):
         return sanitized
 
     def validate_comment(self, value):
-        """Sanitize comment to prevent XSS attacks"""
         from django.utils.html import strip_tags
         import re
 
-        # First, strip HTML tags
         sanitized = strip_tags(value).strip()
 
-        # Remove dangerous protocols (javascript:, data:, vbscript:, etc.)
         dangerous_protocols = ['javascript:', 'data:', 'vbscript:', 'file:', 'about:']
         for protocol in dangerous_protocols:
             sanitized = re.sub(re.escape(protocol), '', sanitized, flags=re.IGNORECASE)
 
-        # Clean up any remaining whitespace
         sanitized = sanitized.strip()
 
         if not sanitized:
             raise serializers.ValidationError("Comment cannot be empty")
 
-        # Limit comment length
         if len(sanitized) > 5000:
             return sanitized[:5000]
 
@@ -183,7 +169,6 @@ class CreateReviewSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        # Check if user already reviewed this product
         user = self.context['request'].user
         product = data.get('product')
 
@@ -194,7 +179,6 @@ class CreateReviewSerializer(serializers.ModelSerializer):
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):
-    """Serializer for wishlist items"""
     product = ProductListSerializer(read_only=True)
     product_id = serializers.UUIDField(write_only=True)
     variant_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
@@ -206,7 +190,6 @@ class WishlistItemSerializer(serializers.ModelSerializer):
 
 
 class WishlistSerializer(serializers.ModelSerializer):
-    """Serializer for wishlist"""
     items = WishlistItemSerializer(many=True, read_only=True)
     item_count = serializers.SerializerMethodField()
 

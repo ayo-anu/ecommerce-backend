@@ -1,13 +1,9 @@
-"""
-Test utilities for detecting performance issues
-"""
 from django.test import override_settings
 from django.db import connection, reset_queries
 from functools import wraps
 
 
 class AssertNumQueriesLessThan:
-    """Context manager to assert query count is less than a threshold"""
 
     def __init__(self, num):
         self.num = num
@@ -36,15 +32,6 @@ class AssertNumQueriesLessThan:
 
 
 def assert_no_n_plus_one(func):
-    """
-    Decorator to detect N+1 queries in tests.
-
-    Usage:
-        @assert_no_n_plus_one
-        def test_product_list(self):
-            response = self.client.get('/api/v1/products/')
-            # Will fail if N+1 detected
-    """
 
     @wraps(func)
     @override_settings(DEBUG=True)
@@ -52,13 +39,11 @@ def assert_no_n_plus_one(func):
         reset_queries()
         result = func(*args, **kwargs)
 
-        # Analyze queries for N+1 pattern
         queries = connection.queries
         query_patterns = {}
 
         for query in queries:
             sql = query['sql']
-            # Normalize query
             normalized = sql.split('WHERE')[0] if 'WHERE' in sql else sql
 
             if normalized in query_patterns:
@@ -66,7 +51,6 @@ def assert_no_n_plus_one(func):
             else:
                 query_patterns[normalized] = [sql]
 
-        # Find patterns with more than 2 similar queries
         n_plus_one_detected = {
             pattern: sqls
             for pattern, sqls in query_patterns.items()
@@ -90,14 +74,12 @@ def assert_no_n_plus_one(func):
 
 
 def print_queries():
-    """Utility to print all executed queries for debugging"""
     for i, query in enumerate(connection.queries, 1):
         print(f"\n{i}. Time: {query['time']}s")
         print(f"   SQL: {query['sql'][:200]}...")
 
 
 class QueryCounter:
-    """Context manager to count and print queries"""
 
     def __init__(self, description=""):
         self.description = description
@@ -119,7 +101,6 @@ class QueryCounter:
         print(f"Queries executed: {executed}")
         print(f"{'='*60}\n")
 
-        # Print each query
         for i, query in enumerate(connection.queries[self.starting_queries:], 1):
             print(f"{i}. {query['sql'][:150]}...")
 

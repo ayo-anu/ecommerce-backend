@@ -27,18 +27,15 @@ class Order(models.Model):
     order_number = models.CharField(max_length=32, unique=True, db_index=True)
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='orders')
     
-    # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='pending')
     
-    # Pricing
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
     tax = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2)
     
-    # Shipping
     shipping_name = models.CharField(max_length=255)
     shipping_email = models.EmailField()
     shipping_phone = models.CharField(max_length=20)
@@ -49,17 +46,14 @@ class Order(models.Model):
     shipping_country = models.CharField(max_length=100)
     shipping_postal_code = models.CharField(max_length=20)
     
-    # Billing (if different from shipping)
     billing_same_as_shipping = models.BooleanField(default=True)
     billing_address_line1 = models.CharField(max_length=255, blank=True)
     billing_city = models.CharField(max_length=100, blank=True)
     billing_postal_code = models.CharField(max_length=20, blank=True)
     
-    # Notes
     customer_notes = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(null=True, blank=True)
@@ -81,12 +75,10 @@ class Order(models.Model):
     
     def save(self, *args, **kwargs):
         if not self.order_number:
-            # Generate unique order number with ORD- prefix
             import random
             import string
             import time
-            # Format: ORD-TIMESTAMP-RANDOM (e.g., ORD-20251229-ABC123)
-            timestamp = str(int(time.time()))[-8:]  # Last 8 digits of timestamp
+            timestamp = str(int(time.time()))[-8:]
             random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
             self.order_number = f'ORD-{timestamp}-{random_part}'
         super().save(*args, **kwargs)
@@ -98,7 +90,6 @@ class OrderItem(models.Model):
     product = models.ForeignKey('products.Product', on_delete=models.PROTECT)
     variant = models.ForeignKey('products.ProductVariant', on_delete=models.PROTECT, null=True, blank=True)
     
-    # Snapshot of product data at time of purchase
     product_name = models.CharField(max_length=255)
     product_sku = models.CharField(max_length=100)
     variant_name = models.CharField(max_length=100, blank=True)

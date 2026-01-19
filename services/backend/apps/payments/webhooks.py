@@ -12,7 +12,6 @@ stripe.api_key = settings.STRIPE_SECRET_KEY
 @csrf_exempt
 @require_POST
 def stripe_webhook(request):
-    """Handle Stripe webhooks"""
     payload = request.body
     sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
     
@@ -21,15 +20,12 @@ def stripe_webhook(request):
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
         )
     except ValueError as e:
-        # Invalid payload
         logger.error(f"Invalid webhook payload: {e}")
         return JsonResponse({'error': 'Invalid payload'}, status=400)
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
         logger.error(f"Invalid webhook signature: {e}")
         return JsonResponse({'error': 'Invalid signature'}, status=400)
     
-    # Handle the event
     event_type = event.get('type')
     
     if event_type == 'payment_intent.succeeded':
@@ -51,7 +47,6 @@ def stripe_webhook(request):
 
 
 def handle_payment_intent_succeeded(payment_intent):
-    """Handle successful payment intent"""
     from apps.payments.models import Payment
     from django.utils import timezone
     from django.db import transaction
@@ -65,14 +60,12 @@ def handle_payment_intent_succeeded(payment_intent):
             payment.stripe_charge_id = payment_intent.charges.data[0].id if payment_intent.charges.data else ''
             payment.save()
             
-            # Update order
             order = payment.order
             order.payment_status = 'paid'
             order.status = 'processing'
             order.paid_at = timezone.now()
             order.save()
             
-            # Create transaction log
             from apps.payments.models import Transaction
             Transaction.objects.create(
                 payment=payment,
@@ -82,7 +75,6 @@ def handle_payment_intent_succeeded(payment_intent):
                 description='Payment succeeded'
             )
             
-            # Send confirmation email
             from apps.notifications.tasks import send_order_confirmation_email
             send_order_confirmation_email.delay(str(order.id))
             
@@ -93,7 +85,6 @@ def handle_payment_intent_succeeded(payment_intent):
 
 
 def handle_payment_intent_failed(payment_intent):
-    """Handle failed payment intent"""
     from apps.payments.models import Payment, Transaction
     
     try:
@@ -125,7 +116,6 @@ def handle_payment_intent_failed(payment_intent):
 
 
 def handle_charge_refunded(charge):
-    """Handle refunded charge"""
     from apps.payments.models import Payment, Transaction
     
     try:

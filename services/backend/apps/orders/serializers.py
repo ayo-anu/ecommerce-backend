@@ -8,7 +8,6 @@ import bleach
 
 
 class ProductSnapshotSerializer(serializers.Serializer):
-    """Product snapshot data stored in OrderItem"""
     name = serializers.CharField(source='product_name')
     sku = serializers.CharField(source='product_sku')
     id = serializers.UUIDField(source='product.id', read_only=True)
@@ -65,7 +64,6 @@ class OrderCreateSerializer(serializers.Serializer):
 
 
     def validate_customer_notes(self, value):
-        """Sanitize customer notes to prevent XSS"""
         if value:
             return bleach.clean(value, strip=True)
         return value
@@ -89,69 +87,30 @@ class OrderCreateSerializer(serializers.Serializer):
         user = self.context['request'].user
         items_data = validated_data['items']
         shipping_address = validated_data['shipping_address']
-        
-        # Calculate totals
-        subtotal = 0
-        order_items = []
-        
-    @transaction.atomic
-    def create(self, validated_data):
-        user = self.context['request'].user
-        items_data = validated_data['items']
-        shipping_address = validated_data['shipping_address']
-        
-        
+
         product_ids = [item['product_id'] for item in items_data]
         variant_ids = [item.get('variant_id') for item in items_data if 'variant_id' in item]
-        
-        # Fetch all at once with select_for_update
+
         products = {
-            str(p.id): p 
+            str(p.id): p
             for p in Product.objects.select_for_update().filter(id__in=product_ids)
         }
-        
+
         variants = {}
         if variant_ids:
             variants = {
-                str(v.id): v 
+                str(v.id): v
                 for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
             }
-        
-        # Calculate totals
-        subtotal = 0
+
+        subtotal = Decimal('0')
         order_items = []
-    
-    @transaction.atomic
-    def create(self, validated_data):
-        user = self.context['request'].user
-        items_data = validated_data['items']
-        shipping_address = validated_data['shipping_address']
-        
-        product_ids = [item['product_id'] for item in items_data]
-        variant_ids = [item.get('variant_id') for item in items_data if 'variant_id' in item]
-        
-        # Fetch all at once with select_for_update
-        products = {
-            str(p.id): p 
-            for p in Product.objects.select_for_update().filter(id__in=product_ids)
-        }
-        
-        variants = {}
-        if variant_ids:
-            variants = {
-                str(v.id): v 
-                for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
-            }
-        
-        # Calculate totals
-        subtotal = 0
-        order_items = []
-        
+
         for item_data in items_data:
             product = products.get(str(item_data['product_id']))
             if not product:
                 raise serializers.ValidationError(f"Product {item_data['product_id']} not found")
-            
+
             variant = None
             if 'variant_id' in item_data:
                 variant = variants.get(str(item_data['variant_id']))
@@ -162,21 +121,19 @@ class OrderCreateSerializer(serializers.Serializer):
             else:
                 price = product.price
                 stock_source = product
-            
+
             quantity = item_data['quantity']
-            
-            # Check stock
+
             if product.track_inventory and stock_source.stock_quantity < quantity:
                 raise serializers.ValidationError(
                     f"Insufficient stock for {product.name}. Available: {stock_source.stock_quantity}"
                 )
-            
-            # Reserve inventory
+
             stock_source.stock_quantity -= quantity
             stock_source.save()
-            
+
             subtotal += price * quantity
-            
+
             order_items.append({
                 'product': product,
                 'variant': variant,
@@ -188,13 +145,10 @@ class OrderCreateSerializer(serializers.Serializer):
                 'total_price': price * quantity
             })
 
-
-        # Calculate tax and total (simplified)
         tax = subtotal * Decimal('0.1')
-        shipping_cost = 10.00 if subtotal < 50 else 0  # Free shipping over $50
+        shipping_cost = 10.00 if subtotal < 50 else 0
         total = subtotal + tax + shipping_cost
-        
-        # Create order
+
         order = Order.objects.create(
             user=user,
             subtotal=subtotal,
@@ -212,19 +166,14 @@ class OrderCreateSerializer(serializers.Serializer):
             shipping_postal_code=shipping_address.get('postal_code'),
             customer_notes=validated_data.get('customer_notes', '')
         )
-        
-        # Create order items
+
         for item_data in order_items:
             OrderItem.objects.create(order=order, **item_data)
-        
+
         return order
 
 
 class OrderFromCartSerializer(serializers.Serializer):
-    """
-    Create order from user's cart with address ID.
-    Used for POST /api/orders/ - the main checkout endpoint.
-    """
     shipping_address_id = serializers.UUIDField()
     billing_address_id = serializers.UUIDField(required=False, allow_null=True)
     billing_same_as_shipping = serializers.BooleanField(default=True)
@@ -232,19 +181,13 @@ class OrderFromCartSerializer(serializers.Serializer):
     customer_notes = serializers.CharField(required=False, allow_blank=True, default='')
 
     def validate_customer_notes(self, value):
-        """Sanitize customer notes to prevent XSS"""
         if value:
             return bleach.clean(value, strip=True)
         return value
 
     def validate(self, attrs):
-        """
-        Validate cart exists and has items BEFORE validating addresses.
-        This ensures empty cart error takes precedence over invalid address error.
-        """
         user = self.context['request'].user
 
-        # Check cart exists and has items FIRST
         try:
             cart = Cart.objects.get(user=user)
             if not cart.items.exists():
@@ -252,7 +195,6 @@ class OrderFromCartSerializer(serializers.Serializer):
         except Cart.DoesNotExist:
             raise serializers.ValidationError({"error": "Cart is empty"})
 
-        # Now validate addresses
         shipping_address_id = attrs.get('shipping_address_id')
         if shipping_address_id:
             try:
@@ -273,21 +215,8 @@ class OrderFromCartSerializer(serializers.Serializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        """
-        Create order from user's cart.
-
-        Steps:
-        1. Get user's cart
-        2. Validate cart has items
-        3. Build items list from cart
-        4. Fetch and validate addresses
-        5. Create order with inventory deduction
-        6. Clear cart
-        7. Return order
-        """
         user = self.context['request'].user
 
-        # Step 1 & 2: Get cart and validate it has items
         try:
             cart = Cart.objects.prefetch_related(
                 'items__product',
@@ -299,7 +228,6 @@ class OrderFromCartSerializer(serializers.Serializer):
         if not cart.items.exists():
             raise serializers.ValidationError({"error": "Cart is empty"})
 
-        # Step 3: Build items list from cart
         items_data = []
         for cart_item in cart.items.all():
             item_data = {
@@ -310,15 +238,12 @@ class OrderFromCartSerializer(serializers.Serializer):
                 item_data['variant_id'] = str(cart_item.variant.id)
             items_data.append(item_data)
 
-        # Step 4: Get addresses (already validated and stored in validate_* methods)
         shipping_address = self._shipping_address
         billing_address = getattr(self, '_billing_address', None)
 
-        # If billing same as shipping, use shipping address
         if validated_data.get('billing_same_as_shipping', True):
             billing_address = shipping_address
 
-        # Step 5: Fetch products and variants with locks
         product_ids = [item['product_id'] for item in items_data]
         variant_ids = [item.get('variant_id') for item in items_data if 'variant_id' in item]
 
@@ -334,7 +259,6 @@ class OrderFromCartSerializer(serializers.Serializer):
                 for v in ProductVariant.objects.select_for_update().filter(id__in=variant_ids)
             }
 
-        # Calculate totals and validate stock
         subtotal = Decimal('0')
         order_items = []
 
@@ -356,23 +280,19 @@ class OrderFromCartSerializer(serializers.Serializer):
 
             quantity = item_data['quantity']
 
-            # Check stock
             if product.track_inventory and stock_source.stock_quantity < quantity:
                 raise serializers.ValidationError(
                     f"Insufficient stock for {product.name}. Available: {stock_source.stock_quantity}"
                 )
 
-            # Deduct inventory
             old_stock = stock_source.stock_quantity
             stock_source.stock_quantity -= quantity
             stock_source.save()
 
-            # Invalidate product detail cache (product details are cached for 15 min)
             from django.core.cache import cache
             cache.delete(f'product_detail_{product.id}')
-            cache.delete(f'product_list_{product.id}')  # Also invalidate list cache if exists
+            cache.delete(f'product_list_{product.id}')
 
-            # Debug logging
             import logging
             logger = logging.getLogger(__name__)
             logger.info(f"INVENTORY DEDUCTION: {product.name} (ID: {product.id}): {old_stock} -> {stock_source.stock_quantity} (deducted {quantity}), cache invalidated")
@@ -390,12 +310,10 @@ class OrderFromCartSerializer(serializers.Serializer):
                 'total_price': price * quantity
             })
 
-        # Calculate tax and total
-        tax = subtotal * Decimal('0.1')  # 10% tax
-        shipping_cost = Decimal('10.00') if subtotal < Decimal('50') else Decimal('0')  # Free shipping over $50
+        tax = subtotal * Decimal('0.1')
+        shipping_cost = Decimal('10.00') if subtotal < Decimal('50') else Decimal('0')
         total = subtotal + tax + shipping_cost
 
-        # Step 6: Create order
         order = Order.objects.create(
             user=user,
             subtotal=subtotal,
@@ -403,7 +321,7 @@ class OrderFromCartSerializer(serializers.Serializer):
             shipping_cost=shipping_cost,
             total=total,
             shipping_name=shipping_address.full_name,
-            shipping_email=user.email,  # Use user's email
+            shipping_email=user.email,
             shipping_phone=shipping_address.phone,
             shipping_address_line1=shipping_address.address_line1,
             shipping_address_line2=shipping_address.address_line2,
@@ -418,11 +336,9 @@ class OrderFromCartSerializer(serializers.Serializer):
             customer_notes=validated_data.get('customer_notes', '')
         )
 
-        # Create order items
         for item_data in order_items:
             OrderItem.objects.create(order=order, **item_data)
 
-        # Step 7: Clear cart
         cart.items.all().delete()
 
         return order
@@ -440,27 +356,16 @@ class CartItemSerializer(serializers.ModelSerializer):
                   'product_price', 'product_image', 'subtotal']
 
     def get_product_image(self, obj):
-        """
-        Get primary product image.
-        Uses prefetched 'primary_images' if available (from optimized query),
-        otherwise falls back to standard query.
-        """
-        # Try to use prefetched data first (avoids N+1 query)
         if hasattr(obj.product, 'primary_images') and obj.product.primary_images:
             primary_image = obj.product.primary_images[0]
             return self.context['request'].build_absolute_uri(primary_image.image.url)
 
-        # Fallback to standard query (for backward compatibility)
         primary_image = obj.product.images.filter(is_primary=True).first()
         if primary_image:
             return self.context['request'].build_absolute_uri(primary_image.image.url)
         return None
 
     def get_subtotal(self, obj):
-        """
-        Calculate item subtotal.
-        Accesses product/variant price (should be prefetched with select_related).
-        """
         price = obj.variant.price if obj.variant and obj.variant.price else obj.product.price
         return price * obj.quantity
 

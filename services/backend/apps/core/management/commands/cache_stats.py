@@ -1,7 +1,3 @@
-"""
-Management command to display cache statistics.
-Usage: python manage.py cache_stats [--watch]
-"""
 from django.core.management.base import BaseCommand
 from apps.core.cache_utils import CacheStats
 import time
@@ -30,7 +26,6 @@ class Command(BaseCommand):
             self.show_stats()
 
     def show_stats(self):
-        """Display cache statistics once"""
         stats = CacheStats.get_stats()
 
         self.stdout.write('\n' + '=' * 60)
@@ -54,7 +49,6 @@ class Command(BaseCommand):
 
         self.stdout.write(f"  Hit Rate: {style(f'{hit_rate:.2f}%')}")
 
-        # Target hit rate
         self.stdout.write(f"\n  Target Hit Rate: {self.style.WARNING('> 90%')}")
 
         if hit_rate < 90:
@@ -69,14 +63,12 @@ class Command(BaseCommand):
         self.stdout.write('\n' + '=' * 60 + '\n')
 
     def watch_stats(self, interval):
-        """Watch cache statistics in real-time"""
         self.stdout.write(
             self.style.SUCCESS(f'Watching cache stats (refresh every {interval}s). Press Ctrl+C to stop.')
         )
 
         try:
             while True:
-                # Clear screen (works on Unix-like systems)
                 self.stdout.write('\033[2J\033[H')
 
                 self.show_stats()

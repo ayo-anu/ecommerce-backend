@@ -19,18 +19,14 @@ from apps.products.models import Product
 
 
 class AnalyticsDashboardViewSet(viewsets.ViewSet):
-    """Main analytics dashboard"""
     permission_classes = [IsAdminUser]
     
     @action(detail=False, methods=['get'])
     def overview(self, request):
-        """Get dashboard overview statistics"""
-        # Date range
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=30)
         previous_start = start_date - timedelta(days=30)
         
-        # Current period stats
         current_orders = Order.objects.filter(
             created_at__date__gte=start_date,
             created_at__date__lte=end_date,
@@ -43,7 +39,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
             average_order_value=Avg('total')
         )
         
-        # Previous period for comparison
         previous_orders = Order.objects.filter(
             created_at__date__gte=previous_start,
             created_at__date__lt=start_date,
@@ -55,7 +50,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
             total_orders=Count('id')
         )
         
-        # Calculate growth
         revenue_growth = self._calculate_growth(
             current_stats['total_revenue'], 
             previous_stats['total_revenue']
@@ -65,12 +59,10 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
             previous_stats['total_orders']
         )
         
-        # Customer count
         current_customers = current_orders.values('user').distinct().count()
         previous_customers = previous_orders.values('user').distinct().count()
         customer_growth = self._calculate_growth(current_customers, previous_customers)
         
-        # Top products
         top_products = ProductAnalytics.objects.filter(
             date__gte=start_date,
             date__lte=end_date
@@ -81,7 +73,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
             total_sold=Sum('units_sold')
         ).order_by('-total_revenue')[:10]
         
-        # Top categories
         top_categories = CategoryAnalytics.objects.filter(
             date__gte=start_date,
             date__lte=end_date
@@ -91,7 +82,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
             total_revenue=Sum('total_revenue')
         ).order_by('-total_revenue')[:5]
         
-        # Sales chart data (last 30 days)
         daily_sales = DailySales.objects.filter(
             date__gte=start_date,
             date__lte=end_date
@@ -103,7 +93,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
             'orders': [sale.total_orders for sale in daily_sales]
         }
         
-        # Recent orders
         recent_orders = Order.objects.filter(
             payment_status='paid'
         ).select_related('user').prefetch_related('items').order_by('-created_at')[:10]
@@ -135,8 +124,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
         return Response(serializer.data)
     
     def _calculate_growth(self, current, previous):
-        """Calculate percentage growth"""
-        # Handle None values
         if current is None:
             current = 0
         if previous is None:
@@ -148,7 +135,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def sales_trend(self, request):
-        """Get sales trend data"""
         days = int(request.query_params.get('days', 30))
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
@@ -163,7 +149,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def product_performance(self, request):
-        """Get product performance analytics"""
         days = int(request.query_params.get('days', 30))
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
@@ -178,7 +163,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def category_performance(self, request):
-        """Get category performance analytics"""
         days = int(request.query_params.get('days', 30))
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=days)
@@ -193,7 +177,6 @@ class AnalyticsDashboardViewSet(viewsets.ViewSet):
 
 
 class UserActivityViewSet(viewsets.ModelViewSet):
-    """Track and view user activities"""
     queryset = UserActivity.objects.all()
     serializer_class = UserActivitySerializer
     permission_classes = [IsAuthenticated]
@@ -206,7 +189,6 @@ class UserActivityViewSet(viewsets.ModelViewSet):
 
     
     def perform_create(self, serializer):
-        # Get session ID from request
         session_id = self.request.session.session_key or self.request.META.get('HTTP_X_SESSION_ID', '')
         
         serializer.save(
@@ -218,7 +200,6 @@ class UserActivityViewSet(viewsets.ModelViewSet):
         )
     
     def get_client_ip(self):
-        """Get client IP address"""
         x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
@@ -228,19 +209,16 @@ class UserActivityViewSet(viewsets.ModelViewSet):
 
 
 class SalesReportViewSet(viewsets.ModelViewSet):
-    """Generate and view sales reports"""
     queryset = SalesReport.objects.all()
     serializer_class = SalesReportSerializer
     permission_classes = [IsAdminUser]
     
     @action(detail=False, methods=['post'])
     def generate(self, request):
-        """Generate a new sales report"""
         report_type = request.data.get('report_type', 'daily')
         start_date = datetime.strptime(request.data.get('start_date'), '%Y-%m-%d').date()
         end_date = datetime.strptime(request.data.get('end_date'), '%Y-%m-%d').date()
         
-        # Generate report
         from .tasks import generate_sales_report
         result = generate_sales_report.delay(report_type, str(start_date), str(end_date), request.user.id)
         

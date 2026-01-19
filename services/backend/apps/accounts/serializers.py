@@ -7,6 +7,12 @@ from .models import Address, UserProfile
 User = get_user_model()
 
 
+def _sanitize_text(value):
+    if value:
+        return strip_tags(value).strip()
+    return value
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
@@ -17,29 +23,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
     def validate_first_name(self, value):
-        """Sanitize first_name to prevent XSS attacks"""
-        if value:
-            # Strip all HTML tags
-            sanitized = strip_tags(value).strip()
-            # Check if HTML was present
-            if sanitized != value:
-                # HTML was stripped - could reject or accept sanitized version
-                # For security, we'll accept the sanitized version
-                return sanitized
-            return value
-        return value
+        return _sanitize_text(value)
 
     def validate_last_name(self, value):
-        """Sanitize last_name to prevent XSS attacks"""
-        if value:
-            # Strip all HTML tags
-            sanitized = strip_tags(value).strip()
-            # Check if HTML was present
-            if sanitized != value:
-                # HTML was stripped - accept sanitized version
-                return sanitized
-            return value
-        return value
+        return _sanitize_text(value)
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -49,11 +36,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         user = User.objects.create_user(**validated_data)
-        
-        # Create user profile
         UserProfile.objects.create(user=user)
-        
-        # Send verification email
         from apps.notifications.tasks import send_verification_email
         send_verification_email.delay(user.id)
         
@@ -85,31 +68,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'phone', 'date_of_birth', 'bio']
 
     def validate_first_name(self, value):
-        """Sanitize first_name to prevent XSS attacks"""
-        if value:
-            sanitized = strip_tags(value).strip()
-            if sanitized != value:
-                return sanitized
-            return value
-        return value
+        return _sanitize_text(value)
 
     def validate_last_name(self, value):
-        """Sanitize last_name to prevent XSS attacks"""
-        if value:
-            sanitized = strip_tags(value).strip()
-            if sanitized != value:
-                return sanitized
-            return value
-        return value
+        return _sanitize_text(value)
 
     def validate_bio(self, value):
-        """Sanitize bio to prevent XSS attacks"""
-        if value:
-            sanitized = strip_tags(value).strip()
-            if sanitized != value:
-                return sanitized
-            return value
-        return value
+        return _sanitize_text(value)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -138,40 +103,22 @@ class AddressSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at']
 
     def validate_full_name(self, value):
-        """Sanitize full_name to prevent XSS attacks"""
-        if value:
-            return strip_tags(value).strip()
-        return value
+        return _sanitize_text(value)
 
     def validate_address_line1(self, value):
-        """Sanitize address_line1 to prevent XSS attacks"""
-        if value:
-            return strip_tags(value).strip()
-        return value
+        return _sanitize_text(value)
 
     def validate_address_line2(self, value):
-        """Sanitize address_line2 to prevent XSS attacks"""
-        if value:
-            return strip_tags(value).strip()
-        return value
+        return _sanitize_text(value)
 
     def validate_city(self, value):
-        """Sanitize city to prevent XSS attacks"""
-        if value:
-            return strip_tags(value).strip()
-        return value
+        return _sanitize_text(value)
 
     def validate_state(self, value):
-        """Sanitize state to prevent XSS attacks"""
-        if value:
-            return strip_tags(value).strip()
-        return value
+        return _sanitize_text(value)
 
     def validate_country(self, value):
-        """Sanitize country to prevent XSS attacks"""
-        if value:
-            return strip_tags(value).strip()
-        return value
+        return _sanitize_text(value)
 
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

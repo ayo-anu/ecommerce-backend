@@ -6,7 +6,6 @@ User = get_user_model()
 
 
 class EmailTemplate(models.Model):
-    """Email templates for different notification types"""
     TEMPLATE_TYPES = [
         ('order_confirmation', 'Order Confirmation'),
         ('order_shipped', 'Order Shipped'),
@@ -33,7 +32,6 @@ class EmailTemplate(models.Model):
 
 
 class Notification(models.Model):
-    """In-app notifications for users"""
     NOTIFICATION_TYPES = [
         ('order', 'Order Update'),
         ('payment', 'Payment'),
@@ -65,7 +63,6 @@ class Notification(models.Model):
 
 
 class EmailLog(models.Model):
-    """Log of all sent emails"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('sent', 'Sent'),

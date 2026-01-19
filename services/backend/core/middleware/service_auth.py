@@ -1,10 +1,7 @@
-"""
-Service-to-Service Authentication Middleware.
-
-Authenticates requests from other internal services using JWT tokens.
-"""
+"""Service-to-service auth middleware."""
 import logging
 import jwt
+from functools import wraps
 from django.http import JsonResponse
 from django.utils.deprecation import MiddlewareMixin
 
@@ -14,14 +11,8 @@ logger = logging.getLogger(__name__)
 
 
 class ServiceAuthMiddleware(MiddlewareMixin):
-    """
-    Middleware to authenticate service-to-service requests.
+    """Authenticate internal service requests."""
 
-    Checks for X-Service-Token header and verifies JWT token.
-    Attaches service information to request object.
-    """
-
-    # Paths that don't require service authentication
     EXCLUDE_PATHS = [
         '/admin/',
         '/api/docs/',
@@ -30,24 +21,15 @@ class ServiceAuthMiddleware(MiddlewareMixin):
         '/metrics/',
     ]
 
-    # Paths that require service authentication
     SERVICE_AUTH_PATHS = [
         '/internal/',
         '/api/internal/',
     ]
 
     def process_request(self, request):
-        """
-        Process incoming request for service authentication.
-
-        Checks if path requires service auth, validates token,
-        and attaches service info to request.
-        """
-        # Skip excluded paths
         if any(request.path.startswith(path) for path in self.EXCLUDE_PATHS):
             return None
 
-        # Check if this path requires service auth
         requires_service_auth = any(
             request.path.startswith(path) for path in self.SERVICE_AUTH_PATHS
         )
@@ -55,7 +37,6 @@ class ServiceAuthMiddleware(MiddlewareMixin):
         if not requires_service_auth:
             return None
 
-        # Get service token from header
         service_token = request.META.get('HTTP_X_SERVICE_TOKEN')
 
         if not service_token:
@@ -73,11 +54,9 @@ class ServiceAuthMiddleware(MiddlewareMixin):
                 'detail': 'Include X-Service-Token header with valid JWT token'
             }, status=401)
 
-        # Verify token
         try:
             payload = ServiceTokenManager.verify_token(service_token)
 
-            # Attach service info to request
             request.service_name = payload['sub']
             request.service_scopes = payload['scopes']
             request.service_authenticated = True
@@ -127,7 +106,7 @@ class ServiceAuthMiddleware(MiddlewareMixin):
             }, status=500)
 
     def _get_client_ip(self, request):
-        """Get client IP address from request"""
+        """Client IP address from request."""
         x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
@@ -137,28 +116,16 @@ class ServiceAuthMiddleware(MiddlewareMixin):
 
 
 def require_service_scope(scope: str):
-    """
-    Decorator to require specific service scope for a view.
-
-    Usage:
-        @require_service_scope('ai-services:write')
-        def my_internal_api_view(request):
-            # Only services with 'ai-services:write' scope can access
-            pass
-
-    Args:
-        scope: Required scope string
-    """
+    """Require a service scope for a view."""
     def decorator(view_func):
+        @wraps(view_func)
         def wrapper(request, *args, **kwargs):
-            # Check if service is authenticated
             if not getattr(request, 'service_authenticated', False):
                 return JsonResponse({
                     'error': 'service_auth_required',
                     'message': 'Service authentication required'
                 }, status=401)
 
-            # Check if service has required scope
             service_scopes = getattr(request, 'service_scopes', [])
 
             if not ServiceScopes.matches_scope(scope, service_scopes):
@@ -176,11 +143,8 @@ def require_service_scope(scope: str):
                     'detail': f'Your service has scopes: {service_scopes}'
                 }, status=403)
 
-            # Service has required scope, proceed
             return view_func(request, *args, **kwargs)
 
-        wrapper.__name__ = view_func.__name__
-        wrapper.__doc__ = view_func.__doc__
         return wrapper
 
     return decorator

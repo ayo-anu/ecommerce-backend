@@ -38,19 +38,16 @@ class ProductAPITestCase(TestCase):
         )
     
     def test_list_products(self):
-        """Test retrieving product list"""
         response = self.client.get('/api/products/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
     
     def test_retrieve_product(self):
-        """Test retrieving single product"""
         response = self.client.get(f'/api/products/{self.product.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Test Product')
     
     def test_create_product_as_admin(self):
-        """Test creating product as admin"""
         self.client.force_authenticate(user=self.admin)
         
         data = {
@@ -66,7 +63,6 @@ class ProductAPITestCase(TestCase):
         self.assertEqual(Product.objects.count(), 2)
     
     def test_create_product_as_regular_user(self):
-        """Test that regular users cannot create products"""
         self.client.force_authenticate(user=self.user)
         
         data = {
@@ -82,7 +78,6 @@ class ProductAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
     
     def test_update_product_stock(self):
-        """Test updating product stock"""
         self.client.force_authenticate(user=self.admin)
         
         data = {'stock_quantity': 20}
@@ -93,7 +88,6 @@ class ProductAPITestCase(TestCase):
         self.assertEqual(self.product.stock_quantity, 20)
     
     def test_product_search(self):
-        """Test product search functionality"""
         response = self.client.get('/api/products/search/?q=test')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -120,7 +114,6 @@ class OrderAPITestCase(TestCase):
         )
     
     def test_create_order(self):
-        """Test creating an order"""
         data = {
             'items': [
                 {
@@ -143,17 +136,15 @@ class OrderAPITestCase(TestCase):
         response = self.client.post('/api/orders/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
-        # Check inventory was reduced
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock_quantity, 8)
     
     def test_create_order_insufficient_stock(self):
-        """Test order creation fails with insufficient stock"""
         data = {
             'items': [
                 {
                     'product_id': str(self.product.id),
-                    'quantity': 20  # More than available
+                    'quantity': 20
                 }
             ],
             'shipping_address': {
@@ -172,8 +163,6 @@ class OrderAPITestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_cancel_order(self):
-        """Test cancelling an order"""
-        # First create an order
         from apps.orders.models import Order, OrderItem
         
         order = Order.objects.create(
@@ -201,15 +190,12 @@ class OrderAPITestCase(TestCase):
             total_price=self.product.price * 2
         )
         
-        # Reduce stock
         self.product.stock_quantity = 8
         self.product.save()
         
-        # Cancel order
         response = self.client.post(f'/api/orders/{order.id}/cancel/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # Check stock was restored
         self.product.refresh_from_db()
         self.assertEqual(self.product.stock_quantity, 10)
         

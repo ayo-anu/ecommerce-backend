@@ -23,24 +23,20 @@ logger = logging.getLogger(__name__)
 class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = ProductFilter  # Use custom filter class
+    filterset_class = ProductFilter
     search_fields = ['name', 'description', 'sku']
     ordering_fields = ['price', 'created_at', 'name']
     ordering = ['-created_at']
-    pagination_class = StandardResultsSetPagination  # Changed from CursorPagination to include count
+    pagination_class = StandardResultsSetPagination
     
     def get_queryset(self):
-        """Optimized queryset with select_related and prefetch_related"""
         if self.action == 'list':
-            # Lightweight queryset for lists
-            # Note: Removed .only() to avoid field access issues with filters
             return Product.objects.filter(is_active=True).select_related(
                 'category'
             ).prefetch_related(
                 Prefetch('images', queryset=ProductImage.objects.filter(is_primary=True))
             )
         else:
-            # Full queryset for detail views
             return Product.objects.select_related(
                 'category'
             ).prefetch_related(
@@ -55,7 +51,6 @@ class ProductViewSet(viewsets.ModelViewSet):
         return ProductDetailSerializer
     
     def list(self, request, *args, **kwargs):
-        # Try cache for common list requests
         cache_key = f'product_list_{request.GET.urlencode()}'
         cached_response = cache.get(cache_key)
         
@@ -63,32 +58,28 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response(cached_response)
         
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response.data, 60 * 5)  # Cache for 5 minutes
+        cache.set(cache_key, response.data, 60 * 5)
         return response
     
     @action(detail=False, methods=['get'])
     def featured(self, request):
-        """Get featured products"""
         products = self.get_queryset().filter(is_featured=True)[:10]
         serializer = self.get_serializer(products, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def search(self, request):
-        """Full-text search using Elasticsearch"""
         query = request.query_params.get('q', '')
         if not query:
             return Response({'results': []})
         
         try:
-            # Use Elasticsearch for search
             from .documents import ProductDocument
             search = ProductDocument.search().query("multi_match", query=query, fields=['name', 'description'])
             results = search[0:20].execute()
             
             product_ids = [hit.meta.id for hit in results]
             
-            # ✅ OPTIMIZED: Add select_related and prefetch_related to search results
             products = Product.objects.filter(id__in=product_ids).select_related(
                 'category'
             ).prefetch_related(
@@ -96,7 +87,6 @@ class ProductViewSet(viewsets.ModelViewSet):
             )
             
         except Exception as e:
-            # ✅ FALLBACK: Use database search if Elasticsearch fails
             logger.warning(f"Elasticsearch search failed: {e}, falling back to DB search")
             products = Product.objects.filter(
                 Q(name__icontains=query) | Q(description__icontains=query),
@@ -110,7 +100,6 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def upload_image(self, request, pk=None):
-        """Upload product image"""
         product = self.get_object()
         image_file = request.FILES.get('image')
 
@@ -124,20 +113,16 @@ class ProductViewSet(viewsets.ModelViewSet):
             is_primary=request.data.get('is_primary', False)
         )
 
-        # Invalidate cache
         cache.delete(f'product_detail_{product.id}')
 
         return Response({'id': image.id, 'url': image.image.url}, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticatedOrReadOnly])
     def reviews(self, request, pk=None):
-        """Get all reviews for a specific product"""
         product = self.get_object()
 
-        # Optimized query with select_related for user and prefetch for helpful_votes
         queryset = product.reviews.select_related('user').prefetch_related('helpful_votes')
 
-        # Show only approved reviews to non-staff users
         if not request.user.is_staff:
             queryset = queryset.filter(is_approved=True)
 
@@ -155,7 +140,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def products(self, request, slug=None):
-        """Get products in category"""
         category = self.get_object()
         products = Product.objects.filter(
             category=category, is_active=True
@@ -168,24 +152,20 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 
 class ProductReviewViewSet(viewsets.ModelViewSet):
-    """Product review management"""
     permission_classes = [IsAuthenticatedOrReadOnly]
-    queryset = ProductReview.objects.all()  # Required by DRF ModelViewSet
+    queryset = ProductReview.objects.all()
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['product', 'rating', 'is_approved']
     ordering_fields = ['created_at', 'helpful_count', 'rating']
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """Return approved reviews, or all reviews if admin"""
         queryset = ProductReview.objects.select_related('user', 'product')
 
-        # Filter by product if specified
         product_id = self.request.query_params.get('product_id')
         if product_id:
             queryset = queryset.filter(product_id=product_id)
 
-        # Show only approved reviews to non-staff users
         if not self.request.user.is_staff:
             queryset = queryset.filter(is_approved=True)
 
@@ -197,12 +177,10 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
         return ProductReviewSerializer
 
     def perform_create(self, serializer):
-        """Create review and check if verified purchase"""
         from apps.orders.models import Order
 
         product = serializer.validated_data['product']
 
-        # Check if user purchased this product
         has_purchased = Order.objects.filter(
             user=self.request.user,
             items__product=product,
@@ -216,10 +194,8 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticatedOrReadOnly])
     def mark_helpful(self, request, pk=None):
-        """Mark review as helpful"""
         review = self.get_object()
 
-        # Check if user already marked as helpful
         helpful, created = ReviewHelpful.objects.get_or_create(
             review=review,
             user=request.user
@@ -231,7 +207,6 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Update helpful count
         review.helpful_count = review.helpful_votes.count()
         review.save()
 
@@ -242,24 +217,14 @@ class ProductReviewViewSet(viewsets.ModelViewSet):
 
 
 class WishlistViewSet(viewsets.ModelViewSet):
-    """
-    User wishlist management
-
-    API Endpoints:
-    - GET /api/products/wishlist/ - List all wishlist items
-    - POST /api/products/wishlist/ - Add item to wishlist (body: {"product_id": "uuid"})
-    - DELETE /api/products/wishlist/{item_id}/ - Remove item from wishlist
-    """
-    permission_classes = [permissions.IsAuthenticated]  # Require authentication
-    serializer_class = WishlistItemSerializer  # Use WishlistItem serializer for list/create/destroy
-    queryset = WishlistItem.objects.all()  # Required by DRF ModelViewSet
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = WishlistItemSerializer
+    queryset = WishlistItem.objects.all()
 
     def get_queryset(self):
-        """Return current user's wishlist items"""
         if not self.request.user.is_authenticated:
             return WishlistItem.objects.none()
 
-        # Get or create wishlist for user
         wishlist, _ = Wishlist.objects.get_or_create(user=self.request.user)
 
         return WishlistItem.objects.filter(wishlist=wishlist).select_related(
@@ -267,28 +232,11 @@ class WishlistViewSet(viewsets.ModelViewSet):
         ).prefetch_related('product__images')
 
     def list(self, request, *args, **kwargs):
-        """
-        List all wishlist items for the authenticated user
-
-        Returns:
-            200: List of wishlist items with product details
-        """
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        """
-        Add a product to the wishlist
-
-        Body: {"product_id": "uuid", "variant_id": "uuid" (optional), "notes": "..." (optional)}
-
-        Returns:
-            201: Wishlist item created with product details
-            400: Product already in wishlist or missing product_id
-            404: Product not found
-        """
-        # Get or create wishlist for user
         wishlist, _ = Wishlist.objects.get_or_create(user=request.user)
 
         product_id = request.data.get('product_id')
@@ -301,7 +249,6 @@ class WishlistViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Check if product exists
         try:
             product = Product.objects.get(id=product_id)
         except Product.DoesNotExist:
@@ -310,14 +257,12 @@ class WishlistViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        # Check if already in wishlist
         if WishlistItem.objects.filter(wishlist=wishlist, product=product, variant_id=variant_id).exists():
             return Response(
                 {'error': 'Product already in wishlist'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Create wishlist item
         item = WishlistItem.objects.create(
             wishlist=wishlist,
             product=product,
@@ -329,15 +274,6 @@ class WishlistViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
-        """
-        Remove a specific item from the wishlist
-
-        URL: DELETE /api/products/wishlist/{item_id}/
-
-        Returns:
-            204: Item removed successfully
-            404: Item not found or doesn't belong to user
-        """
         try:
             item = self.get_queryset().get(pk=kwargs.get('pk'))
             item.delete()
@@ -350,12 +286,6 @@ class WishlistViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def clear(self, request):
-        """
-        Clear all items from the wishlist
-
-        Returns:
-            200: Wishlist cleared successfully
-        """
         wishlist, _ = Wishlist.objects.get_or_create(user=request.user)
         deleted_count = WishlistItem.objects.filter(wishlist=wishlist).delete()[0]
         return Response({

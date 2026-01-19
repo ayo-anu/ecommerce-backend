@@ -7,7 +7,6 @@ from .models import Order
 
 @shared_task(bind=True, max_retries=3)
 def send_order_confirmation_email(self, order_id):
-    """Send order confirmation email"""
     try:
         order = Order.objects.select_related('user').prefetch_related('items__product').get(id=order_id)
         
@@ -31,13 +30,11 @@ def send_order_confirmation_email(self, order_id):
         return f"Email sent for order {order.order_number}"
     
     except Exception as exc:
-        # Retry with exponential backoff
         raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
 
 
 @shared_task
 def send_order_cancellation_email(order_id):
-    """Send order cancellation email"""
     order = Order.objects.get(id=order_id)
     
     context = {'order': order}
@@ -55,7 +52,6 @@ def send_order_cancellation_email(order_id):
 
 @shared_task
 def send_low_stock_alert(product_id):
-    """Alert admin when product is low on stock"""
     from apps.products.models import Product
     
     product = Product.objects.get(id=product_id)
@@ -72,7 +68,6 @@ def send_low_stock_alert(product_id):
 
 @shared_task
 def update_analytics(order_id):
-    """Update analytics after order creation"""
     from apps.analytics.models import DailySales
     from django.utils import timezone
     
@@ -90,7 +85,6 @@ def update_analytics(order_id):
 
 @shared_task
 def cleanup_abandoned_carts():
-    """Delete carts that haven't been updated in 30 days"""
     from datetime import timedelta
     from django.utils import timezone
     from apps.orders.models import Cart
@@ -103,7 +97,6 @@ def cleanup_abandoned_carts():
 
 @shared_task
 def generate_daily_report():
-    """Generate daily sales report"""
     from django.utils import timezone
     from apps.analytics.models import DailySales
     

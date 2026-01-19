@@ -34,7 +34,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return OrderListSerializer
         elif self.action == 'create':
-            # Auto-detect: if shipping_address_id provided, use cart-based order creation
             if 'shipping_address_id' in self.request.data:
                 return OrderFromCartSerializer
             else:
@@ -52,7 +51,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
         
-        # Trigger async tasks
         from .tasks import send_order_confirmation_email, update_analytics
         send_order_confirmation_email.delay(order.id)
         update_analytics.delay(order.id)
@@ -64,7 +62,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def cancel(self, request, pk=None):
-        """Cancel an order"""
         order = self.get_object()
         
         if order.status not in ['pending', 'processing']:
@@ -74,7 +71,6 @@ class OrderViewSet(viewsets.ModelViewSet):
                 )
         
         with transaction.atomic():
-            # Restore inventory
             from django.core.cache import cache
             for item in order.items.select_related('product', 'variant'):
                 if item.variant:
@@ -84,14 +80,12 @@ class OrderViewSet(viewsets.ModelViewSet):
                     item.product.stock_quantity += item.quantity
                     item.product.save()
 
-                # Invalidate product cache when inventory changes
                 cache.delete(f'product_detail_{item.product.id}')
                 cache.delete(f'product_list_{item.product.id}')
 
             order.status = 'cancelled'
             order.save()
         
-        # Send cancellation email
         from .tasks import send_order_cancellation_email
         send_order_cancellation_email.delay(order.id)
         
@@ -99,7 +93,6 @@ class OrderViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def history(self, request):
-        """Get user's order history"""
         orders = self.get_queryset().filter(user=request.user)
         page = self.paginate_queryset(orders)
         serializer = OrderListSerializer(page, many=True)
@@ -109,11 +102,9 @@ class OrderViewSet(viewsets.ModelViewSet):
 class CartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = CartSerializer
-    queryset = Cart.objects.all()  # Required by DRF ModelViewSet
+    queryset = Cart.objects.all()
 
-    #Cart Queryset
     def get_queryset(self):
-        """Filter cart to current user only"""
         return Cart.objects.filter(user=self.request.user).prefetch_related(
             Prefetch(
                 'items',
@@ -126,38 +117,28 @@ class CartViewSet(viewsets.ModelViewSet):
         )
     
     def get_object(self):
-        """Get or create cart for user"""
         cart, created = Cart.objects.get_or_create(user=self.request.user)
         return cart
 
     def list(self, request):
-        """
-        GET /api/orders/cart/ - Get current user's cart (creates if doesn't exist)
-        Returns a single cart object, not a list.
-
-        Optimized with select_related and prefetch_related to avoid N+1 queries.
-        """
         try:
-            # Get or create cart (without optimization yet, as it may not exist)
             cart, created = Cart.objects.get_or_create(user=request.user)
 
-            # If cart exists and has items, optimize the query
             if not created and cart.items.exists():
                 from django.db.models import Prefetch
                 from apps.products.models import ProductImage
                 from django.db import connection
                 from django.conf import settings
 
-                # Re-fetch cart with optimizations to avoid N+1 queries
                 cart = Cart.objects.prefetch_related(
                     Prefetch(
                         'items',
                         queryset=CartItem.objects.select_related(
-                            'product',  # Fetch product in same query
-                            'variant'   # Fetch variant in same query
+                            'product',
+                            'variant'
                         ).prefetch_related(
                             Prefetch(
-                                'product__images',  # Prefetch product images
+                                'product__images',
                                 queryset=ProductImage.objects.filter(is_primary=True),
                                 to_attr='primary_images'
                             )
@@ -165,7 +146,6 @@ class CartViewSet(viewsets.ModelViewSet):
                     )
                 ).get(id=cart.id)
 
-                # Log query count in development/testing
                 if settings.DEBUG:
                     query_count = len(connection.queries)
                     import logging
@@ -185,13 +165,11 @@ class CartViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def add_item(self, request):
-        """Add item to cart"""
         cart = self.get_object()
         product_id = request.data.get('product_id')
         variant_id = request.data.get('variant_id')
         quantity = int(request.data.get('quantity', 1))
 
-        # Validate quantity is positive
         if quantity < 1:
             return Response(
                 {'error': 'Quantity must be at least 1'},
@@ -216,7 +194,6 @@ class CartViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_404_NOT_FOUND
                 )
         
-        # Check stock
         stock_source = variant if variant else product
         if product.track_inventory and stock_source.stock_quantity < quantity:
             return Response(
@@ -224,7 +201,6 @@ class CartViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Add or update cart item
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
             product=product,
@@ -241,7 +217,6 @@ class CartViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['patch'])
     def update_item(self, request):
-        """Update cart item quantity"""
         cart = self.get_object()
         item_id = request.data.get('item_id')
         quantity = int(request.data.get('quantity', 1))
@@ -257,7 +232,6 @@ class CartViewSet(viewsets.ModelViewSet):
         if quantity < 1:
             cart_item.delete()
         else:
-            # Check stock
             stock_source = cart_item.variant if cart_item.variant else cart_item.product
             if cart_item.product.track_inventory and stock_source.stock_quantity < quantity:
                 return Response(
@@ -285,7 +259,6 @@ class CartViewSet(viewsets.ModelViewSet):
 )
     @action(detail=False, methods=['delete'])
     def remove_item(self, request):
-        """Remove a specific item from the user’s cart"""
         cart = self.get_object()
         item_id = request.query_params.get('item_id')
 
@@ -303,7 +276,6 @@ class CartViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def clear(self, request):
-        """Clear all items from cart"""
         cart = self.get_object()
         cart.items.all().delete()
         
@@ -312,7 +284,6 @@ class CartViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def checkout(self, request):
-        """Convert cart to order"""
         cart = self.get_object()
         
         if not cart.items.exists():
@@ -321,7 +292,6 @@ class CartViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Prepare order data from cart
         items = []
         for item in cart.items.all():
             items.append({
@@ -337,12 +307,10 @@ class CartViewSet(viewsets.ModelViewSet):
             'customer_notes': request.data.get('customer_notes', '')
         }
         
-        # Create order
         serializer = OrderCreateSerializer(data=order_data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         order = serializer.save()
         
-        # Clear cart
         cart.items.all().delete()
         
         return Response(

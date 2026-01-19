@@ -11,13 +11,11 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS('🔍 Checking for N+1 queries...\n'))
         
-        # Check if we have any orders
         order_count = Order.objects.count()
         if order_count == 0:
             self.stdout.write(self.style.WARNING('No orders found. Creating test data first...'))
             self._create_test_data()
         
-        # BAD: Without optimization
         self.stdout.write('='*60)
         self.stdout.write('Testing UNOPTIMIZED query...')
         self.stdout.write('='*60)
@@ -32,7 +30,6 @@ class Command(BaseCommand):
         bad_count = len(connection.queries)
         self.stdout.write(self.style.ERROR(f'❌ Queries without optimization: {bad_count}'))
         
-        # GOOD: With optimization
         self.stdout.write('\n' + '='*60)
         self.stdout.write('Testing OPTIMIZED query...')
         self.stdout.write('='*60)
@@ -59,12 +56,10 @@ class Command(BaseCommand):
             ))
     
     def _create_test_data(self):
-        """Create some test data if none exists"""
         from apps.accounts.models import User
         from apps.products.models import Product, Category
         from apps.orders.models import OrderItem
         
-        # Create user
         user, _ = User.objects.get_or_create(
             email='test@example.com',
             defaults={
@@ -74,7 +69,6 @@ class Command(BaseCommand):
             }
         )
         
-        # Create category and products
         category, _ = Category.objects.get_or_create(
             name='Test Category',
             defaults={'slug': 'test-category'}
@@ -95,7 +89,6 @@ class Command(BaseCommand):
             )
             products.append(product)
         
-        # Create orders
         for i in range(3):
             order = Order.objects.create(
                 user=user,
@@ -113,7 +106,6 @@ class Command(BaseCommand):
                 shipping_postal_code='12345'
             )
             
-            # Add items
             for j in range(2):
                 OrderItem.objects.create(
                     order=order,

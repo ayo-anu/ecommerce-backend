@@ -1,30 +1,14 @@
-"""
-Health check endpoints for Kubernetes probes.
-
-Liveness: Checks if the application process is alive
-Readiness: Checks if the application is ready to serve traffic
-"""
 import logging
 from django.http import JsonResponse
 from django.db import connection
 from django.core.cache import cache
 from django.conf import settings
-import redis as redis_client
 
 logger = logging.getLogger(__name__)
 
 
 def liveness_check(request):
-    """
-    Liveness probe endpoint.
-
-    This endpoint checks if the application process is alive.
-    If this fails, Kubernetes will restart the pod.
-
-    Should be lightweight and fast - only checks critical application health.
-    """
     try:
-        # Basic check - if we can return this response, the process is alive
         return JsonResponse({
             'status': 'alive',
             'service': 'ecommerce-backend'
@@ -38,17 +22,6 @@ def liveness_check(request):
 
 
 def readiness_check(request):
-    """
-    Readiness probe endpoint.
-
-    This endpoint checks if the application is ready to serve traffic.
-    If this fails, Kubernetes will stop sending traffic to the pod.
-
-    Checks all critical dependencies:
-    - Database connection
-    - Cache (Redis) connection
-    - Elasticsearch connection (if available)
-    """
     checks = {
         'database': False,
         'cache': False,
@@ -58,7 +31,6 @@ def readiness_check(request):
     all_ready = True
     errors = []
 
-    # Check database
     try:
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -70,7 +42,6 @@ def readiness_check(request):
         errors.append(error_msg)
         logger.error(error_msg)
 
-    # Check cache (Redis)
     try:
         cache.set('health_check', 'ok', timeout=10)
         result = cache.get('health_check')
@@ -84,7 +55,6 @@ def readiness_check(request):
         errors.append(error_msg)
         logger.error(error_msg)
 
-    # Check Elasticsearch (optional - don't fail readiness if ES is down)
     try:
         from elasticsearch import Elasticsearch
         es_url = getattr(settings, 'ELASTICSEARCH_URL', None)
@@ -96,11 +66,10 @@ def readiness_check(request):
                 logger.warning("Elasticsearch ping failed")
                 checks['elasticsearch'] = False
         else:
-            checks['elasticsearch'] = True  # Not configured, skip check
+            checks['elasticsearch'] = True
     except Exception as e:
-        # Elasticsearch is not critical for readiness
         logger.warning(f"Elasticsearch check failed (non-critical): {str(e)}")
-        checks['elasticsearch'] = True  # Don't fail readiness
+        checks['elasticsearch'] = True
 
     status_code = 200 if all_ready else 503
 
@@ -113,12 +82,6 @@ def readiness_check(request):
 
 
 def health_check(request):
-    """
-    General health check endpoint.
-
-    Provides detailed health information about the service.
-    This is not used by Kubernetes probes but useful for monitoring.
-    """
     checks = {
         'database': {'status': 'unknown', 'latency_ms': None},
         'cache': {'status': 'unknown', 'latency_ms': None},
@@ -128,7 +91,6 @@ def health_check(request):
 
     overall_status = 'healthy'
 
-    # Check Vault integration status
     try:
         from core.vault_client import vault_health_check
         vault_status = vault_health_check()
@@ -141,7 +103,6 @@ def health_check(request):
             'message': f'Vault check failed: {str(e)}'
         }
 
-    # Check database with latency
     import time
     try:
         start = time.time()
@@ -160,7 +121,6 @@ def health_check(request):
         }
         overall_status = 'degraded'
 
-    # Check cache with latency
     try:
         start = time.time()
         cache.set('health_check_detailed', 'ok', timeout=10)
@@ -185,7 +145,6 @@ def health_check(request):
         }
         overall_status = 'degraded'
 
-    # Check Elasticsearch
     try:
         from elasticsearch import Elasticsearch
         es_url = getattr(settings, 'ELASTICSEARCH_URL', None)
@@ -215,7 +174,6 @@ def health_check(request):
         }
         overall_status = 'degraded'
 
-    # Get application info
     import sys
     import django
 

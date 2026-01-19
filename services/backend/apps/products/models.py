@@ -41,28 +41,22 @@ class Product(models.Model):
     compare_at_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     cost_per_item = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
-    # Inventory
     sku = models.CharField(max_length=100, unique=True)
     stock_quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     low_stock_threshold = models.IntegerField(default=10)
     track_inventory = models.BooleanField(default=True)
     
-    # Relationships
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     tags = models.ManyToManyField('Tag', blank=True, related_name='products')
     
-    # SEO
     meta_title = models.CharField(max_length=60, blank=True)
     meta_description = models.CharField(max_length=160, blank=True)
     
-    # Status
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     
-    # Full-text search (PostgreSQL specific)
     search_vector = SearchVectorField(null=True, blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -74,7 +68,7 @@ class Product(models.Model):
             models.Index(fields=['price']),
             models.Index(fields=['is_active', '-created_at']),
             models.Index(fields=['category', 'is_active']),
-            GinIndex(fields=['search_vector']),  # Full-text search index
+            GinIndex(fields=['search_vector']),
         ]
     
     def save(self, *args, **kwargs):
@@ -116,7 +110,6 @@ class ProductImage(models.Model):
         ]
     
     def save(self, *args, **kwargs):
-        # Ensure only one primary image per product
         if self.is_primary:
             ProductImage.objects.filter(product=self.product, is_primary=True).update(is_primary=False)
         super().save(*args, **kwargs)
@@ -125,14 +118,13 @@ class ProductImage(models.Model):
 class ProductVariant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variants')
-    name = models.CharField(max_length=100)  # e.g., "Size: Large, Color: Red"
+    name = models.CharField(max_length=100)
     sku = models.CharField(max_length=100, unique=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # Override product price
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock_quantity = models.IntegerField(default=0)
     is_active = models.BooleanField(default=True)
     
-    # Variant attributes
-    attributes = models.JSONField(default=dict)  # e.g., {"size": "L", "color": "red"}
+    attributes = models.JSONField(default=dict)
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -158,7 +150,6 @@ class Tag(models.Model):
 
 
 class ProductReview(models.Model):
-    """Customer reviews for products"""
     RATING_CHOICES = [(i, i) for i in range(1, 6)]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -168,11 +159,9 @@ class ProductReview(models.Model):
     title = models.CharField(max_length=200)
     comment = models.TextField()
 
-    # Moderation
     is_verified_purchase = models.BooleanField(default=False, help_text="User purchased this product")
     is_approved = models.BooleanField(default=True, help_text="Admin approved this review")
 
-    # Helpfulness
     helpful_count = models.IntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -195,7 +184,6 @@ class ProductReview(models.Model):
 
 
 class ReviewHelpful(models.Model):
-    """Track which users found a review helpful"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     review = models.ForeignKey(ProductReview, on_delete=models.CASCADE, related_name='helpful_votes')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -211,7 +199,6 @@ class ReviewHelpful(models.Model):
 
 
 class Wishlist(models.Model):
-    """User wishlist"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='wishlist')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -226,7 +213,6 @@ class Wishlist(models.Model):
 
 
 class WishlistItem(models.Model):
-    """Items in user wishlist"""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     wishlist = models.ForeignKey(Wishlist, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)

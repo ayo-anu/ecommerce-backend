@@ -1,21 +1,8 @@
-"""
-Checkout Saga Implementation
-
-Implements the complete checkout flow as a saga with compensation:
-1. Create Order (pending state)
-2. Reserve Inventory
-3. Check Fraud
-4. Process Payment
-5. Confirm Order
-
-Each step has compensation logic for rollback.
-"""
+"""Checkout saga flow and compensation steps."""
 
 import logging
 from typing import Dict, Any
 from decimal import Decimal
-from datetime import datetime
-
 from django.db import transaction as db_transaction
 from django.utils import timezone
 
@@ -28,43 +15,16 @@ tracer = get_tracer(__name__)
 
 
 class CheckoutSaga:
-    """
-    Checkout saga for order processing.
-
-    Flow:
-    1. Create Order → Compensation: Delete order
-    2. Reserve Inventory → Compensation: Release inventory
-    3. Check Fraud → Compensation: None (read-only)
-    4. Process Payment → Compensation: Refund payment
-    5. Confirm Order → Compensation: Cancel order
-    """
+    """Checkout saga orchestrator."""
 
     @staticmethod
     def execute(checkout_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Execute checkout saga.
-
-        Args:
-            checkout_data: Dictionary containing:
-                - user_id: User ID
-                - cart_id: Cart ID
-                - shipping_address: Shipping address dict
-                - billing_address: Billing address dict (optional)
-                - payment_method_id: Payment method ID
-                - payment_method: Payment method type
-                - customer_notes: Optional customer notes
-
-        Returns:
-            Dictionary with saga result
-        """
-        # Create saga orchestrator
+        """Run the checkout saga."""
         saga = SagaOrchestrator()
         saga_registry.register(saga)
 
-        # Start distributed tracing span for the entire saga
         if tracer:
             with tracer.start_as_current_span("checkout_saga") as span:
-                # Add saga attributes
                 add_span_attributes(
                     user_id=checkout_data.get('user_id'),
                     cart_id=checkout_data.get('cart_id'),
@@ -77,86 +37,66 @@ class CheckoutSaga:
 
     @staticmethod
     def _execute_with_tracing(saga, checkout_data, parent_span):
-        """Helper method to execute saga with optional tracing"""
+        """Execute saga with optional tracing."""
+        saga.add_step(
+            name="create_order",
+            action=CheckoutSteps.create_order,
+            compensate=CheckoutCompensations.delete_order,
+            timeout=10.0,
+            max_retries=1,
+            idempotent=False,
+        )
 
-        try:
-            # Add all steps
-            saga.add_step(
-                name="create_order",
-                action=CheckoutSteps.create_order,
-                compensate=CheckoutCompensations.delete_order,
-                timeout=10.0,
-                max_retries=1,  # Don't retry order creation
-                idempotent=False,
-            )
+        saga.add_step(
+            name="reserve_inventory",
+            action=CheckoutSteps.reserve_inventory,
+            compensate=CheckoutCompensations.release_inventory,
+            timeout=15.0,
+            max_retries=3,
+            idempotent=True,
+        )
 
-            saga.add_step(
-                name="reserve_inventory",
-                action=CheckoutSteps.reserve_inventory,
-                compensate=CheckoutCompensations.release_inventory,
-                timeout=15.0,
-                max_retries=3,
-                idempotent=True,
-            )
+        saga.add_step(
+            name="check_fraud",
+            action=CheckoutSteps.check_fraud,
+            compensate=None,
+            timeout=10.0,
+            max_retries=2,
+            idempotent=True,
+        )
 
-            saga.add_step(
-                name="check_fraud",
-                action=CheckoutSteps.check_fraud,
-                compensate=None,  # Read-only, no compensation needed
-                timeout=10.0,
-                max_retries=2,
-                idempotent=True,
-            )
+        saga.add_step(
+            name="process_payment",
+            action=CheckoutSteps.process_payment,
+            compensate=CheckoutCompensations.refund_payment,
+            timeout=30.0,
+            max_retries=2,
+            idempotent=True,
+        )
 
-            saga.add_step(
-                name="process_payment",
-                action=CheckoutSteps.process_payment,
-                compensate=CheckoutCompensations.refund_payment,
-                timeout=30.0,
-                max_retries=2,
-                idempotent=True,
-            )
+        saga.add_step(
+            name="confirm_order",
+            action=CheckoutSteps.confirm_order,
+            compensate=CheckoutCompensations.cancel_order,
+            timeout=10.0,
+            max_retries=3,
+            idempotent=True,
+        )
 
-            saga.add_step(
-                name="confirm_order",
-                action=CheckoutSteps.confirm_order,
-                compensate=CheckoutCompensations.cancel_order,
-                timeout=10.0,
-                max_retries=3,
-                idempotent=True,
-            )
-
-            # Execute saga
-            result = saga.execute(initial_data=checkout_data)
-
-            return result
-
-        finally:
-            # Clean up registry after completion
-            # (In production, may want to keep for audit)
-            pass
+        return saga.execute(initial_data=checkout_data)
 
 
 class CheckoutSteps:
-    """Forward actions for checkout saga"""
+    """Saga steps."""
 
     @staticmethod
     @db_transaction.atomic
     def create_order(context: SagaContext) -> Dict[str, Any]:
-        """
-        Step 1: Create order in pending state.
-
-        Args:
-            context: Saga context
-
-        Returns:
-            Dictionary with order_id and order details
-        """
+        """Create a pending order."""
         from apps.orders.models import Order, OrderItem, Cart
 
         logger.info(f"[Saga {context.saga_id}] Creating order")
 
-        # Get cart
         cart = Cart.objects.select_for_update().get(
             id=context.data['cart_id']
         )
@@ -164,24 +104,19 @@ class CheckoutSteps:
         if not cart.items.exists():
             raise ValueError("Cart is empty")
 
-        # Calculate totals
         subtotal = sum(
             item.product.price * item.quantity
             for item in cart.items.select_related('product')
         )
 
-        # Simple tax calculation (10%)
         tax = subtotal * Decimal('0.10')
 
-        # Shipping cost (flat rate for now)
         shipping_cost = Decimal('10.00') if subtotal < 100 else Decimal('0.00')
 
         total = subtotal + tax + shipping_cost
 
-        # Get shipping address
         shipping_addr = context.data['shipping_address']
 
-        # Create order
         order = Order.objects.create(
             user_id=context.data['user_id'],
             status='pending',
@@ -231,15 +166,7 @@ class CheckoutSteps:
     @staticmethod
     @db_transaction.atomic
     def reserve_inventory(context: SagaContext) -> Dict[str, Any]:
-        """
-        Step 2: Reserve inventory for order items.
-
-        Args:
-            context: Saga context
-
-        Returns:
-            Dictionary with reservation details
-        """
+        """Reserve inventory for the order."""
         from apps.orders.models import Order
         from apps.products.models import Product
 
@@ -253,7 +180,6 @@ class CheckoutSteps:
         for item in order.items.select_related('product'):
             product = Product.objects.select_for_update().get(id=item.product.id)
 
-            # Check stock availability
             if product.track_inventory:
                 if product.stock_quantity < item.quantity:
                     raise ValueError(
@@ -261,7 +187,6 @@ class CheckoutSteps:
                         f"Available: {product.stock_quantity}, Required: {item.quantity}"
                     )
 
-                # Reserve inventory
                 product.stock_quantity -= item.quantity
                 product.save(update_fields=['stock_quantity'])
 
@@ -284,20 +209,11 @@ class CheckoutSteps:
 
     @staticmethod
     def check_fraud(context: SagaContext) -> Dict[str, Any]:
-        """
-        Step 3: Check for fraud using AI service (with fallback).
-
-        Args:
-            context: Saga context
-
-        Returns:
-            Dictionary with fraud check result
-        """
+        """Check fraud risk for the order."""
         logger.info(f"[Saga {context.saga_id}] Checking fraud")
 
         order_result = context.get_result('create_order')
 
-        # Prepare fraud check data
         transaction_data = {
             'user_id': context.data['user_id'],
             'amount': order_result['total'],
@@ -305,7 +221,6 @@ class CheckoutSteps:
             'order_id': order_result['order_id'],
         }
 
-        # Call fraud detection (uses fallback if service is down)
         fraud_result = fraud_client.analyze_transaction(transaction_data)
 
         if fraud_result:
@@ -317,7 +232,6 @@ class CheckoutSteps:
                 extra={'risk_score': risk_score, 'action': action}
             )
 
-            # Reject high-risk transactions
             if action == 'reject' or risk_score >= 0.9:
                 raise ValueError(
                     f"Transaction rejected due to high fraud risk (score: {risk_score})"
@@ -329,7 +243,6 @@ class CheckoutSteps:
                 'risk_factors': fraud_result.get('risk_factors', []),
             }
 
-        # If fraud service is completely down, use conservative approach
         logger.warning(f"[Saga {context.saga_id}] Fraud check unavailable, proceeding with caution")
         return {
             'risk_score': 0.5,
@@ -340,15 +253,7 @@ class CheckoutSteps:
     @staticmethod
     @db_transaction.atomic
     def process_payment(context: SagaContext) -> Dict[str, Any]:
-        """
-        Step 4: Process payment via Stripe.
-
-        Args:
-            context: Saga context
-
-        Returns:
-            Dictionary with payment details
-        """
+        """Process payment via Stripe."""
         from apps.payments.models import Payment
         from apps.orders.models import Order
         import stripe
@@ -359,7 +264,6 @@ class CheckoutSteps:
         order_result = context.get_result('create_order')
         order = Order.objects.get(id=order_result['order_id'])
 
-        # Create payment record
         payment = Payment.objects.create(
             order=order,
             user_id=context.data['user_id'],
@@ -369,10 +273,8 @@ class CheckoutSteps:
         )
 
         try:
-            # Initialize Stripe
             stripe.api_key = settings.STRIPE_SECRET_KEY
 
-            # Create payment intent
             intent = stripe.PaymentIntent.create(
                 amount=int(order.total * 100),  # Convert to cents
                 currency='usd',
@@ -385,13 +287,11 @@ class CheckoutSteps:
                 },
             )
 
-            # Update payment record
             payment.stripe_payment_intent_id = intent.id
             payment.status = 'succeeded'
             payment.paid_at = timezone.now()
             payment.save()
 
-            # Update order payment status
             order.payment_status = 'paid'
             order.paid_at = timezone.now()
             order.save(update_fields=['payment_status', 'paid_at'])
@@ -409,7 +309,6 @@ class CheckoutSteps:
             }
 
         except stripe.error.CardError as e:
-            # Card was declined
             payment.status = 'failed'
             payment.failure_reason = str(e)
             payment.save()
@@ -437,15 +336,7 @@ class CheckoutSteps:
     @staticmethod
     @db_transaction.atomic
     def confirm_order(context: SagaContext) -> Dict[str, Any]:
-        """
-        Step 5: Confirm order and clear cart.
-
-        Args:
-            context: Saga context
-
-        Returns:
-            Dictionary with confirmation details
-        """
+        """Mark the order as processing and clear the cart."""
         from apps.orders.models import Order, Cart
 
         logger.info(f"[Saga {context.saga_id}] Confirming order")
@@ -453,11 +344,9 @@ class CheckoutSteps:
         order_result = context.get_result('create_order')
         order = Order.objects.get(id=order_result['order_id'])
 
-        # Update order status
         order.status = 'processing'
         order.save(update_fields=['status'])
 
-        # Clear cart
         cart = Cart.objects.get(id=context.data['cart_id'])
         cart.items.all().delete()
 
@@ -474,12 +363,12 @@ class CheckoutSteps:
 
 
 class CheckoutCompensations:
-    """Compensation actions for checkout saga"""
+    """Compensation steps."""
 
     @staticmethod
     @db_transaction.atomic
     def delete_order(context: SagaContext):
-        """Compensation: Delete order"""
+        """Delete the order."""
         from apps.orders.models import Order
 
         logger.warning(f"[Saga {context.saga_id}] COMPENSATING: Deleting order")
@@ -500,7 +389,7 @@ class CheckoutCompensations:
     @staticmethod
     @db_transaction.atomic
     def release_inventory(context: SagaContext):
-        """Compensation: Release reserved inventory"""
+        """Release reserved inventory."""
         from apps.orders.models import Order
         from apps.products.models import Product
 
@@ -529,7 +418,7 @@ class CheckoutCompensations:
     @staticmethod
     @db_transaction.atomic
     def refund_payment(context: SagaContext):
-        """Compensation: Refund payment"""
+        """Refund the payment."""
         from apps.payments.models import Payment, Refund
         import stripe
         from django.conf import settings
@@ -543,16 +432,13 @@ class CheckoutCompensations:
                 payment = Payment.objects.get(id=payment_id)
 
                 if payment.status == 'succeeded' and payment.stripe_payment_intent_id:
-                    # Initialize Stripe
                     stripe.api_key = settings.STRIPE_SECRET_KEY
 
-                    # Create refund
                     refund = stripe.Refund.create(
                         payment_intent=payment.stripe_payment_intent_id,
                         reason='requested_by_customer',
                     )
 
-                    # Create refund record
                     Refund.objects.create(
                         payment=payment,
                         order=payment.order,
@@ -564,7 +450,6 @@ class CheckoutCompensations:
                         processed_at=timezone.now(),
                     )
 
-                    # Update payment status
                     payment.status = 'refunded'
                     payment.save()
 
@@ -581,7 +466,7 @@ class CheckoutCompensations:
     @staticmethod
     @db_transaction.atomic
     def cancel_order(context: SagaContext):
-        """Compensation: Cancel order"""
+        """Cancel the order."""
         from apps.orders.models import Order
 
         logger.warning(f"[Saga {context.saga_id}] COMPENSATING: Cancelling order")

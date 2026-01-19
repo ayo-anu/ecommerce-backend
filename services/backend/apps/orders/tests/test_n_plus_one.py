@@ -9,19 +9,15 @@ User = get_user_model()
 
 
 class OrderQueryOptimizationTest(TestCase):
-    """Test that Order queries are optimized"""
     
     @classmethod
     def setUpTestData(cls):
-        """Create test data once for all tests"""
-        # Create users
         cls.user = User.objects.create_user(
             email='test@example.com',
             username='testuser',
             password='testpass123'
         )
         
-        # Create category and products
         cls.category = Category.objects.create(name='Test Category', slug='test-category')
         cls.products = []
         for i in range(10):
@@ -36,7 +32,6 @@ class OrderQueryOptimizationTest(TestCase):
             )
             cls.products.append(product)
         
-        # Create orders with items
         cls.orders = []
         for i in range(5):
             order = Order.objects.create(
@@ -55,7 +50,6 @@ class OrderQueryOptimizationTest(TestCase):
                 shipping_postal_code='12345'
             )
             
-            # Add 3 items to each order
             for j in range(3):
                 OrderItem.objects.create(
                     order=order,
@@ -70,7 +64,6 @@ class OrderQueryOptimizationTest(TestCase):
             cls.orders.append(order)
     
     def test_order_list_optimized(self):
-        """Test that fetching order list doesn't cause N+1 queries"""
         
         with CaptureQueriesContext(connection) as context:
             orders = Order.objects.all().select_related('user').prefetch_related(
@@ -104,10 +97,9 @@ class OrderQueryOptimizationTest(TestCase):
         )
     
     def test_order_list_unoptimized(self):
-        """Test BAD query pattern to show the problem"""
         
         with CaptureQueriesContext(connection) as context:
-            orders = Order.objects.all()  # ❌ NO optimization
+            orders = Order.objects.all()
             order_list = list(orders)
             
             for order in order_list:

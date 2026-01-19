@@ -6,7 +6,6 @@ User = get_user_model()
 
 
 class Payment(models.Model):
-    """Payment records"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('processing', 'Processing'),
@@ -27,22 +26,18 @@ class Payment(models.Model):
     order = models.ForeignKey('orders.Order', on_delete=models.PROTECT, related_name='payments')
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='payments')
     
-    # Payment details
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='USD')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # Stripe details
     stripe_payment_intent_id = models.CharField(max_length=255, blank=True, unique=True, null=True)
     stripe_charge_id = models.CharField(max_length=255, blank=True)
     stripe_customer_id = models.CharField(max_length=255, blank=True)
     
-    # Additional info
     failure_reason = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     paid_at = models.DateTimeField(null=True, blank=True)
@@ -61,7 +56,6 @@ class Payment(models.Model):
 
 
 class Refund(models.Model):
-    """Refund records"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('processing', 'Processing'),
@@ -87,10 +81,8 @@ class Refund(models.Model):
     description = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # Stripe
     stripe_refund_id = models.CharField(max_length=255, blank=True)
     
-    # Admin
     processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='processed_refunds')
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -109,7 +101,6 @@ class Refund(models.Model):
 
 
 class PaymentMethod(models.Model):
-    """Saved payment methods for users"""
     METHOD_TYPES = [
         ('card', 'Card'),
         ('bank_account', 'Bank Account'),
@@ -121,13 +112,11 @@ class PaymentMethod(models.Model):
     method_type = models.CharField(max_length=20, choices=METHOD_TYPES)
     is_default = models.BooleanField(default=False)
     
-    # Card details (last 4 digits only)
     card_brand = models.CharField(max_length=20, blank=True)
     card_last4 = models.CharField(max_length=4, blank=True)
     card_exp_month = models.IntegerField(null=True, blank=True)
     card_exp_year = models.IntegerField(null=True, blank=True)
     
-    # Stripe
     stripe_payment_method_id = models.CharField(max_length=255)
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -138,7 +127,6 @@ class PaymentMethod(models.Model):
         ]
     
     def save(self, *args, **kwargs):
-        # Ensure only one default payment method per user
         if self.is_default:
             PaymentMethod.objects.filter(user=self.user, is_default=True).update(is_default=False)
         super().save(*args, **kwargs)
@@ -150,7 +138,6 @@ class PaymentMethod(models.Model):
 
 
 class Transaction(models.Model):
-    """Transaction log for all payment activities"""
     TRANSACTION_TYPES = [
         ('charge', 'Charge'),
         ('refund', 'Refund'),
@@ -165,10 +152,8 @@ class Transaction(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='USD')
     
-    # External reference
     external_transaction_id = models.CharField(max_length=255, blank=True)
     
-    # Details
     description = models.TextField(blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     

@@ -1,30 +1,4 @@
-"""
-Vault Client - Production Vault integration with AppRole authentication
-
-This module provides a production-ready HashiCorp Vault client with:
-- AppRole authentication for service-to-service auth
-- Automatic token renewal
-- Connection pooling and retries
-- Graceful fallback to environment variables
-- Secret caching for performance
-
-Security:
-- Uses AppRole (role_id + secret_id) instead of root tokens
-- Secrets are cached with TTL
-- Automatic token renewal before expiration
-- Falls back to environment variables on any error
-
-Usage:
-    from core.vault_client import get_vault_secret, VaultClient
-
-    # Simple usage - automatic fallback to env vars
-    secret_key = get_vault_secret('SECRET_KEY', 'backend/django', 'SECRET_KEY')
-
-    # Advanced usage - direct client access
-    vault = VaultClient()
-    vault.authenticate()
-    secret = vault.get_secret('backend/django', 'SECRET_KEY')
-"""
+"""Vault client with AppRole auth and env fallback."""
 
 import os
 import logging
@@ -33,7 +7,6 @@ from typing import Any, Optional, Dict
 from functools import lru_cache
 from datetime import datetime, timedelta
 
-# Try to import requests for Vault HTTP calls
 try:
     import requests
     from requests.adapters import HTTPAdapter
@@ -46,16 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class VaultClient:
-    """
-    Production-ready HashiCorp Vault client with AppRole authentication.
-
-    Features:
-    - AppRole authentication (role_id + secret_id)
-    - Automatic token renewal
-    - Connection pooling and retries
-    - Secret caching with TTL
-    - Thread-safe operations
-    """
+    """HashiCorp Vault client using AppRole auth."""
 
     def __init__(self):
         self.vault_addr = os.getenv('VAULT_ADDR', 'http://vault:8200')
@@ -68,15 +32,13 @@ class VaultClient:
         self.token_expiry = None
         self.session = None
 
-        # Initialize session with retries if requests is available
         if REQUESTS_AVAILABLE:
             self._init_session()
 
     def _init_session(self):
-        """Initialize requests session with retry logic"""
+        """Initialize requests session with retries."""
         self.session = requests.Session()
 
-        # Configure retries
         retry_strategy = Retry(
             total=3,
             backoff_factor=1,
@@ -88,16 +50,9 @@ class VaultClient:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
-        # Set default timeout
         self.session.timeout = 10
 
     def authenticate(self) -> bool:
-        """
-        Authenticate with Vault using AppRole.
-
-        Returns:
-            bool: True if authentication successful, False otherwise
-        """
         if not REQUESTS_AVAILABLE:
             logger.warning("Requests library not available, cannot authenticate with Vault")
             return False
@@ -107,13 +62,11 @@ class VaultClient:
             return False
 
         try:
-            # Check if existing token is still valid
             if self.client_token and self.token_expiry:
                 if datetime.now() < self.token_expiry:
                     logger.debug("Using existing valid Vault token")
                     return True
 
-            # Authenticate with AppRole
             logger.info("Authenticating with Vault using AppRole")
 
             headers = {}
@@ -137,7 +90,6 @@ class VaultClient:
             auth_data = response.json()['auth']
             self.client_token = auth_data['client_token']
 
-            # Calculate token expiry (renew 5 minutes before expiration)
             lease_duration = auth_data.get('lease_duration', 3600)
             self.token_expiry = datetime.now() + timedelta(seconds=lease_duration - 300)
 
@@ -149,12 +101,6 @@ class VaultClient:
             return False
 
     def renew_token(self) -> bool:
-        """
-        Renew the current Vault token.
-
-        Returns:
-            bool: True if renewal successful, False otherwise
-        """
         if not self.client_token:
             return self.authenticate()
 
@@ -184,20 +130,9 @@ class VaultClient:
             return self.authenticate()
 
     def get_secret(self, path: str, key: Optional[str] = None) -> Any:
-        """
-        Get a secret from Vault.
-
-        Args:
-            path: Vault path (e.g., 'backend/django')
-            key: Specific key within the secret (optional)
-
-        Returns:
-            Secret value (single key) or dict (all keys)
-        """
         if not REQUESTS_AVAILABLE:
             raise RuntimeError("Requests library not available")
 
-        # Ensure we're authenticated
         if not self.authenticate():
             raise RuntimeError("Failed to authenticate with Vault")
 
@@ -206,7 +141,6 @@ class VaultClient:
             if self.namespace:
                 headers['X-Vault-Namespace'] = self.namespace
 
-            # Build full path for KV v2
             full_path = f"{self.vault_addr}/v1/{self.mount_point}/data/{path}"
 
             response = self.session.get(full_path, headers=headers, timeout=10)
@@ -229,25 +163,14 @@ class VaultClient:
 
     @lru_cache(maxsize=128)
     def get_secret_cached(self, path: str, key: str) -> Any:
-        """
-        Get a secret from Vault with caching.
-
-        Args:
-            path: Vault path
-            key: Secret key
-
-        Returns:
-            Secret value
-        """
         return self.get_secret(path, key)
 
 
-# Global Vault client instance
 _vault_client = None
 
 
 def get_vault_client() -> VaultClient:
-    """Get or create the global Vault client instance"""
+    """Get or create the Vault client."""
     global _vault_client
     if _vault_client is None:
         _vault_client = VaultClient()
@@ -260,28 +183,7 @@ def get_vault_secret(
     vault_key: Optional[str] = None,
     default: Any = None
 ) -> Any:
-    """
-    Get a secret from Vault or fall back to environment variable.
-
-    This is the primary function for secret retrieval throughout the application.
-
-    Args:
-        env_var_name: Name of environment variable to use as fallback
-        vault_path: Vault path (e.g., 'backend/django')
-        vault_key: Key within the Vault secret (e.g., 'SECRET_KEY')
-        default: Default value if neither Vault nor env var is available
-
-    Returns:
-        Secret value from Vault, env var, or default (in that order)
-
-    Examples:
-        # Get Django SECRET_KEY
-        secret_key = get_vault_secret('SECRET_KEY', 'backend/django', 'SECRET_KEY')
-
-        # Get database password
-        db_pass = get_vault_secret('DB_PASSWORD', 'backend/database', 'DB_PASSWORD')
-    """
-    # Check if Vault is enabled
+    """Get a secret from Vault or an env var."""
     use_vault = os.getenv('USE_VAULT', 'false').lower() in ('true', '1', 'yes')
 
     if use_vault and vault_path and vault_key:
@@ -292,7 +194,6 @@ def get_vault_secret(
             )
         else:
             try:
-                # Get Vault client and retrieve secret
                 vault = get_vault_client()
                 secret_value = vault.get_secret_cached(vault_path, vault_key)
 
@@ -310,22 +211,15 @@ def get_vault_secret(
                     f"Falling back to environment variable"
                 )
 
-    # Fall back to environment variable
     env_value = os.getenv(env_var_name)
     if env_value is not None:
         return env_value
 
-    # Return default if nothing else works
     return default
 
 
 def vault_health_check() -> Dict[str, Any]:
-    """
-    Check if Vault integration is enabled and operational.
-
-    Returns:
-        dict: Health status with enabled/authenticated/operational flags
-    """
+    """Vault integration status."""
     use_vault = os.getenv('USE_VAULT', 'false').lower() in ('true', '1', 'yes')
 
     if not use_vault:
@@ -349,7 +243,6 @@ def vault_health_check() -> Dict[str, Any]:
         authenticated = vault.authenticate()
 
         if authenticated:
-            # Try to read a test secret
             try:
                 vault.get_secret('backend/django', 'SECRET_KEY')
                 operational = True

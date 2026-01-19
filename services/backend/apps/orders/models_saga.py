@@ -1,23 +1,8 @@
-"""
-Saga Persistence Models
-
-Tracks saga execution for audit, monitoring, and recovery.
-"""
-
 from django.db import models
-from django.contrib.postgres.fields import JSONField
 import uuid
 
 
 class SagaExecution(models.Model):
-    """
-    Tracks saga execution history.
-
-    Provides:
-    - Audit trail of all saga executions
-    - Recovery mechanism for failed sagas
-    - Performance monitoring
-    """
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -29,13 +14,11 @@ class SagaExecution(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    saga_type = models.CharField(max_length=100, db_index=True)  # e.g., 'checkout'
+    saga_type = models.CharField(max_length=100, db_index=True)
     saga_id = models.CharField(max_length=100, unique=True, db_index=True)
 
-    # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
 
-    # Related entities
     order = models.ForeignKey(
         'Order',
         on_delete=models.SET_NULL,
@@ -51,27 +34,22 @@ class SagaExecution(models.Model):
         related_name='saga_executions'
     )
 
-    # Execution details
-    input_data = models.JSONField(default=dict)  # Initial saga data
-    output_data = models.JSONField(default=dict)  # Final saga result
-    context_data = models.JSONField(default=dict)  # Saga context
-    step_results = models.JSONField(default=list)  # Results of each step
+    input_data = models.JSONField(default=dict)
+    output_data = models.JSONField(default=dict)
+    context_data = models.JSONField(default=dict)
+    step_results = models.JSONField(default=list)
 
-    # Steps tracking
     total_steps = models.IntegerField(default=0)
     completed_steps = models.IntegerField(default=0)
     failed_step = models.CharField(max_length=100, blank=True)
 
-    # Error tracking
     error_message = models.TextField(blank=True)
     error_details = models.JSONField(default=dict, blank=True)
 
-    # Timestamps
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.FloatField(null=True, blank=True)
 
-    # Retry tracking
     retry_count = models.IntegerField(default=0)
     parent_execution = models.ForeignKey(
         'self',
@@ -94,7 +72,6 @@ class SagaExecution(models.Model):
         return f"Saga {self.saga_type} - {self.status}"
 
     def calculate_duration(self):
-        """Calculate and update duration"""
         if self.completed_at:
             delta = self.completed_at - self.started_at
             self.duration_seconds = delta.total_seconds()
@@ -103,11 +80,6 @@ class SagaExecution(models.Model):
 
 
 class SagaStepExecution(models.Model):
-    """
-    Tracks individual step execution within a saga.
-
-    Provides detailed step-level information for debugging.
-    """
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -125,26 +97,21 @@ class SagaStepExecution(models.Model):
         related_name='steps'
     )
 
-    # Step details
     step_name = models.CharField(max_length=100)
-    step_order = models.IntegerField()  # Order in saga
+    step_order = models.IntegerField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
-    # Execution details
     input_data = models.JSONField(default=dict)
     output_data = models.JSONField(default=dict)
     error_message = models.TextField(blank=True)
 
-    # Timing
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     duration_ms = models.FloatField(null=True, blank=True)
 
-    # Retry tracking
     retry_count = models.IntegerField(default=0)
     max_retries = models.IntegerField(default=3)
 
-    # Compensation
     compensation_executed = models.BooleanField(default=False)
     compensation_at = models.DateTimeField(null=True, blank=True)
 

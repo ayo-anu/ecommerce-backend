@@ -8,7 +8,6 @@ class Command(BaseCommand):
     help = 'Process pending orders and cancel expired ones'
     
     def handle(self, *args, **kwargs):
-        # Cancel orders pending for more than 24 hours
         cutoff = timezone.now() - timedelta(hours=24)
         
         expired_orders = Order.objects.filter(
@@ -19,7 +18,6 @@ class Command(BaseCommand):
         
         count = 0
         for order in expired_orders:
-            # Restore inventory
             for item in order.items.all():
                 if item.variant:
                     item.variant.stock_quantity += item.quantity

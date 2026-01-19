@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 from core.jwks import JWKSView
+import importlib.util
 
 
 urlpatterns = [
@@ -12,6 +13,9 @@ urlpatterns = [
 
     # Health checks (for Kubernetes probes)
     path('health/', include('apps.health.urls')),
+
+    # Prometheus metrics
+    path('', include('django_prometheus.urls')),
 
     # JWKS endpoint for service authentication (RS256 public keys)
     path('.well-known/jwks.json', JWKSView.as_view(), name='jwks'),
@@ -36,10 +40,11 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
     
     # Debug toolbar
-    import debug_toolbar
-    urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
+    if importlib.util.find_spec("debug_toolbar"):
+        import debug_toolbar
+        urlpatterns = [
+            path('__debug__/', include(debug_toolbar.urls)),
+        ] + urlpatterns
 
 # Admin site customization
 admin.site.site_header = "E-Commerce Admin"

@@ -11,7 +11,6 @@ User = get_user_model()
 
 @shared_task(bind=True, max_retries=3)
 def send_email_task(self, recipient_email, subject, html_content, text_content='', template_type=''):
-    """Generic email sending task"""
     email_log = EmailLog.objects.create(
         recipient_email=recipient_email,
         subject=subject,
@@ -48,7 +47,6 @@ def send_email_task(self, recipient_email, subject, html_content, text_content='
 
 @shared_task
 def send_order_confirmation_email(order_id):
-    """Send order confirmation email"""
     from apps.orders.models import Order
     
     order = Order.objects.select_related('user').prefetch_related('items__product').get(id=order_id)
@@ -71,7 +69,6 @@ def send_order_confirmation_email(order_id):
         template_type='order_confirmation'
     )
     
-    # Create in-app notification
     Notification.objects.create(
         user=order.user,
         notification_type='order',
@@ -83,7 +80,6 @@ def send_order_confirmation_email(order_id):
 
 @shared_task
 def send_order_shipped_email(order_id):
-    """Send order shipped email"""
     from apps.orders.models import Order
     
     order = Order.objects.select_related('user').get(id=order_id)
@@ -114,7 +110,6 @@ def send_order_shipped_email(order_id):
 
 @shared_task
 def send_order_cancellation_email(order_id):
-    """Send order cancellation email"""
     from apps.orders.models import Order
     
     order = Order.objects.select_related('user').get(id=order_id)
@@ -140,13 +135,10 @@ def send_order_cancellation_email(order_id):
 
 @shared_task
 def send_verification_email(user_id):
-    """Send email verification"""
     from django.utils.crypto import get_random_string
 
     user = User.objects.get(id=user_id)
 
-    # Generate token (already saved in serializer create method)
-    # Check if token exists, if not create one
     if not user.email_verification_token:
         token = get_random_string(64)
         user.email_verification_token = token
@@ -173,7 +165,6 @@ def send_verification_email(user_id):
 
 @shared_task
 def send_password_reset_email(user_id, token):
-    """Send password reset email"""
     user = User.objects.get(id=user_id)
     reset_link = f"{settings.FRONTEND_URL}/reset-password?token={token}"
     
@@ -194,7 +185,6 @@ def send_password_reset_email(user_id, token):
 
 @shared_task
 def send_welcome_email(user_id):
-    """Send welcome email to new users"""
     user = User.objects.get(id=user_id)
     
     context = {'user': user}
@@ -210,7 +200,6 @@ def send_welcome_email(user_id):
 
 @shared_task
 def send_low_stock_alert(product_id):
-    """Alert admin about low stock"""
     from apps.products.models import Product
     
     product = Product.objects.get(id=product_id)
@@ -234,7 +223,6 @@ def send_low_stock_alert(product_id):
 
 @shared_task
 def cleanup_old_notifications():
-    """Delete read notifications older than 30 days"""
     from datetime import timedelta
     from django.utils import timezone
     

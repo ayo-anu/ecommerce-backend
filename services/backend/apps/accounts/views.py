@@ -23,32 +23,27 @@ User = get_user_model()
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Custom serializer to include user data in token response"""
     
     def validate(self, attrs):
         data = super().validate(attrs)
         
-        # Add user data to response
         data['user'] = UserSerializer(self.user).data
         
         return data
 
 
 class LoginView(TokenObtainPairView):
-    """Login endpoint that returns tokens + user data"""
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
 
 
 class UserRegistrationView(generics.CreateAPIView):
-    """Register new user"""
     queryset = User.objects.all()
     permission_classes = [AllowAny]
     serializer_class = UserRegistrationSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """User management endpoints"""
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
@@ -61,13 +56,11 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def me(self, request):
-        """Get current user profile"""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
     
     @action(detail=False, methods=['post'])
     def change_password(self, request):
-        """Change user password"""
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         
@@ -80,20 +73,17 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def upload_avatar(self, request):
-        """Upload user avatar"""
         if 'avatar' not in request.FILES:
             return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
         
         avatar_file = request.FILES['avatar']
         
-        # Validate file size (max 5MB)
         if avatar_file.size > 5 * 1024 * 1024:
             return Response(
                 {'error': 'File too large. Maximum size is 5MB'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validate file type
         allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
         if avatar_file.content_type not in allowed_types:
             return Response(
@@ -101,11 +91,10 @@ class UserViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Verify it's actually an image (prevents malicious files)
         try:
             img = Image.open(avatar_file)
             img.verify()
-            avatar_file.seek(0)  # Reset file pointer after verify
+            avatar_file.seek(0)
         except Exception as e:
             return Response(
                 {'error': 'Invalid or corrupted image file'}, 
@@ -125,7 +114,6 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['patch'])
     def update_preferences(self, request):
-        """Update user preferences"""
         profile = request.user.profile
         serializer = UserProfileSerializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -135,7 +123,6 @@ class UserViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def verify_email(self, request):
-        """Verify user email with token"""
         token = request.data.get('token')
         
         try:
@@ -153,7 +140,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class AddressViewSet(viewsets.ModelViewSet):
-    """User address management"""
     permission_classes = [IsAuthenticated]
     serializer_class = AddressSerializer
     
@@ -162,10 +148,8 @@ class AddressViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def set_default(self, request, pk=None):
-        """Set address as default"""
         address = self.get_object()
         
-        # Unset other default addresses of same type
         Address.objects.filter(
             user=request.user,
             address_type=address.address_type,
@@ -179,13 +163,11 @@ class AddressViewSet(viewsets.ModelViewSet):
 
 
 class PasswordResetViewSet(viewsets.ViewSet):
-    """Password reset functionality"""
     permission_classes = [AllowAny]
     
     @method_decorator(ratelimit(key='ip', rate='5/h', method='POST'))
     @action(detail=False, methods=['post'])
     def request_reset(self, request):
-        """Request password reset"""
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -193,14 +175,11 @@ class PasswordResetViewSet(viewsets.ViewSet):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # Don't reveal that user doesn't exist (security best practice)
             return Response({'message': 'If that email exists, a reset link has been sent'})
         
-        # Generate reset token
         token = get_random_string(64)
-        cache.set(f'password_reset_{token}', user.id, 3600)  # 1 hour expiry
+        cache.set(f'password_reset_{token}', user.id, 3600)
         
-        # Send reset email
         from apps.notifications.tasks import send_password_reset_email
         send_password_reset_email.delay(user.id, token)
         
@@ -208,7 +187,6 @@ class PasswordResetViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['post'])
     def confirm_reset(self, request):
-        """Confirm password reset with token"""
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -226,7 +204,6 @@ class PasswordResetViewSet(viewsets.ViewSet):
             user.set_password(serializer.validated_data['new_password'])
             user.save()
             
-            # Delete token
             cache.delete(f'password_reset_{token}')
             
             return Response({'message': 'Password reset successful'})

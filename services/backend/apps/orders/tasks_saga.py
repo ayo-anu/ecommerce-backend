@@ -1,9 +1,3 @@
-"""
-Celery Tasks for Saga Execution
-
-Provides async saga execution and post-processing tasks.
-"""
-
 import logging
 from celery import shared_task
 from django.utils import timezone
@@ -11,27 +5,18 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
+# Run the checkout saga asynchronously.
 @shared_task(
     bind=True,
-    max_retries=0,  # Saga handles retries internally
-    time_limit=300,  # 5 minutes max
+    max_retries=0,
+    time_limit=300,
 )
 def execute_checkout_saga_async(self, checkout_data: dict) -> dict:
-    """
-    Execute checkout saga asynchronously.
-
-    Args:
-        checkout_data: Checkout data dictionary
-
-    Returns:
-        Saga execution result
-    """
     from core.checkout_saga import CheckoutSaga
     from apps.orders.models_saga import SagaExecution
 
     logger.info(f"Starting async checkout saga for user {checkout_data.get('user_id')}")
 
-    # Create saga execution record
     saga_execution = SagaExecution.objects.create(
         saga_type='checkout',
         saga_id=f"checkout_{timezone.now().timestamp()}",
@@ -42,17 +27,14 @@ def execute_checkout_saga_async(self, checkout_data: dict) -> dict:
     )
 
     try:
-        # Execute saga
         result = CheckoutSaga.execute(checkout_data)
 
-        # Update saga execution
         saga_execution.status = result['status']
         saga_execution.output_data = result
         saga_execution.completed_at = timezone.now()
         saga_execution.calculate_duration()
 
         if result['status'] == 'completed':
-            # Extract order ID from result
             order_id = result['data'].get('confirm_order_result', {}).get('order_id')
             if order_id:
                 from apps.orders.models import Order
@@ -60,9 +42,8 @@ def execute_checkout_saga_async(self, checkout_data: dict) -> dict:
                     order = Order.objects.get(id=order_id)
                     saga_execution.order = order
                 except Order.DoesNotExist:
-                    pass
+                    logger.debug("Order %s not found for saga execution", order_id)
 
-            # Trigger post-checkout tasks
             send_order_confirmation_email.delay(order_id)
             update_analytics.delay(order_id)
 
@@ -76,7 +57,6 @@ def execute_checkout_saga_async(self, checkout_data: dict) -> dict:
         return result
 
     except Exception as e:
-        # Update saga execution with error
         saga_execution.status = 'failed'
         saga_execution.error_message = str(e)
         saga_execution.completed_at = timezone.now()
@@ -92,14 +72,9 @@ def execute_checkout_saga_async(self, checkout_data: dict) -> dict:
         raise
 
 
+# Send order confirmation email.
 @shared_task(bind=True, max_retries=3)
 def send_order_confirmation_email(self, order_id: str):
-    """
-    Send order confirmation email.
-
-    Args:
-        order_id: Order ID
-    """
     from apps.orders.models import Order
     from apps.notifications.tasks import send_email
 
@@ -108,7 +83,6 @@ def send_order_confirmation_email(self, order_id: str):
 
         logger.info(f"Sending confirmation email for order {order.order_number}")
 
-        # Send email
         send_email.delay(
             template='order_confirmation',
             to_email=order.shipping_email,
@@ -144,14 +118,9 @@ def send_order_confirmation_email(self, order_id: str):
         raise self.retry(exc=e, countdown=60)
 
 
+# Update analytics for a completed order.
 @shared_task
 def update_analytics(order_id: str):
-    """
-    Update analytics after successful order.
-
-    Args:
-        order_id: Order ID
-    """
     from apps.orders.models import Order
     from apps.analytics.models import DailySales, ProductAnalytics
 
@@ -160,16 +129,14 @@ def update_analytics(order_id: str):
 
         logger.info(f"Updating analytics for order {order.order_number}")
 
-        # Update daily sales
         date = order.created_at.date()
-        daily_sales, created = DailySales.objects.get_or_create(date=date)
+        daily_sales, _ = DailySales.objects.get_or_create(date=date)
         daily_sales.orders_count += 1
         daily_sales.revenue += order.total
         daily_sales.save()
 
-        # Update product analytics
         for item in order.items.all():
-            analytics, created = ProductAnalytics.objects.get_or_create(
+            analytics, _ = ProductAnalytics.objects.get_or_create(
                 product=item.product
             )
             analytics.purchase_count += item.quantity
@@ -184,13 +151,9 @@ def update_analytics(order_id: str):
         logger.error(f"Failed to update analytics: {e}", exc_info=True)
 
 
+# Delete failed/aborted sagas older than 30 days.
 @shared_task
 def cleanup_failed_sagas():
-    """
-    Cleanup old failed saga executions.
-
-    Runs daily to cleanup sagas older than 30 days.
-    """
     from apps.orders.models_saga import SagaExecution
     from datetime import timedelta
     from django.utils import timezone
@@ -207,14 +170,9 @@ def cleanup_failed_sagas():
     return {'deleted_count': deleted_count}
 
 
+# Retry a failed saga execution.
 @shared_task
 def retry_failed_saga(saga_execution_id: str):
-    """
-    Retry a failed saga execution.
-
-    Args:
-        saga_execution_id: Saga execution ID to retry
-    """
     from apps.orders.models_saga import SagaExecution
 
     try:
@@ -226,12 +184,9 @@ def retry_failed_saga(saga_execution_id: str):
 
         logger.info(f"Retrying failed saga {saga_execution_id}")
 
-        # Create new saga execution as retry
         result = execute_checkout_saga_async.delay(saga_execution.input_data)
 
-        # Link to parent
         if result:
-            # Update retry tracking
             saga_execution.retry_count += 1
             saga_execution.save()
 
@@ -244,16 +199,9 @@ def retry_failed_saga(saga_execution_id: str):
         raise
 
 
+# Check saga health and log anomalies.
 @shared_task
 def monitor_saga_health():
-    """
-    Monitor saga execution health.
-
-    Checks for:
-    - Long-running sagas
-    - High failure rates
-    - Stuck sagas
-    """
     from apps.orders.models_saga import SagaExecution
     from datetime import timedelta
     from django.utils import timezone
@@ -261,7 +209,6 @@ def monitor_saga_health():
 
     logger.info("Running saga health check")
 
-    # Check for long-running sagas (> 10 minutes)
     long_running_cutoff = timezone.now() - timedelta(minutes=10)
     long_running = SagaExecution.objects.filter(
         status='running',
@@ -271,7 +218,6 @@ def monitor_saga_health():
     if long_running.exists():
         logger.warning(f"Found {long_running.count()} long-running sagas")
 
-    # Check failure rate in last hour
     one_hour_ago = timezone.now() - timedelta(hours=1)
     recent_sagas = SagaExecution.objects.filter(started_at__gte=one_hour_ago)
 
@@ -288,7 +234,6 @@ def monitor_saga_health():
         f"failure rate: {failure_rate:.2f}%"
     )
 
-    # Alert if failure rate > 10%
     if failure_rate > 10:
         logger.error(f"HIGH FAILURE RATE: {failure_rate:.2f}%")
 

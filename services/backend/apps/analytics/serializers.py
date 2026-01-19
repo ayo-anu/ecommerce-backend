@@ -40,7 +40,6 @@ class SalesReportSerializer(serializers.ModelSerializer):
 
 
 class DashboardStatsSerializer(serializers.Serializer):
-    """Serializer for dashboard overview statistics"""
     total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_orders = serializers.IntegerField()
     total_customers = serializers.IntegerField()

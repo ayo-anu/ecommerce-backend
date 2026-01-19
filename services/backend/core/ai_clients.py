@@ -1,18 +1,4 @@
-"""
-AI Service Clients for Django Backend
-
-Provides easy-to-use clients for calling AI microservices with
-built-in resilience (circuit breakers, retries, timeouts).
-
-Usage:
-    from core.ai_clients import recommendation_client, fraud_client
-
-    # Get recommendations
-    response = recommendation_client.get_user_recommendations(user_id=123)
-
-    # Analyze fraud
-    response = fraud_client.analyze_transaction(transaction_data)
-"""
+"""Clients for AI microservices with retries and fallbacks."""
 
 import logging
 from typing import Dict, List, Any, Optional
@@ -35,16 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class AIServiceClient:
-    """Base class for AI service clients"""
+    """Base AI client."""
 
     def __init__(self, service_name: str, base_url: str):
-        """
-        Initialize AI service client.
-
-        Args:
-            service_name: Name of the service (for circuit breaker)
-            base_url: Base URL of the service
-        """
         self.service_name = service_name
         self.base_url = base_url.rstrip('/')
         self.client = get_ai_service_client(service_name)
@@ -55,27 +34,15 @@ class AIServiceClient:
         endpoint: str,
         **kwargs
     ) -> Optional[Dict[str, Any]]:
-        """
-        Make HTTP request to AI service.
-
-        Args:
-            method: HTTP method (GET, POST, etc.)
-            endpoint: API endpoint path
-            **kwargs: Additional request arguments
-
-        Returns:
-            Response JSON data or None on failure
-        """
         url = urljoin(self.base_url, endpoint)
 
-        # Inject trace context into headers for distributed tracing
         headers = kwargs.get('headers', {})
         try:
             from opentelemetry.propagate import inject
             inject(headers)
             kwargs['headers'] = headers
         except ImportError:
-            pass  # OpenTelemetry not installed
+            logger.debug("OpenTelemetry not installed; skipping trace headers")
 
         try:
             if method.upper() == 'GET':
@@ -107,7 +74,7 @@ class AIServiceClient:
 
 
 class RecommendationClient(AIServiceClient):
-    """Client for Recommendation Engine service"""
+    """Recommendation service client."""
 
     def __init__(self):
         super().__init__(
@@ -121,17 +88,6 @@ class RecommendationClient(AIServiceClient):
         limit: int = 10,
         filters: Optional[Dict] = None
     ) -> Optional[List[Dict]]:
-        """
-        Get personalized product recommendations for a user.
-
-        Args:
-            user_id: User ID
-            limit: Number of recommendations
-            filters: Optional filters (category, price_range, etc.)
-
-        Returns:
-            List of recommended products (uses fallback if service fails)
-        """
         params = {'limit': limit}
         if filters:
             params.update(filters)
@@ -142,7 +98,6 @@ class RecommendationClient(AIServiceClient):
             params=params
         )
 
-        # Use fallback if service failed
         if response is None:
             return recommendation_fallback.get_user_recommendations(
                 user_id, limit, filters
@@ -155,23 +110,12 @@ class RecommendationClient(AIServiceClient):
         product_id: int,
         limit: int = 5
     ) -> Optional[List[Dict]]:
-        """
-        Get products similar to a given product.
-
-        Args:
-            product_id: Product ID
-            limit: Number of similar products
-
-        Returns:
-            List of similar products (uses fallback if service fails)
-        """
         response = self._make_request(
             'GET',
             f'/recommendations/product/{product_id}/similar',
             params={'limit': limit}
         )
 
-        # Use fallback if service failed
         if response is None:
             return recommendation_fallback.get_similar_products(product_id, limit)
 
@@ -183,17 +127,6 @@ class RecommendationClient(AIServiceClient):
         product_id: int,
         interaction_type: str
     ) -> bool:
-        """
-        Record user-product interaction.
-
-        Args:
-            user_id: User ID
-            product_id: Product ID
-            interaction_type: Type of interaction (view, click, purchase)
-
-        Returns:
-            True if successful, False otherwise
-        """
         response = self._make_request(
             'POST',
             '/recommendations/interaction',
@@ -208,7 +141,7 @@ class RecommendationClient(AIServiceClient):
 
 
 class SearchClient(AIServiceClient):
-    """Client for Search Engine service"""
+    """Search service client."""
 
     def __init__(self):
         super().__init__(
@@ -222,17 +155,6 @@ class SearchClient(AIServiceClient):
         filters: Optional[Dict] = None,
         limit: int = 20
     ) -> Optional[List[Dict]]:
-        """
-        Search for products using semantic search.
-
-        Args:
-            query: Search query
-            filters: Optional filters
-            limit: Number of results
-
-        Returns:
-            List of search results (uses fallback if service fails)
-        """
         response = self._make_request(
             'POST',
             '/search/text',
@@ -243,23 +165,12 @@ class SearchClient(AIServiceClient):
             }
         )
 
-        # Use fallback if service failed
         if response is None:
             return search_fallback.search_products(query, filters, limit)
 
         return response.get('results')
 
     def autocomplete(self, query: str, limit: int = 5) -> Optional[List[str]]:
-        """
-        Get autocomplete suggestions.
-
-        Args:
-            query: Partial search query
-            limit: Number of suggestions
-
-        Returns:
-            List of suggestions or None
-        """
         response = self._make_request(
             'POST',
             '/search/autocomplete',
@@ -270,7 +181,7 @@ class SearchClient(AIServiceClient):
 
 
 class PricingClient(AIServiceClient):
-    """Client for Pricing Engine service"""
+    """Pricing service client."""
 
     def __init__(self):
         super().__init__(
@@ -284,17 +195,6 @@ class PricingClient(AIServiceClient):
         cost: float,
         competitor_prices: Optional[List[float]] = None
     ) -> Optional[Dict]:
-        """
-        Get recommended price for a product.
-
-        Args:
-            product_id: Product ID
-            cost: Product cost
-            competitor_prices: List of competitor prices
-
-        Returns:
-            Pricing recommendation (uses fallback if service fails)
-        """
         response = self._make_request(
             'POST',
             '/pricing/recommend',
@@ -305,7 +205,6 @@ class PricingClient(AIServiceClient):
             }
         )
 
-        # Use fallback if service failed
         if response is None:
             return pricing_fallback.recommend_price(
                 product_id, cost, competitor_prices
@@ -315,7 +214,7 @@ class PricingClient(AIServiceClient):
 
 
 class FraudClient(AIServiceClient):
-    """Client for Fraud Detection service"""
+    """Fraud detection client."""
 
     def __init__(self):
         super().__init__(
@@ -327,15 +226,6 @@ class FraudClient(AIServiceClient):
         self,
         transaction_data: Dict[str, Any]
     ) -> Optional[Dict]:
-        """
-        Analyze transaction for fraud risk.
-
-        Args:
-            transaction_data: Transaction details (amount, user_id, etc.)
-
-        Returns:
-            Fraud analysis result with risk_score (uses fallback if service fails)
-        """
         response = self._make_request(
             'POST',
             '/fraud/analyze',
@@ -343,7 +233,6 @@ class FraudClient(AIServiceClient):
             timeout=(5.0, 10.0)  # Shorter timeout for fraud checks
         )
 
-        # Use fallback if service failed - CRITICAL for fraud detection
         if response is None:
             return fraud_fallback.analyze_transaction(transaction_data)
 
@@ -351,7 +240,7 @@ class FraudClient(AIServiceClient):
 
 
 class ForecastingClient(AIServiceClient):
-    """Client for Demand Forecasting service"""
+    """Demand forecasting client."""
 
     def __init__(self):
         super().__init__(
@@ -364,16 +253,6 @@ class ForecastingClient(AIServiceClient):
         product_id: int,
         days_ahead: int = 30
     ) -> Optional[Dict]:
-        """
-        Forecast product demand.
-
-        Args:
-            product_id: Product ID
-            days_ahead: Number of days to forecast
-
-        Returns:
-            Demand forecast (uses fallback if service fails)
-        """
         response = self._make_request(
             'POST',
             '/forecast/demand',
@@ -383,7 +262,6 @@ class ForecastingClient(AIServiceClient):
             }
         )
 
-        # Use fallback if service failed
         if response is None:
             return forecasting_fallback.forecast_demand(product_id, days_ahead)
 
@@ -391,7 +269,7 @@ class ForecastingClient(AIServiceClient):
 
 
 class ChatbotClient(AIServiceClient):
-    """Client for Chatbot RAG service"""
+    """Chatbot client."""
 
     def __init__(self):
         super().__init__(
@@ -405,17 +283,6 @@ class ChatbotClient(AIServiceClient):
         conversation_id: Optional[str] = None,
         user_id: Optional[int] = None
     ) -> Optional[Dict]:
-        """
-        Send message to chatbot.
-
-        Args:
-            message: User message
-            conversation_id: Optional conversation ID
-            user_id: Optional user ID for context
-
-        Returns:
-            Chatbot response (uses fallback if service fails)
-        """
         response = self._make_request(
             'POST',
             '/chat/message',
@@ -426,7 +293,6 @@ class ChatbotClient(AIServiceClient):
             }
         )
 
-        # Use fallback if service failed
         if response is None:
             return chatbot_fallback.send_message(message, conversation_id, user_id)
 
@@ -434,7 +300,7 @@ class ChatbotClient(AIServiceClient):
 
 
 class VisionClient(AIServiceClient):
-    """Client for Visual Recognition service"""
+    """Vision service client."""
 
     def __init__(self):
         super().__init__(
@@ -447,16 +313,6 @@ class VisionClient(AIServiceClient):
         image_url: Optional[str] = None,
         image_data: Optional[bytes] = None
     ) -> Optional[Dict]:
-        """
-        Analyze product image.
-
-        Args:
-            image_url: URL of image
-            image_data: Raw image bytes
-
-        Returns:
-            Image analysis result (uses fallback if service fails)
-        """
         if image_url:
             response = self._make_request(
                 'POST',
@@ -472,14 +328,12 @@ class VisionClient(AIServiceClient):
         else:
             raise ValueError("Either image_url or image_data must be provided")
 
-        # Use fallback if service failed
         if response is None:
             return vision_fallback.analyze_image(image_url, image_data)
 
         return response
 
 
-# Global client instances (lazy initialization)
 _recommendation_client = None
 _search_client = None
 _pricing_client = None
@@ -490,7 +344,7 @@ _vision_client = None
 
 
 def get_recommendation_client() -> RecommendationClient:
-    """Get global recommendation client instance"""
+    """Get the recommendation client."""
     global _recommendation_client
     if _recommendation_client is None:
         _recommendation_client = RecommendationClient()
@@ -498,7 +352,7 @@ def get_recommendation_client() -> RecommendationClient:
 
 
 def get_search_client() -> SearchClient:
-    """Get global search client instance"""
+    """Get the search client."""
     global _search_client
     if _search_client is None:
         _search_client = SearchClient()
@@ -506,7 +360,7 @@ def get_search_client() -> SearchClient:
 
 
 def get_pricing_client() -> PricingClient:
-    """Get global pricing client instance"""
+    """Get the pricing client."""
     global _pricing_client
     if _pricing_client is None:
         _pricing_client = PricingClient()
@@ -514,7 +368,7 @@ def get_pricing_client() -> PricingClient:
 
 
 def get_fraud_client() -> FraudClient:
-    """Get global fraud client instance"""
+    """Get the fraud client."""
     global _fraud_client
     if _fraud_client is None:
         _fraud_client = FraudClient()
@@ -522,7 +376,7 @@ def get_fraud_client() -> FraudClient:
 
 
 def get_forecasting_client() -> ForecastingClient:
-    """Get global forecasting client instance"""
+    """Get the forecasting client."""
     global _forecasting_client
     if _forecasting_client is None:
         _forecasting_client = ForecastingClient()
@@ -530,7 +384,7 @@ def get_forecasting_client() -> ForecastingClient:
 
 
 def get_chatbot_client() -> ChatbotClient:
-    """Get global chatbot client instance"""
+    """Get the chatbot client."""
     global _chatbot_client
     if _chatbot_client is None:
         _chatbot_client = ChatbotClient()
@@ -538,14 +392,13 @@ def get_chatbot_client() -> ChatbotClient:
 
 
 def get_vision_client() -> VisionClient:
-    """Get global vision client instance"""
+    """Get the vision client."""
     global _vision_client
     if _vision_client is None:
         _vision_client = VisionClient()
     return _vision_client
 
 
-# Convenience aliases
 recommendation_client = get_recommendation_client()
 search_client = get_search_client()
 pricing_client = get_pricing_client()

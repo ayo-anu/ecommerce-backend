@@ -325,20 +325,9 @@ if os.getenv('DJANGO_ENV') == 'development':
 # ==============================================================================
 
 def configure_celery(app):
-    """
-    Configure Celery app with settings from this module.
-
-    Usage:
-        from celery import Celery
-        from core.celery_config import configure_celery
-
-        app = Celery('myapp')
-        configure_celery(app)
-    """
-    # Load all settings from this module
+    """Configure a Celery app from this module."""
     app.config_from_object(__name__)
 
-    # Auto-discover tasks from all installed apps
     app.autodiscover_tasks()
 
     return app

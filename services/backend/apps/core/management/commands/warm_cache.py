@@ -1,7 +1,3 @@
-"""
-Management command to warm up application caches.
-Usage: python manage.py warm_cache [--categories] [--products] [--all]
-"""
 from django.core.management.base import BaseCommand
 from django.core.cache import cache
 from apps.products.models import Product, Category, ProductImage
@@ -43,7 +39,7 @@ class Command(BaseCommand):
             options['products'] = True
             options['featured'] = True
 
-        if not any([options['categories'], options['products'], options['featured']]):
+        if not any((options['categories'], options['products'], options['featured'])):
             self.stdout.write(
                 self.style.WARNING('No cache warming options specified. Use --help for options.')
             )
@@ -62,11 +58,9 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS('\nCache warming complete!'))
 
-        # Show cache stats
         self.show_cache_stats()
 
     def warm_categories(self):
-        """Warm category cache"""
         self.stdout.write('Warming category cache...')
 
         categories = list(
@@ -76,7 +70,7 @@ class Command(BaseCommand):
 
         for category in categories:
             cache_key = f'category:{category.id}'
-            cache.set(cache_key, category, timeout=3600)  # 1 hour
+            cache.set(cache_key, category, timeout=3600)
 
             cache_key_slug = f'category:slug:{category.slug}'
             cache.set(cache_key_slug, category, timeout=3600)
@@ -86,10 +80,8 @@ class Command(BaseCommand):
         )
 
     def warm_products(self):
-        """Warm product cache for popular products"""
         self.stdout.write('Warming product cache...')
 
-        # Cache top 100 products by views/popularity
         products = list(
             Product.objects.filter(is_active=True)
             .select_related('category')
@@ -98,15 +90,13 @@ class Command(BaseCommand):
                 'variants',
                 'tags'
             )
-            .order_by('-created_at')[:100]  # Top 100 recent products
+            .order_by('-created_at')[:100]
         )
 
         for product in products:
-            # Cache product detail
             cache_key = f'product_detail:{product.id}'
-            cache.set(cache_key, product, timeout=900)  # 15 minutes
+            cache.set(cache_key, product, timeout=900)
 
-            # Cache product by slug
             cache_key_slug = f'product:slug:{product.slug}'
             cache.set(cache_key_slug, product, timeout=900)
 
@@ -115,7 +105,6 @@ class Command(BaseCommand):
         )
 
     def warm_featured_products(self):
-        """Warm featured products cache"""
         self.stdout.write('Warming featured products cache...')
 
         featured_products = list(
@@ -128,14 +117,13 @@ class Command(BaseCommand):
         )
 
         cache_key = 'featured_products'
-        cache.set(cache_key, featured_products, timeout=1800)  # 30 minutes
+        cache.set(cache_key, featured_products, timeout=1800)
 
         self.stdout.write(
             self.style.SUCCESS(f'  Cached {len(featured_products)} featured products')
         )
 
     def show_cache_stats(self):
-        """Show cache statistics"""
         try:
             from apps.core.cache_utils import CacheStats
 

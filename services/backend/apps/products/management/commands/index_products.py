@@ -9,7 +9,6 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         self.stdout.write('Indexing products...')
         
-        # Rebuild the index
         ProductDocument().update(Product.objects.all())
         
         count = Product.objects.count()
