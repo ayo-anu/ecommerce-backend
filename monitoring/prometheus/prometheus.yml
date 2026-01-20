@@ -1,32 +1,23 @@
-# Prometheus Configuration for E-Commerce Platform
 
 global:
-  scrape_interval: 15s      # Scrape targets every 15 seconds
-  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  scrape_interval: 15s
+  evaluation_interval: 15s
   scrape_timeout: 10s
 
   external_labels:
     cluster: 'ecommerce-platform'
     environment: 'production'
 
-# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # Uncomment when Alertmanager is deployed
-          # - 'alertmanager:9093'
 
-# Load rules from files
 rule_files:
   - 'alerts/*.yml'
   - 'recording_rules/*.yml'
 
-# Scrape configurations
 scrape_configs:
-  # ===========================================
-  # 1. PROMETHEUS SELF-MONITORING
-  # ===========================================
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
@@ -34,9 +25,6 @@ scrape_configs:
           service: 'prometheus'
           tier: 'monitoring'
 
-  # ===========================================
-  # 2. BACKEND SERVICES
-  # ===========================================
   - job_name: 'backend-api'
     metrics_path: '/metrics'
     static_configs:
@@ -46,9 +34,6 @@ scrape_configs:
           tier: 'api'
           component: 'django'
 
-  # ===========================================
-  # 3. API GATEWAY
-  # ===========================================
   - job_name: 'api-gateway'
     metrics_path: '/metrics'
     static_configs:
@@ -58,9 +43,6 @@ scrape_configs:
           tier: 'gateway'
           component: 'fastapi'
 
-  # ===========================================
-  # 4. AI MICROSERVICES
-  # ===========================================
   - job_name: 'ai-recommendation-engine'
     metrics_path: '/metrics'
     static_configs:
@@ -124,9 +106,6 @@ scrape_configs:
           tier: 'ai'
           component: 'ml-service'
 
-  # ===========================================
-  # 5. VECTOR DB
-  # ===========================================
   - job_name: 'qdrant'
     metrics_path: '/metrics'
     static_configs:
@@ -135,5 +114,3 @@ scrape_configs:
           service: 'qdrant'
           tier: 'vector-db'
 
-# Recording rules for pre-computed metrics
-# These improve dashboard query performance

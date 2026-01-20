@@ -1,10 +1,5 @@
-# Business Metrics Alerts
-# Alerts for critical business KPIs and revenue-impacting issues
 
 groups:
-  # ===========================================
-  # CHECKOUT & PAYMENT ALERTS
-  # ===========================================
   - name: checkout_alerts
     interval: 1m
     rules:
@@ -54,9 +49,6 @@ groups:
           impact: "Potential revenue impact"
           action: "Check for site issues, marketing campaigns, or seasonal factors"
 
-  # ===========================================
-  # ORDER PROCESSING ALERTS
-  # ===========================================
   - name: order_alerts
     interval: 1m
     rules:
@@ -89,9 +81,6 @@ groups:
           impact: "Delayed order fulfillment"
           action: "Scale order processing workers"
 
-  # ===========================================
-  # SEARCH & DISCOVERY ALERTS
-  # ===========================================
   - name: search_alerts
     interval: 1m
     rules:
@@ -125,9 +114,6 @@ groups:
           impact: "Poor user experience, lost sales"
           action: "Review search index, synonyms, and product catalog"
 
-  # ===========================================
-  # RECOMMENDATION ENGINE ALERTS
-  # ===========================================
   - name: recommendation_alerts
     interval: 1m
     rules:
@@ -158,9 +144,6 @@ groups:
           impact: "Recommendations not engaging users"
           action: "Review model performance and retrain if needed"
 
-  # ===========================================
-  # INVENTORY & PRICING ALERTS
-  # ===========================================
   - name: inventory_alerts
     interval: 5m
     rules:
@@ -189,9 +172,6 @@ groups:
           impact: "Products may show incorrect prices"
           action: "Check pricing engine logs and fallback logic"
 
-  # ===========================================
-  # USER AUTHENTICATION ALERTS
-  # ===========================================
   - name: auth_alerts
     interval: 1m
     rules:
@@ -223,9 +203,6 @@ groups:
           impact: "Potential brute force attack"
           action: "Review rate limiting and implement additional security measures"
 
-  # ===========================================
-  # CUSTOMER EXPERIENCE ALERTS
-  # ===========================================
   - name: customer_experience_alerts
     interval: 5m
     rules:
@@ -257,9 +234,6 @@ groups:
           impact: "Potential product or service issue"
           action: "Review recent tickets for patterns"
 
-  # ===========================================
-  # REVENUE TRACKING ALERTS
-  # ===========================================
   - name: revenue_alerts
     interval: 5m
     rules:

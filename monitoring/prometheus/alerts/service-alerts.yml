@@ -2,7 +2,6 @@ groups:
   - name: Service Health
     interval: 30s
     rules:
-      # Service Down
       - alert: ServiceDown
         expr: service_up == 0
         for: 2m
@@ -15,7 +14,6 @@ groups:
           runbook_url: "https://runbook.example.com/service-down"
           dashboard_url: "https://grafana.example.com/d/services/ai-services-overview"
 
-      # High Error Rate
       - alert: HighErrorRate
         expr: |
           (
@@ -32,7 +30,6 @@ groups:
           description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.service }} (threshold: 5%)"
           runbook_url: "https://runbook.example.com/high-error-rate"
 
-      # Elevated 4xx Rate
       - alert: Elevated4xxRate
         expr: |
           (
@@ -49,7 +46,6 @@ groups:
           description: "4xx error rate is {{ $value | humanizePercentage }} on {{ $labels.service }} (threshold: 10%)"
           runbook_url: "https://runbook.example.com/client-errors"
 
-      # Model Inference Slow
       - alert: ModelInferenceSlow
         expr: |
           histogram_quantile(0.95,
@@ -65,7 +61,6 @@ groups:
           description: "p95 inference time is {{ $value | humanizeDuration }} for {{ $labels.model_name }} in {{ $labels.service }}"
           runbook_url: "https://runbook.example.com/model-performance"
 
-      # No Traffic
       - alert: NoTraffic
         expr: |
           sum by (service) (rate(http_requests_total[5m])) == 0
@@ -81,7 +76,6 @@ groups:
   - name: Infrastructure
     interval: 1m
     rules:
-      # High CPU Usage
       - alert: HighCPUUsage
         expr: |
           rate(process_cpu_seconds_total[5m]) * 100 > 80
@@ -94,7 +88,6 @@ groups:
           description: "CPU usage is {{ $value | humanize }}% on {{ $labels.service }}"
           runbook_url: "https://runbook.example.com/high-cpu"
 
-      # High Memory Usage
       - alert: HighMemoryUsage
         expr: |
           (process_resident_memory_bytes / 1024 / 1024 / 1024) > 2
@@ -107,7 +100,6 @@ groups:
           description: "Memory usage is {{ $value | humanize }}GB on {{ $labels.service }}"
           runbook_url: "https://runbook.example.com/high-memory"
 
-      # Database Connection Pool Exhaustion
       - alert: DatabaseConnectionPoolHigh
         expr: db_connections_active > 80
         for: 5m
@@ -119,7 +111,6 @@ groups:
           description: "Active connections: {{ $value | humanize }} (threshold: 80)"
           runbook_url: "https://runbook.example.com/db-connections"
 
-      # Low Cache Hit Rate
       - alert: LowCacheHitRate
         expr: |
           rate(cache_hits_total[5m])
@@ -135,7 +126,6 @@ groups:
           description: "Cache hit rate is {{ $value | humanizePercentage }} (threshold: 70%)"
           runbook_url: "https://runbook.example.com/cache-performance"
 
-      # Database Query Slow
       - alert: DatabaseQuerySlow
         expr: |
           histogram_quantile(0.95,
@@ -150,7 +140,6 @@ groups:
           description: "p95 query duration is {{ $value | humanizeDuration }} (threshold: 1s)"
           runbook_url: "https://runbook.example.com/slow-queries"
 
-      # Disk Space Low
       - alert: DiskSpaceLow
         expr: |
           (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15

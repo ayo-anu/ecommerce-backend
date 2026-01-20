@@ -1,10 +1,7 @@
-# Grafana Datasources Configuration
-# Auto-provisioned datasources for the e-commerce platform
 
 apiVersion: 1
 
 datasources:
-  # Prometheus - Primary metrics datasource
   - name: Prometheus
     type: prometheus
     access: proxy
@@ -17,7 +14,6 @@ datasources:
       httpMethod: POST
     version: 1
 
-  # PostgreSQL Backend - For business metrics queries
   - name: PostgreSQL-Backend
     type: postgres
     access: proxy
@@ -37,7 +33,6 @@ datasources:
       timescaledb: false
     version: 1
 
-  # PostgreSQL AI Services - For ML metrics
   - name: PostgreSQL-AI
     type: postgres
     access: proxy

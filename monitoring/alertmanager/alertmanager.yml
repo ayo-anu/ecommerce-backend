@@ -1,17 +1,14 @@
 global:
   resolve_timeout: 5m
-  # SMTP configuration for email alerts
   smtp_smarthost: 'smtp.gmail.com:587'
   smtp_from: 'alerts@example.com'
   smtp_auth_username: 'alerts@example.com'
   smtp_auth_password: '${SMTP_PASSWORD}'
   smtp_require_tls: true
 
-# Templates
 templates:
   - '/etc/alertmanager/templates/*.tmpl'
 
-# Routing tree
 route:
   receiver: 'default'
   group_by: ['alertname', 'cluster', 'service']
@@ -20,7 +17,6 @@ route:
   repeat_interval: 12h
 
   routes:
-    # Critical alerts - page immediately
     - match:
         severity: critical
       receiver: 'pagerduty-critical'
@@ -28,44 +24,37 @@ route:
       repeat_interval: 5m
       continue: true
 
-    # Critical alerts - also send to Slack
     - match:
         severity: critical
       receiver: 'slack-critical'
       group_wait: 10s
       repeat_interval: 5m
 
-    # Warning alerts - Slack only
     - match:
         severity: warning
       receiver: 'slack-warnings'
       group_wait: 5m
       repeat_interval: 4h
 
-    # Info alerts - email only
     - match:
         severity: info
       receiver: 'email-team'
       group_wait: 10m
       repeat_interval: 24h
 
-# Inhibition rules - suppress notifications
 inhibit_rules:
-  # Suppress warnings if critical alert is firing for same service
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
     equal: ['alertname', 'service', 'instance']
 
-  # Suppress all alerts during maintenance
   - source_match:
       alertname: 'MaintenanceMode'
     target_match_re:
       severity: '.*'
     equal: ['cluster']
 
-# Receivers
 receivers:
   - name: 'default'
     email_configs:

@@ -2,7 +2,6 @@ groups:
   - name: SLO Alerts
     interval: 1m
     rules:
-      # Availability SLO: 99.9% (43.2 minutes downtime per month)
       - alert: AvailabilitySLOBreach
         expr: |
           (
@@ -21,7 +20,6 @@ groups:
           runbook_url: "https://runbook.example.com/slo/availability"
           dashboard_url: "https://grafana.example.com/d/slo/service-slos"
 
-      # Error Budget Alert - 50% consumed
       - alert: ErrorBudget50PercentConsumed
         expr: |
           (
@@ -39,7 +37,6 @@ groups:
           description: "Error rate is {{ $value | humanizePercentage }} - 50% of the 30-day error budget has been consumed in the last 7 days"
           runbook_url: "https://runbook.example.com/slo/error-budget"
 
-      # Error Budget Alert - 80% consumed
       - alert: ErrorBudget80PercentConsumed
         expr: |
           (
@@ -57,7 +54,6 @@ groups:
           description: "Error rate is {{ $value | humanizePercentage }} - 80% of error budget consumed. Consider implementing a code freeze."
           runbook_url: "https://runbook.example.com/slo/error-budget"
 
-      # Latency SLO: p95 < 500ms
       - alert: LatencySLOBreach
         expr: |
           histogram_quantile(0.95,
@@ -74,7 +70,6 @@ groups:
           runbook_url: "https://runbook.example.com/slo/latency"
           dashboard_url: "https://grafana.example.com/d/slo/service-slos"
 
-      # Latency p99 > 1s (early warning)
       - alert: LatencyP99High
         expr: |
           histogram_quantile(0.99,
@@ -90,7 +85,6 @@ groups:
           description: "p99 latency is {{ $value | humanizeDuration }} for {{ $labels.service }}"
           runbook_url: "https://runbook.example.com/latency/investigation"
 
-      # Throughput SLO: > 100 req/s
       - alert: ThroughputBelowSLO
         expr: |
           sum(rate(http_requests_total[5m])) < 100

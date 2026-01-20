@@ -1,10 +1,5 @@
-# Service Health and Performance Alerts
-# Critical alerts for service availability and performance
 
 groups:
-  # ===========================================
-  # SERVICE AVAILABILITY ALERTS
-  # ===========================================
   - name: service_availability
     interval: 30s
     rules:
@@ -32,9 +27,6 @@ groups:
           impact: "Service instability, potential user disruption"
           action: "Check for resource constraints or configuration issues"
 
-  # ===========================================
-  # API PERFORMANCE ALERTS
-  # ===========================================
   - name: api_performance
     interval: 30s
     rules:
@@ -98,9 +90,6 @@ groups:
           impact: "Potential authentication or validation issues"
           action: "Review API usage patterns and error logs"
 
-  # ===========================================
-  # RESOURCE UTILIZATION ALERTS
-  # ===========================================
   - name: resource_utilization
     interval: 1m
     rules:
@@ -156,9 +145,6 @@ groups:
           impact: "Risk of service failure"
           action: "Clean up logs or increase disk capacity"
 
-  # ===========================================
-  # DATABASE ALERTS
-  # ===========================================
   - name: database_alerts
     interval: 1m
     rules:
@@ -213,9 +199,6 @@ groups:
           impact: "Transaction failures"
           action: "Review transaction isolation levels and query patterns"
 
-  # ===========================================
-  # CACHE ALERTS (Redis)
-  # ===========================================
   - name: cache_alerts
     interval: 1m
     rules:
@@ -257,9 +240,6 @@ groups:
           impact: "Risk of eviction or OOM"
           action: "Increase memory or review cache retention policy"
 
-  # ===========================================
-  # AI SERVICES ALERTS
-  # ===========================================
   - name: ai_services_alerts
     interval: 1m
     rules:
@@ -303,9 +283,6 @@ groups:
           impact: "Service degradation, fallback responses active"
           action: "Check downstream service health"
 
-  # ===========================================
-  # RATE LIMITING ALERTS
-  # ===========================================
   - name: rate_limiting_alerts
     interval: 1m
     rules:
@@ -324,9 +301,6 @@ groups:
           impact: "Users being blocked"
           action: "Review rate limit thresholds or identify abusive patterns"
 
-  # ===========================================
-  # QUEUE ALERTS (Celery/RabbitMQ)
-  # ===========================================
   - name: queue_alerts
     interval: 1m
     rules:

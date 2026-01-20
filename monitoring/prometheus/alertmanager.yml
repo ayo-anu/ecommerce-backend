@@ -1,53 +1,38 @@
-# Alertmanager Configuration for E-Commerce Platform
-# Configure notification channels for alerts
 
 global:
-  # Default settings
   resolve_timeout: 5m
 
-  # Slack webhook URL (replace with your own)
   slack_api_url: '${SLACK_WEBHOOK_URL}'
 
-  # SMTP settings for email alerts
   smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
   smtp_from: 'alerts@ecommerce-platform.com'
   smtp_auth_username: '${SMTP_USERNAME}'
   smtp_auth_password: '${SMTP_PASSWORD}'
   smtp_require_tls: true
 
-# Templates for alert messages
 templates:
   - '/etc/alertmanager/templates/*.tmpl'
 
-# Route tree for alerts
 route:
-  # Default receiver for all alerts
   receiver: 'default-receiver'
 
-  # Group alerts by these labels
   group_by: ['alertname', 'severity', 'service']
 
-  # Wait before sending initial notification (collect multiple alerts)
   group_wait: 30s
 
-  # Wait before sending notification about new alerts in existing group
   group_interval: 5m
 
-  # Minimum time between notifications for same group
   repeat_interval: 4h
 
-  # Child routes (specific routing rules)
   routes:
-    # Critical alerts - immediate notification
     - match:
         severity: critical
       receiver: 'critical-alerts'
       group_wait: 10s
       group_interval: 1m
       repeat_interval: 30m
-      continue: true  # Also send to default receiver
+      continue: true
 
-    # Business-critical alerts (revenue impacting)
     - match:
         category: business-critical
       receiver: 'business-alerts'
@@ -56,21 +41,18 @@ route:
       repeat_interval: 1h
       continue: true
 
-    # Database alerts
     - match:
         category: database
       receiver: 'database-team'
       group_wait: 1m
       repeat_interval: 2h
 
-    # AI/ML service alerts
     - match:
         tier: ai
       receiver: 'ml-team'
       group_wait: 2m
       repeat_interval: 3h
 
-    # Security alerts
     - match:
         category: security
       receiver: 'security-team'
@@ -78,33 +60,26 @@ route:
       group_interval: 1m
       repeat_interval: 1h
 
-# Inhibition rules (suppress certain alerts when others are active)
 inhibit_rules:
-  # Suppress warning alerts if critical alert for same service is active
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
     equal: ['service', 'alertname']
 
-  # Suppress individual service alerts if entire service is down
   - source_match:
       alertname: 'ServiceDown'
     target_match_re:
       alertname: '.*'
     equal: ['service']
 
-# Notification receivers
 receivers:
-  # Default receiver - logs only (configure your preferred channel)
   - name: 'default-receiver'
     webhook_configs:
       - url: 'http://localhost:9093/webhook'
         send_resolved: true
 
-  # Critical alerts - multiple channels
   - name: 'critical-alerts'
-    # Slack notifications
     slack_configs:
       - channel: '#alerts-critical'
         title: 'CRITICAL: {{ .GroupLabels.alertname }}'
@@ -119,7 +94,6 @@ receivers:
         color: 'danger'
         send_resolved: true
 
-    # Email notifications
     email_configs:
       - to: 'oncall@ecommerce-platform.com'
         headers:
@@ -133,12 +107,7 @@ receivers:
           <p><strong>Impact:</strong> {{ .CommonAnnotations.impact }}</p>
           <p><strong>Action Required:</strong> {{ .CommonAnnotations.action }}</p>
 
-    # PagerDuty (uncomment and configure)
-    # pagerduty_configs:
-    #   - service_key: '${PAGERDUTY_SERVICE_KEY}'
-    #     description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
 
-  # Business-critical alerts (revenue impact)
   - name: 'business-alerts'
     slack_configs:
       - channel: '#alerts-business'
@@ -157,7 +126,6 @@ receivers:
         headers:
           Subject: 'BUSINESS ALERT: {{ .GroupLabels.alertname }}'
 
-  # Database team alerts
   - name: 'database-team'
     slack_configs:
       - channel: '#team-database'
@@ -170,7 +138,6 @@ receivers:
         color: 'warning'
         send_resolved: true
 
-  # ML/AI team alerts
   - name: 'ml-team'
     slack_configs:
       - channel: '#team-ml'
@@ -183,7 +150,6 @@ receivers:
         color: 'warning'
         send_resolved: true
 
-  # Security team alerts
   - name: 'security-team'
     slack_configs:
       - channel: '#team-security'
@@ -201,11 +167,3 @@ receivers:
         headers:
           Subject: 'SECURITY ALERT: {{ .GroupLabels.alertname }}'
 
-# Time-based muting (optional - configure maintenance windows)
-# time_intervals:
-#   - name: business-hours
-#     time_intervals:
-#       - times:
-#         - start_time: '09:00'
-#           end_time: '17:00'
-#         weekdays: ['monday:friday']

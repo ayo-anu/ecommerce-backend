@@ -1,5 +1,3 @@
-# Grafana Dashboard Provisioning
-# Auto-loads dashboards from the dashboards directory
 
 apiVersion: 1
 
