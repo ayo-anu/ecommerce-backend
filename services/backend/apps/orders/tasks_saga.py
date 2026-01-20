@@ -5,7 +5,6 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 
-# Run the checkout saga asynchronously.
 @shared_task(
     bind=True,
     max_retries=0,
@@ -72,7 +71,6 @@ def execute_checkout_saga_async(self, checkout_data: dict) -> dict:
         raise
 
 
-# Send order confirmation email.
 @shared_task(bind=True, max_retries=3)
 def send_order_confirmation_email(self, order_id: str):
     from apps.orders.models import Order
@@ -118,7 +116,6 @@ def send_order_confirmation_email(self, order_id: str):
         raise self.retry(exc=e, countdown=60)
 
 
-# Update analytics for a completed order.
 @shared_task
 def update_analytics(order_id: str):
     from apps.orders.models import Order
@@ -151,7 +148,6 @@ def update_analytics(order_id: str):
         logger.error(f"Failed to update analytics: {e}", exc_info=True)
 
 
-# Delete failed/aborted sagas older than 30 days.
 @shared_task
 def cleanup_failed_sagas():
     from apps.orders.models_saga import SagaExecution
@@ -170,7 +166,6 @@ def cleanup_failed_sagas():
     return {'deleted_count': deleted_count}
 
 
-# Retry a failed saga execution.
 @shared_task
 def retry_failed_saga(saga_execution_id: str):
     from apps.orders.models_saga import SagaExecution
@@ -199,7 +194,6 @@ def retry_failed_saga(saga_execution_id: str):
         raise
 
 
-# Check saga health and log anomalies.
 @shared_task
 def monitor_saga_health():
     from apps.orders.models_saga import SagaExecution
