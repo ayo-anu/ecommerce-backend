@@ -1,12 +1,7 @@
-# ==============================================================================
-# Integration Test Environment
-# Isolated environment for running integration tests
-# ==============================================================================
 
 version: '3.9'
 
 services:
-  # Test Database (isolated from dev/prod)
   postgres-test:
     image: postgres:15-alpine
     environment:
@@ -21,9 +16,8 @@ services:
       timeout: 5s
       retries: 5
     tmpfs:
-      - /var/lib/postgresql/data  # Use tmpfs for speed
+      - /var/lib/postgresql/data
 
-  # Test Redis
   redis-test:
     image: redis:7-alpine
     ports:
@@ -36,7 +30,6 @@ services:
     tmpfs:
       - /data
 
-  # Test Elasticsearch
   elasticsearch-test:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     environment:
@@ -51,7 +44,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend under test
   backend-test:
     build:
       context: ../../../services/backend
@@ -87,7 +79,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # API Gateway under test
   api-gateway-test:
     build:
       context: ../../../services/gateway
@@ -109,7 +100,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # Integration test runner
   test-runner:
     build:
       context: ../../..

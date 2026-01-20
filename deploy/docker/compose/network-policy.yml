@@ -1,9 +1,7 @@
-# Network policy overlay.
 
 version: '3.8'
 
 networks:
-  # Backend network
   backend_network:
     internal: true
     driver: bridge
@@ -11,7 +9,6 @@ networks:
       com.docker.network.bridge.enable_icc: "true"
       com.docker.network.bridge.enable_ip_masquerade: "false"
 
-  # AI network
   ai_network:
     internal: true
     driver: bridge
@@ -19,29 +16,21 @@ networks:
       com.docker.network.bridge.enable_icc: "true"
       com.docker.network.bridge.enable_ip_masquerade: "false"
 
-  # Public network - Only for nginx and api-gateway
   public_network:
     internal: false
     driver: bridge
     driver_opts:
       com.docker.network.bridge.enable_icc: "true"
 
-  # Monitoring network - Read-only access (implemented via firewall rules)
   monitoring_network:
-    internal: false  # Needs internet for alerting
+    internal: false
     driver: bridge
 
-# ==============================================================================
-# Service Network Restrictions
-# ==============================================================================
 services:
-  # Nginx - Public facing only
   nginx:
     networks:
       - public_network
-    # Remove any backend/ai network access
 
-  # API Gateway - Hub for all communication
   api_gateway:
     networks:
       - public_network
@@ -51,9 +40,8 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - NET_BIND_SERVICE  # Only capability needed
+      - NET_BIND_SERVICE
 
-  # Backend - Backend network only
   backend:
     networks:
       - backend_network
@@ -65,7 +53,6 @@ services:
       - SETGID
       - SETUID
 
-  # Celery workers - Backend network only
   celery_worker:
     networks:
       - backend_network
@@ -80,7 +67,6 @@ services:
     cap_drop:
       - ALL
 
-  # Databases - Restricted to their respective networks
   postgres:
     networks:
       - backend_network
@@ -91,7 +77,6 @@ services:
       - CHOWN
       - SETGID
       - SETUID
-    # No port exposure in production
     ports: []
 
   postgres_ai:
@@ -113,7 +98,6 @@ services:
       - ALL
     ports: []
 
-  # Cache & Queue - Backend network only
   redis:
     networks:
       - backend_network
@@ -130,7 +114,6 @@ services:
       - ALL
     ports: []
 
-  # Search & Vector DB - Respective networks only
   elasticsearch:
     networks:
       - ai_network
@@ -147,7 +130,6 @@ services:
       - ALL
     ports: []
 
-  # AI Services - AI network only
   recommendation_engine:
     networks:
       - ai_network
@@ -197,11 +179,10 @@ services:
     cap_drop:
       - ALL
 
-  # Monitoring - Read-only access to all networks
   prometheus:
     networks:
       - monitoring_network
-      - public_network  # For scraping external metrics
+      - public_network
     cap_drop:
       - ALL
     read_only: true
@@ -211,11 +192,11 @@ services:
   grafana:
     networks:
       - monitoring_network
-      - public_network  # For accessing external datasources
+      - public_network
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN  # Needs to write dashboards
+      - CHOWN
 
   jaeger:
     networks:
@@ -226,6 +207,6 @@ services:
   alertmanager:
     networks:
       - monitoring_network
-      - public_network  # For sending alerts
+      - public_network
     cap_drop:
       - ALL

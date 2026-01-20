@@ -269,7 +269,7 @@ main() {
     deploy_services || { rollback_on_failure; exit 1; }
     wait_for_healthy || { rollback_on_failure; exit 1; }
     run_smoke_tests || { rollback_on_failure; exit 1; }
-    cleanup_old_images || true  # Non-fatal
+    cleanup_old_images || true
 
     log "=========================================="
     log "Deployment complete"

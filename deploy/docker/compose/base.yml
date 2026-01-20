@@ -1,7 +1,5 @@
 
-# Base Docker Compose configuration.
 
-# Networks
 
 networks:
   public_network:
@@ -40,7 +38,6 @@ volumes:
   backend_static:
 
 services:
-  # Databases
   postgres:
     image: postgres:15-alpine
     container_name: ecommerce_postgres
@@ -64,7 +61,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # AI Services PostgreSQL Database
   postgres_ai:
     image: postgres:15-alpine
     container_name: ecommerce_postgres_ai
@@ -86,7 +82,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # PgBouncer - Connection Pooler
   pgbouncer:
     build:
       context: ../../../infrastructure/docker/pgbouncer
@@ -112,7 +107,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # Cache and queue
   redis:
     image: redis:7-alpine
     container_name: ecommerce_redis
@@ -132,7 +126,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Elasticsearch (Backend search)
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: ecommerce_elasticsearch
@@ -155,7 +148,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # Qdrant Vector Database (AI services)
   qdrant:
     build:
       context: ../../../infrastructure/docker/qdrant
@@ -177,7 +169,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # RabbitMQ Message Queue
   rabbitmq:
     image: rabbitmq:3.12-management-alpine
     container_name: ecommerce_rabbitmq
@@ -200,7 +191,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # Backend
   backend:
     build:
       context: ../../../services/backend
@@ -255,7 +245,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Celery Worker
   celery_worker:
     build:
       context: ../../../services/backend
@@ -285,7 +274,6 @@ services:
       retries: 3
       start_period: 10s
 
-  # Celery Beat Scheduler
   celery_beat:
     build:
       context: ../../../services/backend
@@ -314,7 +302,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # API gateway
   api_gateway:
     build:
       context: ../../../services
@@ -356,7 +343,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 1. Recommendation Engine
   recommender:
     build:
       context: ../../../services
@@ -389,7 +375,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 2. Search Engine
   search:
     build:
       context: ../../../services
@@ -425,7 +410,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 3. Pricing Engine
   pricing:
     build:
       context: ../../../services
@@ -458,7 +442,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 4. Chatbot with RAG
   chatbot:
     build:
       context: ../../../services
@@ -495,7 +478,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 5. Fraud Detection
   fraud:
     build:
       context: ../../../services
@@ -528,7 +510,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 6. Demand Forecasting
   forecasting:
     build:
       context: ../../../services
@@ -561,7 +542,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # 7. Visual Recognition
   vision:
     build:
       context: ../../../services
@@ -597,7 +577,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Monitoring
   prometheus:
     image: prom/prometheus:latest
     container_name: ecommerce_prometheus
@@ -653,7 +632,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Jaeger - Distributed Tracing
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: ecommerce_jaeger

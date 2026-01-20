@@ -1,7 +1,3 @@
-# ==============================================================================
-# AI Services - Production Multi-Stage Dockerfile Template
-# ARG SERVICE_NAME must be passed during build
-# ==============================================================================
 
 ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION}-slim-bookworm AS base
@@ -9,10 +5,8 @@ FROM python:${PYTHON_VERSION}-slim-bookworm AS base
 ARG SERVICE_NAME
 ENV SERVICE_NAME=${SERVICE_NAME}
 
-# Security: Non-root user
 RUN groupadd -r aiuser && useradd -r -g aiuser -u 1001 aiuser
 
-# Runtime dependencies
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends \
@@ -23,12 +17,8 @@ RUN apt-get update && \
         tini && \
     rm -rf /var/lib/apt/lists/*
 
-# ==============================================================================
-# Builder Stage
-# ==============================================================================
 FROM base AS builder
 
-# Build dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
@@ -37,26 +27,20 @@ RUN apt-get update && \
         git && \
     rm -rf /var/lib/apt/lists/*
 
-# Virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 WORKDIR /build
 
-# Copy requirements
 COPY services/ai/services/${SERVICE_NAME}/requirements.txt .
 COPY services/ai/shared/requirements.txt shared_requirements.txt
 
-# Install dependencies
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir -r shared_requirements.txt && \
     find /opt/venv -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true && \
     find /opt/venv -type f -name "*.pyc" -delete
 
-# ==============================================================================
-# Runtime Stage
-# ==============================================================================
 FROM base AS runtime
 
 ARG SERVICE_NAME
@@ -73,14 +57,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Copy virtual environment
 COPY --from=builder --chown=aiuser:aiuser /opt/venv /opt/venv
 
-# Copy application code
 COPY --chown=aiuser:aiuser services/ai/services/${SERVICE_NAME}/ /app/
 COPY --chown=aiuser:aiuser services/ai/shared/ /app/shared/
 
-# Create directories
 RUN mkdir -p /app/logs /app/models /app/tmp && \
     chown -R aiuser:aiuser /app && \
     chmod 750 /app

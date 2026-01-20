@@ -1,8 +1,6 @@
-# Docker resource limits for shared service profiles.
 
 version: '3.8'
 
-# Small services: 0.5 CPU, 512MB
 x-resource-limits-small: &resource-limits-small
   deploy:
     resources:
@@ -26,7 +24,6 @@ x-resource-limits-small: &resource-limits-small
     - no-new-privileges:true
   read_only: false
 
-# Medium services: 1 CPU, 1GB
 x-resource-limits-medium: &resource-limits-medium
   deploy:
     resources:
@@ -50,7 +47,6 @@ x-resource-limits-medium: &resource-limits-medium
     - no-new-privileges:true
   read_only: false
 
-# Large services: 2 CPU, 2GB
 x-resource-limits-large: &resource-limits-large
   deploy:
     resources:
@@ -74,7 +70,6 @@ x-resource-limits-large: &resource-limits-large
     - no-new-privileges:true
   read_only: false
 
-# Extra large services: 4 CPU, 4GB
 x-resource-limits-xlarge: &resource-limits-xlarge
   deploy:
     resources:
@@ -98,7 +93,6 @@ x-resource-limits-xlarge: &resource-limits-xlarge
     - no-new-privileges:true
   read_only: false
 
-# PostgreSQL-specific limits
 x-resource-limits-postgres: &resource-limits-postgres
   deploy:
     resources:
@@ -126,7 +120,6 @@ x-resource-limits-postgres: &resource-limits-postgres
   read_only: false
   shm_size: 256M
 
-# Redis-specific limits
 x-resource-limits-redis: &resource-limits-redis
   deploy:
     resources:
@@ -150,7 +143,6 @@ x-resource-limits-redis: &resource-limits-redis
     - no-new-privileges:true
   read_only: false
 
-# Nginx-specific limits
 x-resource-limits-nginx: &resource-limits-nginx
   deploy:
     resources:
@@ -174,19 +166,3 @@ x-resource-limits-nginx: &resource-limits-nginx
     - no-new-privileges:true
   read_only: false
 
-# Example usage
-# services:
-#   backend:
-#     <<: *resource-limits-medium
-#     image: backend:latest
-#     # ... other configurations
-#
-#   postgres:
-#     <<: *resource-limits-postgres
-#     image: postgres:15-alpine
-#     # ... other configurations
-#
-#   redis:
-#     <<: *resource-limits-redis
-#     image: redis:7-alpine
-#     # ... other configurations

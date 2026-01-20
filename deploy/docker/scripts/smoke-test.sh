@@ -74,7 +74,7 @@ main() {
         PASSED=$((PASSED + 1))
     else
         echo -e "${YELLOW}Static File Serving (not critical)${NC}"
-        PASSED=$((PASSED + 1))  # Don't fail on this
+        PASSED=$((PASSED + 1))
     fi
 
     if [ "$HOST" = "localhost" ]; then
@@ -85,7 +85,7 @@ main() {
             PASSED=$((PASSED + 1))
         else
             echo -e "${YELLOW}HTTPS Redirect (status $redirect)${NC}"
-            PASSED=$((PASSED + 1))  # Don't fail on this
+            PASSED=$((PASSED + 1))
         fi
     fi
 
