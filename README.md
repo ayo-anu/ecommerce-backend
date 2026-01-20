@@ -1,29 +1,88 @@
-# E-Commerce Platform
+# E-Commerce Platform API (Django/DRF)
 
-Django REST backend for a full e-commerce workflow (auth, catalog, cart, orders, payments). The API is the core of the repo; the gateway and AI services are optional and still evolving.
+## Recruiter Quick Start
+_Replace placeholders (`<RENDER_API_BASE_URL>`, `<RENDER_API_DOCS_URL>`) with the deployed Render URL._
+- Live API base URL (Render): <RENDER_API_BASE_URL>
+- API docs (Swagger UI): <RENDER_API_DOCS_URL>
+  - Schema: `<RENDER_API_BASE_URL>/api/schema/`
+  - Redoc: `<RENDER_API_BASE_URL>/api/docs/redoc/`
+- API base prefix: `/api/`
+- Health endpoints:
+  - `GET <RENDER_API_BASE_URL>/health/live/`
+  - `GET <RENDER_API_BASE_URL>/health/ready/`
+  - `GET <RENDER_API_BASE_URL>/health/`
+  - Example: `curl -s <RENDER_API_BASE_URL>/health/ready/`
+- Metrics and JWKS:
+  - `GET <RENDER_API_BASE_URL>/metrics/` (Prometheus)
+  - `GET <RENDER_API_BASE_URL>/.well-known/jwks.json`
+- Code to review: `services/backend/`
 
-## What runs today
-- Django + DRF backend with JWT auth
-- PostgreSQL, Redis, RabbitMQ, Elasticsearch
-- Stripe integration for payments
-- Celery for async tasks
-- End-to-end tests for the main user flows
+Happy path (recruiter flow):
+1) Register a user
+2) Log in (receive JWT)
+3) Browse products
+4) List orders (authenticated)
 
-## Repo layout
+### Copy/paste curl examples
+```bash
+# Register
+curl -X POST <RENDER_API_BASE_URL>/api/auth/register/ \
+  -H "Content-Type: application/json" \
+  -d '{"email":"<DEMO_EMAIL>","username":"<DEMO_USERNAME>","password":"<DEMO_PASSWORD>","password2":"<DEMO_PASSWORD>"}'
+
+# Login
+curl -X POST <RENDER_API_BASE_URL>/api/auth/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email":"<DEMO_EMAIL>","password":"<DEMO_PASSWORD>"}'
+
+# Public browsing
+curl <RENDER_API_BASE_URL>/api/products/
+
+# Authenticated endpoints
+curl -H "Authorization: Bearer <ACCESS_TOKEN>" <RENDER_API_BASE_URL>/api/orders/
+
+curl -H "Authorization: Bearer <ACCESS_TOKEN>" <RENDER_API_BASE_URL>/api/payments/
+
+curl -H "Authorization: Bearer <ACCESS_TOKEN>" <RENDER_API_BASE_URL>/api/notifications/
+
+curl -H "Authorization: Bearer <ACCESS_TOKEN>" <RENDER_API_BASE_URL>/api/analytics/dashboard/
 ```
-services/backend/   Django API and apps
-services/gateway/   FastAPI gateway (optional)
-services/ai/        AI microservices (optional)
-services/shared/    Shared utilities
 
-deploy/docker/compose/   Compose files
-infrastructure/          Nginx + DB init
-monitoring/              Prometheus/Grafana
+## Monorepo map
+- `services/backend/` — Django REST Framework API (deployed on Render)
+- `services/gateway/` — Optional gateway (not deployed as part of the recruiter demo)
+- `services/ai/` — Optional AI services (not deployed for recruiter demo)
+- `services/shared/` — Shared utilities
+- `deploy/docker/compose/` — Docker Compose files
+
+## Local run (backend only)
+```bash
+docker compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml up -d
+```
+- Brings up backend + required infrastructure (PostgreSQL, Redis, RabbitMQ, Elasticsearch)
+- API: http://localhost:8000
+- Docs: http://localhost:8000/api/docs/
+
+Local venv (optional):
+```bash
+cd services/backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements/dev.txt
+cp .env.example .env
+python manage.py migrate
+python manage.py runserver
 ```
 
-## Quick start (dev)
-Use the Docker Compose files under `deploy/docker/compose/` for local development. The backend lives in `services/backend/`.
+## Tests
+- `make test-backend`
+- `docker compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml exec backend pytest`
 
-## Notes
-- AI services and the gateway are not required to run the core API.
-- Keep production settings separate from local overrides.
+## Deployment (Render)
+High-level:
+- Deploy `services/backend/` using `services/backend/Dockerfile`.
+- Set `DJANGO_SETTINGS_MODULE=config.settings.production` and `PRODUCTION=true`.
+- Required env vars: `SECRET_KEY`, `ALLOWED_HOSTS`, `DATABASE_URL`, `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`.
+
+Notes:
+- Celery env vars are required for settings import even if workers are not deployed.
+- `/internal/*` routes are service-only; recruiters should focus on `/api/*`.

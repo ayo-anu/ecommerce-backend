@@ -1,12 +1,9 @@
-# API Gateway
+# API Gateway (optional)
 
-FastAPI gateway that fronts the AI services. It adds rate limiting, circuit breakers, and request logging. Optional for local dev.
+This gateway fronts the AI services when running locally. It is not deployed for the recruiter demo.
 
-## Endpoints
-- `GET /health`
-- `GET /metrics`
-- `GET /circuit-breakers`
+For evaluation, focus on the Django REST API in `services/backend/`.
 
-## Notes
-- Configure via env vars in the compose files.
-- The gateway only proxies the AI routes; it does not replace the Django API.
+Local run (Compose):
+- `docker-compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml up -d api_gateway`
+- Health: `http://localhost:8080/health`
