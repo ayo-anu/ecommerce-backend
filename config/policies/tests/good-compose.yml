@@ -1,4 +1,3 @@
-# Example Docker Compose file that passes all security policies
 version: '3.8'
 
 services:
