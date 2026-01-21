@@ -164,28 +164,6 @@ services:
         max-file: "3"
         labels: "service=qdrant"
 
-  rabbitmq:
-    ports: []
-    restart: always
-    networks:
-      - database
-      - application
-      - monitoring
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-        labels: "service=rabbitmq"
-
   backend:
     ports: []
     restart: always

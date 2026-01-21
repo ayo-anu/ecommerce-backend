@@ -1,10 +1,36 @@
 import logging
+from urllib.parse import urlparse, unquote
+
+from opensearchpy import OpenSearch
 from django.http import JsonResponse
 from django.db import connection
 from django.core.cache import cache
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _build_search_client(url):
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.hostname:
+        return None
+
+    use_ssl = parsed.scheme == 'https'
+    port = parsed.port or (443 if use_ssl else 80)
+
+    http_auth = None
+    if parsed.username or parsed.password:
+        http_auth = (
+            unquote(parsed.username or ''),
+            unquote(parsed.password or ''),
+        )
+
+    return OpenSearch(
+        hosts=[{'host': parsed.hostname, 'port': port}],
+        http_auth=http_auth,
+        use_ssl=use_ssl,
+        verify_certs=True,
+    )
 
 
 def liveness_check(request):
@@ -56,11 +82,10 @@ def readiness_check(request):
         logger.error(error_msg)
 
     try:
-        from elasticsearch import Elasticsearch
         es_url = getattr(settings, 'ELASTICSEARCH_URL', None)
         if es_url:
-            es = Elasticsearch([es_url])
-            if es.ping():
+            client = _build_search_client(es_url)
+            if client and client.ping():
                 checks['elasticsearch'] = True
             else:
                 logger.warning("Elasticsearch ping failed")
@@ -146,12 +171,11 @@ def health_check(request):
         overall_status = 'degraded'
 
     try:
-        from elasticsearch import Elasticsearch
         es_url = getattr(settings, 'ELASTICSEARCH_URL', None)
         if es_url:
             start = time.time()
-            es = Elasticsearch([es_url])
-            if es.ping():
+            client = _build_search_client(es_url)
+            if client and client.ping():
                 latency = (time.time() - start) * 1000
                 checks['elasticsearch'] = {
                     'status': 'healthy',

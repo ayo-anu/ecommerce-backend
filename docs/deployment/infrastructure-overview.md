@@ -86,7 +86,7 @@ monitoring_network   → INTERNAL (metrics collection only)
 
 #### Infrastructure (15+ services)
 - **Databases:** postgres, postgres_ai, redis, elasticsearch, qdrant
-- **Queue:** rabbitmq
+- **Queue:** redis
 - **Connection Pooling:** pgbouncer
 - **Monitoring:** prometheus, grafana, jaeger
 
@@ -120,7 +120,6 @@ ENV_FILE=infrastructure/env/.env.production docker-compose -f infrastructure/doc
 | postgres | 5432 | Main database |
 | postgres_ai | 5433 | AI services database |
 | redis | 6379 | Cache & queues |
-| rabbitmq | 5672, 15672 | Message queue + management UI |
 | elasticsearch | 9200, 9300 | Search engine |
 | qdrant | 6333, 6334 | Vector database |
 
@@ -158,7 +157,6 @@ Persistent data is stored in named Docker volumes:
 - `redis_data` - Redis persistence
 - `elasticsearch_data` - Elasticsearch indices
 - `qdrant_data` - Vector embeddings
-- `rabbitmq_data` - Message queue state
 - `prometheus_data` - Metrics history
 - `grafana_data` - Dashboards and settings
 - `backend_media` - User uploads

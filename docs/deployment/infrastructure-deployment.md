@@ -154,10 +154,6 @@ POSTGRES_AI_DB=ecommerce_ai
 # Redis
 REDIS_PASSWORD=super-strong-redis-password-here
 
-# RabbitMQ
-RABBITMQ_USER=admin
-RABBITMQ_PASSWORD=super-strong-rabbitmq-password-here
-
 # Stripe Payment
 STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxxx
 STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxxxxxxxxxx

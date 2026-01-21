@@ -32,7 +32,6 @@ EXPECTED_NETWORKS = {
     'postgres_ai': {'ai_network', 'monitoring_network'},
     'pgbouncer': {'backend_network'},
     'redis': {'backend_network', 'monitoring_network'},
-    'rabbitmq': {'backend_network', 'monitoring_network'},
     'elasticsearch': {'ai_network', 'monitoring_network'},
     'qdrant': {'ai_network', 'monitoring_network'},
     'recommendation_engine': {'ai_network', 'monitoring_network'},
@@ -52,7 +51,7 @@ EXPECTED_NETWORKS = {
 INTERNAL_ONLY_SERVICES = {
     'backend', 'celery_worker', 'celery_beat',
     'postgres', 'postgres_ai', 'pgbouncer',
-    'redis', 'rabbitmq',
+    'redis',
     'elasticsearch', 'qdrant',
     'recommendation_engine', 'search_engine', 'pricing_engine',
     'chatbot_rag', 'fraud_detection', 'demand_forecasting', 'visual_recognition',
@@ -64,7 +63,7 @@ INTERNAL_NETWORKS = {'backend_network', 'ai_network'}
 # Services that should NOT expose ports in production
 NO_PORT_SERVICES_PROD = {
     'postgres', 'postgres_ai', 'pgbouncer',
-    'redis', 'rabbitmq',
+    'redis',
     'elasticsearch', 'qdrant',
 }
 

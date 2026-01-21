@@ -54,7 +54,9 @@ else:
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 
 
-ELASTICSEARCH_DSL_AUTOSYNC = False
+OPENSEARCH_DSL_AUTOSYNC = False
+
+ELASTICSEARCH_DSL_AUTOSYNC = OPENSEARCH_DSL_AUTOSYNC
 
 
 USE_S3 = config('USE_S3', default=False, cast=bool)
@@ -175,4 +177,3 @@ else:
         }
 
     }
-

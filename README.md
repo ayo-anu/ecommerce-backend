@@ -59,7 +59,7 @@ curl -H "Authorization: Bearer <ACCESS_TOKEN>" <RENDER_API_BASE_URL>/api/analyti
 ```bash
 docker compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml up -d
 ```
-- Brings up backend + required infrastructure (PostgreSQL, Redis, RabbitMQ, Elasticsearch)
+- Brings up backend + required infrastructure (PostgreSQL, Redis, Elasticsearch/OpenSearch)
 - API: http://localhost:8000
 - Docs: http://localhost:8000/api/docs/
 

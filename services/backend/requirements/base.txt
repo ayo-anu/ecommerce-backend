@@ -1,5 +1,4 @@
 alabaster==0.7.16
-amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.11.0
 argon2-cffi==23.1.0
@@ -35,7 +34,7 @@ Django>=5.1.14,<5.2.0  # Security fix for CVE-2025-64459 (SQL injection) and GHS
 django-celery-beat==2.8.1
 django-celery-results==2.5.1
 django-cors-headers==4.3.1
-django-elasticsearch-dsl==8.0
+django-opensearch-dsl>=0.5.0,<1.0.0
 django-email-validation==2.1.1
 django-extensions==3.2.3
 django-filter==24.2
@@ -49,9 +48,8 @@ djangorestframework_simplejwt==5.5.1
 docutils==0.20.1
 dparse==0.6.4
 drf-spectacular==0.27.0
-elastic-transport==8.17.1
-elasticsearch==8.19.2
-elasticsearch-dsl==8.11.0
+opensearch-dsl>=2.1.0,<3.0.0
+opensearch-py>=2.5.0,<3.0.0
 executing==2.2.1
 factory-boy==3.3.0
 Faker==20.1.0

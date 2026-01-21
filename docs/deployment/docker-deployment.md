@@ -168,7 +168,6 @@ docker-compose logs -f
 | API Gateway | http://localhost:8080/docs | - |
 | Prometheus | http://localhost:9090 | - |
 | Grafana | http://localhost:3000 | admin/admin |
-| RabbitMQ | http://localhost:15672 | guest/guest |
 
 ### Development Workflow
 
@@ -770,9 +769,6 @@ REDIS_URL=redis://host:port/0
 
 # Vector DB
 QDRANT_URL=http://qdrant:6333
-
-# RabbitMQ
-RABBITMQ_URL=amqp://user:pass@host:port/
 
 # OpenAI (for chatbot)
 OPENAI_API_KEY=sk-...

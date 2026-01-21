@@ -138,7 +138,6 @@ DATABASE_URL=postgresql://user:pass@prod-db.region.rds.amazonaws.com:5432/ecomme
 |---------|-------------|------------|--------|
 | PostgreSQL | 15-alpine (Docker) | RDS PostgreSQL 15 | ✅ Same version |
 | Redis | 7-alpine (Docker) | ElastiCache Redis 7 | ✅ Same version |
-| RabbitMQ | 3.12-alpine | Amazon MQ RabbitMQ 3.12 | ✅ Same version |
 | Elasticsearch | 8.11 (Docker) | AWS OpenSearch 2.11 | ⚠️ Different engine |
 | S3 | MinIO (Docker) | AWS S3 | ⚠️ Different impl |
 

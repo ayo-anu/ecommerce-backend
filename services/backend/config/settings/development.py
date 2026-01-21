@@ -36,7 +36,15 @@ CACHES = {
 
     'default': {
 
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'BACKEND': 'django_redis.cache.RedisCache',
+
+        'LOCATION': config('REDIS_URL', default='redis://:redis_password@redis:6379/0'),
+
+        'OPTIONS': {
+
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+
+        },
 
     }
 
@@ -178,7 +186,13 @@ REST_FRAMEWORK = {
 }
 
 
-CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='amqp://admin:admin@rabbitmq:5672//')
+CELERY_BROKER_URL = config(
+
+    'CELERY_BROKER_URL',
+
+    default='redis://:redis_password@redis:6379/0'
+
+)
 
 CELERY_RESULT_BACKEND = config(
 
@@ -189,7 +203,7 @@ CELERY_RESULT_BACKEND = config(
 )
 
 
-ELASTICSEARCH_DSL = {
+OPENSEARCH_DSL = {
 
     'default': {
 
@@ -199,3 +213,4 @@ ELASTICSEARCH_DSL = {
 
 }
 
+ELASTICSEARCH_DSL = OPENSEARCH_DSL

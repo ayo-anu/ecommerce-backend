@@ -30,7 +30,7 @@ DB_PASSWORD=postgres
 DB_HOST=127.0.0.1
 DB_PORT=5432
 REDIS_URL=redis://:redis_password@127.0.0.1:6379/0
-CELERY_BROKER_URL=amqp://admin:admin@127.0.0.1:5672//
+CELERY_BROKER_URL=redis://:redis_password@127.0.0.1:6379/0
 CELERY_RESULT_BACKEND=redis://:redis_password@127.0.0.1:6379/1
 ELASTICSEARCH_URL=http://127.0.0.1:9200
 ```
@@ -49,7 +49,7 @@ Required in production:
 
 Optional integrations:
 - Stripe: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`
-- Elasticsearch: `ELASTICSEARCH_URL`
+- OpenSearch: `ELASTICSEARCH_URL`
 - S3/CDN: `USE_S3`, `USE_CDN`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_STORAGE_BUCKET_NAME`, `AWS_S3_REGION_NAME`, `CDN_DOMAIN`
 - Email: `EMAIL_BACKEND`, `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USE_TLS`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL`
 - Observability: `SENTRY_DSN`, `JAEGER_AGENT_HOST`, `JAEGER_AGENT_PORT`, `OTEL_SERVICE_NAME`
@@ -57,7 +57,7 @@ Optional integrations:
 
 ## Run locally
 Docker Compose (backend only):
-- `docker-compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml up -d postgres redis rabbitmq elasticsearch backend`
+- `docker-compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml up -d postgres redis elasticsearch backend`
 - API: `http://localhost:8000` (docs at `http://localhost:8000/api/docs/`)
 
 Local venv:
@@ -86,12 +86,12 @@ Local venv:
 
 ## Health checks
 - `/health/live/` - liveness
-- `/health/ready/` - readiness (DB, cache, Elasticsearch)
-- `/health/` - detailed dependency report (DB, cache, Elasticsearch, Vault)
+- `/health/ready/` - readiness (DB, cache, OpenSearch)
+- `/health/` - detailed dependency report (DB, cache, OpenSearch, Vault)
 
 ## Integrations
 - Stripe payments and webhooks (`/api/payments/` and `/api/payments/webhook/`)
-- Elasticsearch product search (via `django_elasticsearch_dsl`)
+- OpenSearch product search (via `django_opensearch_dsl`)
 - Optional S3/CDN storage for static/media
 - SMTP email via Django email backend
 

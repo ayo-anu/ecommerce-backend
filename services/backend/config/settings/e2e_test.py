@@ -19,14 +19,18 @@ CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 
 
-ELASTICSEARCH_DSL_AUTOSYNC = False
+OPENSEARCH_DSL_AUTOSYNC = False
 
-ELASTICSEARCH_DSL_AUTO_REFRESH = False
+OPENSEARCH_DSL_AUTO_REFRESH = False
+
+ELASTICSEARCH_DSL_AUTOSYNC = OPENSEARCH_DSL_AUTOSYNC
+
+ELASTICSEARCH_DSL_AUTO_REFRESH = OPENSEARCH_DSL_AUTO_REFRESH
 
 
-if 'default' in ELASTICSEARCH_DSL:
+if 'default' in OPENSEARCH_DSL:
 
-    ELASTICSEARCH_DSL['default']['index_prefix'] = 'test_'
+    OPENSEARCH_DSL['default']['index_prefix'] = 'test_'
 
 
 CACHES = {
@@ -97,6 +101,12 @@ LOGGING = {
 
         },
 
+        'opensearch': {
+
+            'level': 'WARNING',
+
+        },
+
         'httpx': {
 
             'level': 'WARNING',
@@ -146,7 +156,6 @@ print(f"Email Backend: {EMAIL_BACKEND}")
 
 print(f"Celery Eager: {CELERY_TASK_ALWAYS_EAGER}")
 
-print(f"Elasticsearch Auto-sync: {ELASTICSEARCH_DSL_AUTOSYNC}")
+print(f"OpenSearch Auto-sync: {OPENSEARCH_DSL_AUTOSYNC}")
 
 print("=" * 80)
-

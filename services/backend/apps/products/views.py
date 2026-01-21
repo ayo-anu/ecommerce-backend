@@ -273,6 +273,9 @@ class WishlistViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(item)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    def add_item(self, request, pk=None):
+        return self.create(request)
+
     def destroy(self, request, *args, **kwargs):
         try:
             item = self.get_queryset().get(pk=kwargs.get('pk'))
@@ -283,6 +286,9 @@ class WishlistViewSet(viewsets.ModelViewSet):
                 {'error': 'Item not found'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    def remove_item(self, request, pk=None):
+        return self.destroy(request, pk=pk)
 
     @action(detail=False, methods=['post'])
     def clear(self, request):

@@ -78,7 +78,7 @@ The system follows a **microservices architecture** with the following key chara
 | **Backend** | Django, Django REST Framework, Python 3.11 |
 | **AI Services** | FastAPI, Python, TensorFlow, PyTorch, OpenAI |
 | **Databases** | PostgreSQL 15, Redis |
-| **Message Queue** | Celery, RabbitMQ/Redis |
+| **Message Queue** | Celery, Redis |
 | **Search** | Elasticsearch/Meilisearch |
 | **Object Storage** | AWS S3/MinIO |
 | **Containerization** | Docker, Docker Compose |

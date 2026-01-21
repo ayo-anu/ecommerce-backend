@@ -85,7 +85,7 @@ INSTALLED_APPS = [
 
     'drf_spectacular',
 
-    'django_elasticsearch_dsl',
+    'django_opensearch_dsl',
 
     'django_celery_beat',
 
@@ -331,7 +331,7 @@ CELERY_TIMEZONE = TIME_ZONE
 
 ELASTICSEARCH_URL = config('ELASTICSEARCH_URL', default='')
 
-ELASTICSEARCH_DSL = {
+OPENSEARCH_DSL = {
 
     'default': {
 
@@ -340,6 +340,8 @@ ELASTICSEARCH_DSL = {
     },
 
 } if ELASTICSEARCH_URL else {}
+
+ELASTICSEARCH_DSL = OPENSEARCH_DSL
 
 
 
@@ -441,4 +443,3 @@ LOGGING = {
     },
 
 }
-

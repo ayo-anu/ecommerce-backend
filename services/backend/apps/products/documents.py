@@ -1,6 +1,6 @@
-from django_elasticsearch_dsl import Document, fields
-from django_elasticsearch_dsl.registries import registry
-from .models import Product
+from django_opensearch_dsl import Document, fields
+from django_opensearch_dsl.registries import registry
+from .models import Product, Category, Tag
 
 
 @registry.register_document

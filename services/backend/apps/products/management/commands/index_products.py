@@ -4,7 +4,7 @@ from apps.products.documents import ProductDocument
 
 
 class Command(BaseCommand):
-    help = 'Index all products in Elasticsearch'
+    help = 'Index all products in OpenSearch'
     
     def handle(self, *args, **kwargs):
         self.stdout.write('Indexing products...')

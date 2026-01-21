@@ -135,7 +135,6 @@ dev: ## Start development environment
 	@echo "  Gateway Docs:   http://localhost:8080/docs"
 	@echo "  Prometheus:     http://localhost:9090"
 	@echo "  Grafana:        http://localhost:3001"
-	@echo "  RabbitMQ:       http://localhost:15672"
 	@echo "  MailHog:        http://localhost:8025"
 	@echo ""
 	@echo "$(YELLOW)Run 'make logs-f' to follow logs$(NC)"

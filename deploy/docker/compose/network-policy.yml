@@ -106,14 +106,6 @@ services:
       - ALL
     ports: []
 
-  rabbitmq:
-    networks:
-      - backend_network
-      - monitoring_network
-    cap_drop:
-      - ALL
-    ports: []
-
   elasticsearch:
     networks:
       - ai_network
