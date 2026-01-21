@@ -256,6 +256,8 @@ CACHES = {
 
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
 
+            'IGNORE_EXCEPTIONS': True,
+
             'CONNECTION_POOL_CLASS_KWARGS': {
 
                 'max_connections': 50,
@@ -591,4 +593,3 @@ REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {
     'login': '5/minute',
 
 }
-
