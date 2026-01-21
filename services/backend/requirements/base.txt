@@ -1,4 +1,4 @@
-﻿alabaster==0.7.16
+alabaster==0.7.16
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.11.0
@@ -88,7 +88,7 @@ pickleshare==0.7.5
 pillow==10.4.0
 platformdirs==4.5.0
 pluggy==1.6.0
-prometheus_client==0.23.1
+prometheus_client==0.24.1
 prompt-toolkit==3.0.39
 psycopg2-binary==2.9.11
 pure_eval==0.2.3
