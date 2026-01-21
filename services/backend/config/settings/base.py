@@ -125,10 +125,12 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
 
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.maintenance.MaintenanceModeMiddleware',
 
     'django.contrib.messages.middleware.MessageMiddleware',
 
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.request_logging.RequestLoggingMiddleware',
 
     'django_prometheus.middleware.PrometheusAfterMiddleware',
 
@@ -439,5 +441,4 @@ LOGGING = {
     },
 
 }
-
 
