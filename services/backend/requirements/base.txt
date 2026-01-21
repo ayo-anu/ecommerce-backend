@@ -1,4 +1,4 @@
-﻿alabaster==0.7.16
+alabaster==0.7.16
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.11.0
@@ -142,7 +142,7 @@ traitlets==5.14.3
 typer==0.20.0
 typing-inspection==0.4.2
 typing_extensions==4.15.0
-tzdata==2025.2
+tzdata==2025.3
 uritemplate==4.2.0
 urllib3>=2.5.2,<3.0.0  # Security fix for CVE-2025-66471 and CVE-2025-66418
 vine==5.1.0
