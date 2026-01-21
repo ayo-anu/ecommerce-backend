@@ -1,4 +1,4 @@
-﻿alabaster==0.7.16
+alabaster==0.7.16
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.11.0
@@ -104,7 +104,7 @@ pytest-django==4.7.0
 python-crontab==3.3.0
 python-dateutil==2.8.2
 python-decouple==3.8
-pytz==2024.1
+pytz==2024.2
 PyYAML==6.0.3
 redis==5.0.1
 referencing==0.37.0
