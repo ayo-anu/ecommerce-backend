@@ -56,14 +56,9 @@ jobs:
         id: find-dockerfiles
         run: |
           echo "Finding Dockerfiles..."
-          find deploy/docker/images -name "Dockerfile*" -type f > dockerfiles.txt || echo "No Dockerfiles found"
-          if [ -s dockerfiles.txt ]; then
-            cat dockerfiles.txt
-            echo "dockerfile_count=$(wc -l < dockerfiles.txt)" >> $GITHUB_OUTPUT
-          else
-            echo "No Dockerfiles found in deploy/docker/images"
-            echo "dockerfile_count=0" >> $GITHUB_OUTPUT
-          fi
+          find deploy/docker/images -name "Dockerfile*" -type f > dockerfiles.txt
+          cat dockerfiles.txt
+          echo "dockerfile_count=$(wc -l < dockerfiles.txt)" >> $GITHUB_OUTPUT
 
       - name: Test Dockerfiles with OPA policies
         if: steps.find-dockerfiles.outputs.dockerfile_count > 0

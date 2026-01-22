@@ -176,3 +176,17 @@ rules:
     metadata:
       category: security
       cwe: "CWE-434: Unrestricted Upload"
+
+# Scan configuration
+options:
+  # Ignore test files
+  exclude:
+    - "*/tests/*"
+    - "*/test_*.py"
+    - "*_test.py"
+    - "*/conftest.py"
+
+  # Performance tuning
+  max_target_bytes: 1000000
+  timeout: 30
+  timeout_threshold: 3

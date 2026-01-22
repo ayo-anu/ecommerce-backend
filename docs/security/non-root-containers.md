@@ -33,6 +33,7 @@ These services use their official images which already run as non-root:
 | PostgreSQL AI | postgres | Official image runs as postgres user |
 | Redis | redis | Official image runs as redis user |
 | Elasticsearch | elasticsearch | Official image runs as elasticsearch user |
+| RabbitMQ | rabbitmq | Official image runs as rabbitmq user |
 | Qdrant | qdrant | Official image runs as qdrant user |
 | Prometheus | nobody | Official image runs as nobody user |
 | Grafana | grafana | Official image runs as grafana user |

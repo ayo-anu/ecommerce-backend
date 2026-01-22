@@ -1,21 +1,34 @@
+# Example Docker Compose file that violates security policies
+# This file is intentionally bad for testing purposes
 version: '3.8'
 
 services:
   backend:
+    # Violation: Using :latest tag
     image: backend:latest
 
+    # Violation: Privileged mode enabled
     privileged: true
 
+    # Violation: Using host network mode
     network_mode: host
 
+    # Violation: No resource limits
+    # Violation: No healthcheck
+    # Violation: No restart policy
+    # Violation: No security_opt
+    # Violation: No logging
 
+    # Warning: Sensitive mount
     volumes:
       - /etc:/host-etc:ro
 
+    # Warning: Password in environment
     environment:
       - DATABASE_PASSWORD=secret123
       - API_SECRET_KEY=supersecret
 
+    # Violation: Exposing unnecessary ports
     ports:
       - "8000:8000"
       - "5432:5432"

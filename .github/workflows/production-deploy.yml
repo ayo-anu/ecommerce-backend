@@ -40,7 +40,7 @@ jobs:
           exit-code: '1'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v2
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -182,79 +182,11 @@ jobs:
             VCS_REF=${{ github.sha }}
             VERSION=${{ steps.version.outputs.version }}
 
-  # Job 5: Manual Approval Gate
-  approval-gate:
-    name: Production Approval Gate
-    runs-on: ubuntu-latest
-    needs: [build-push-production]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Wait for manual approval
-        uses: trstringer/manual-approval@v1
-        timeout-minutes: 60
-        with:
-          secret: ${{ github.token }}
-          approvers: devops-team,platform-leads,ayo-anu
-          minimum-approvals: 2
-          issue-title: "Production Deployment Approval: ${{ needs.build-push-production.outputs.version }}"
-          issue-body: |
-            ### 🚀 Production Deployment Request
-
-            **Version:** `${{ needs.build-push-production.outputs.version }}`
-            **Triggered by:** @${{ github.actor }}
-            **Workflow:** [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            **Changes:** [Compare](${{ github.event.compare }})
-
-            ---
-
-            ## 📋 Pre-deployment Checklist
-
-            Please verify the following before approving:
-
-            - [ ] All tests passing ✅
-            - [ ] Security scans passed (no CRITICAL/HIGH vulnerabilities)
-            - [ ] Code review completed
-            - [ ] Database migrations reviewed and tested
-            - [ ] Rollback plan ready and understood
-            - [ ] Monitoring dashboards ready
-            - [ ] Team notified of deployment
-            - [ ] No active incidents or outages
-            - [ ] Change management ticket created (if required)
-            - [ ] Documentation updated
-
-            ---
-
-            ## 🔍 Deployment Details
-
-            **Services to be updated:**
-            - Backend API
-            - AI Gateway
-
-            **Deployment method:** Blue-Green deployment
-            **Expected downtime:** None (zero-downtime deployment)
-            **Rollback time:** ~5 minutes
-
-            ---
-
-            ## ✅ Approval Required
-
-            **Minimum approvers needed:** 2
-            **Eligible approvers:** @devops-team @platform-leads
-
-            **To approve:** Comment `approve` or `/approve`
-            **To deny:** Comment `deny` or `/deny`
-
-            ⚠️ **Note:** This approval will timeout after 60 minutes. The deployment will be cancelled if not approved within this timeframe.
-          exclude-workflow-initiator-as-approver: false
-
-  # Job 6: Deploy to Production (after approval)
+  # Job 5: Deploy to Production (with Manual Approval)
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
-    needs: [build-push-production, approval-gate]
+    needs: [build-push-production]
     environment:
       name: production
       url: https://api.example.com
@@ -366,7 +298,7 @@ jobs:
           draft: false
           prerelease: false
 
-  # Job 7: Post-Deployment Monitoring
+  # Job 6: Post-Deployment Monitoring
   post-deployment-monitoring:
     name: Post-Deployment Monitoring
     runs-on: ubuntu-latest
@@ -394,7 +326,7 @@ jobs:
           # curl -s 'http://prometheus:9090/api/v1/query?query=...'
           echo "✅ Error rates normal"
 
-  # Job 8: Notifications
+  # Job 7: Notifications
   notify:
     name: Send Notifications
     runs-on: ubuntu-latest
@@ -498,7 +430,7 @@ jobs:
 
             Please investigate immediately.
 
-  # Job 9: Rollback on Failure
+  # Job 8: Rollback on Failure
   rollback:
     name: Automatic Rollback
     runs-on: ubuntu-latest

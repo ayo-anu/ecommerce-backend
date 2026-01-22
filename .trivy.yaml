@@ -1,0 +1,145 @@
+# ==============================================================================
+# Trivy Configuration
+# ==============================================================================
+# Configuration file for Trivy container vulnerability scanner
+#
+# Usage:
+#   trivy image <image-name>  (uses this config automatically)
+#
+# Documentation: https://aquasecurity.github.io/trivy/
+# ==============================================================================
+
+# Scanner settings
+scan:
+  # Scan for vulnerabilities in OS packages
+  security-checks:
+    - vuln
+    - config
+    - secret
+
+# Vulnerability settings
+vulnerability:
+  # Severity levels to report
+  # Options: CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN
+  type:
+    - os
+    - library
+
+# Report settings
+report:
+  # Report format (table, json, sarif, template)
+  format: json
+
+# Severity settings
+severity:
+  # Which severities to include in scan
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+
+# Cache settings
+cache:
+  # Clear cache before scanning
+  clear: false
+
+# Database settings
+db:
+  # Skip database update
+  skip-update: false
+
+  # Database repository
+  repository: ghcr.io/aquasecurity/trivy-db
+
+# Scan settings
+scan:
+  # Skip files and directories
+  skip-files:
+    - "**/.git/**"
+    - "**/node_modules/**"
+    - "**/venv/**"
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - "**/test/**"
+    - "**/tests/**"
+
+# Ignore unfixed vulnerabilities
+ignore-unfixed: false
+
+# Exit code
+exit-code: 0  # Don't fail by default (let script handle it)
+
+# Timeout
+timeout: 5m0s
+
+# Suppress progress output
+quiet: false
+
+# Custom policies
+# Include custom security policies
+policy:
+  # Policy paths
+  paths:
+    - ./config/policies/trivy/
+
+# SBOM settings (for future SBOM generation)
+sbom:
+  # Format: cyclonedx, spdx, spdx-json
+  format: cyclonedx
+
+# Vulnerability database settings
+vuln:
+  # Vulnerability types to detect
+  type:
+    - os       # OS packages
+    - library  # Application dependencies
+
+# Misconfiguration settings
+misconfig:
+  # Scan for misconfigurations
+  enabled: true
+
+  # Include custom checks
+  include-non-failures: false
+
+# Secret scanning settings
+secret:
+  # Enable secret scanning
+  enabled: true
+
+  # Custom secret patterns
+  config: .trivy-secret.yaml
+
+# License scanning (optional)
+license:
+  # Scan for license issues
+  enabled: false
+
+  # Forbidden licenses
+  forbidden:
+    - GPL-2.0
+    - GPL-3.0
+
+  # Allowed licenses
+  allowed:
+    - MIT
+    - Apache-2.0
+    - BSD-3-Clause
+
+# ==============================================================================
+# Ignore List (CVEs to skip)
+# ==============================================================================
+# Add CVE IDs that should be ignored (with justification in comments)
+# Example:
+# vulnerability:
+#   ignore:
+#     - CVE-2021-12345  # False positive in test dependencies
+# ==============================================================================
+
+# ==============================================================================
+# Custom Severity Overrides
+# ==============================================================================
+# Override severity for specific CVEs
+# severity:
+#   overrides:
+#     CVE-2021-12345: LOW  # Downgrade from HIGH (not applicable in our use case)
+# ==============================================================================
