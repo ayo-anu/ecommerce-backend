@@ -1,50 +1,150 @@
-# Ecommerce Backend API
+E-Commerce Backend API (Django / DRF)
 
-Django/DRF backend deployed on Render.
+Production-ready Django REST Framework backend for an e-commerce platform, deployed on Render.
 
-## Live URLs
-- Base: https://ecommerce-system-8701.onrender.com
-- Swagger UI: https://ecommerce-system-8701.onrender.com/api/docs/
-- Schema JSON: https://ecommerce-system-8701.onrender.com/api/schema/
-- Schema UI: https://ecommerce-system-8701.onrender.com/api/docs/#/schema/schema_retrieve
-- Health: https://ecommerce-system-8701.onrender.com/health/
-- Liveness: https://ecommerce-system-8701.onrender.com/health/live/
-- Readiness: https://ecommerce-system-8701.onrender.com/health/ready/
-- Metrics: https://ecommerce-system-8701.onrender.com/metrics
-- JWKS: https://ecommerce-system-8701.onrender.com/.well-known/jwks.json
+This service exposes a secure, observable API with health checks, metrics, JWT authentication, and background processing.
 
-## Quick checks
-```bash
+Recruiter Quick Start (2 minutes)
+
+Open the live API documentation:
+Swagger UI:
+https://ecommerce-system-8701.onrender.com/api/docs/
+
+Authenticate (JWT) and explore endpoints under /api/
+
+Verify production health:
+
 curl -s https://ecommerce-system-8701.onrender.com/health/ready/
-curl -s https://ecommerce-system-8701.onrender.com/api/schema/ | head
-```
 
-## Local backend
-```bash
-docker compose -f deploy/docker/compose/base.yml -f deploy/docker/compose/development.yml up -d
-```
-- API: http://localhost:8000
-- Docs: http://localhost:8000/api/docs/
+Live Production Endpoints
 
-Local venv:
-```bash
+API Base URL
+https://ecommerce-system-8701.onrender.com
+
+Swagger UI (OpenAPI)
+https://ecommerce-system-8701.onrender.com/api/docs/
+
+OpenAPI Schema (JSON)
+https://ecommerce-system-8701.onrender.com/api/schema/
+
+Health Checks
+
+General: /health/
+
+Liveness: /health/live/
+
+Readiness: /health/ready/
+
+Metrics (Prometheus)
+/metrics
+
+JWT JWKS Endpoint
+/.well-known/jwks.json
+
+Core Capabilities
+
+RESTful API built with Django + DRF
+
+JWT authentication with JWKS support
+
+PostgreSQL persistence
+
+Redis caching and message brokering
+
+Celery for background and async tasks
+
+Production health, readiness, and liveness probes
+
+Prometheus-compatible metrics endpoint
+
+Dockerized local development and deployment
+
+Architecture Overview
+
+Framework: Django + Django REST Framework
+
+Database: PostgreSQL
+
+Cache / Broker: Redis
+
+Async Tasks: Celery
+
+Auth: JWT (SimpleJWT) with JWKS exposure
+
+Observability: Health checks + Prometheus metrics
+
+Deployment: Docker + Render
+
+The backend is designed with production patterns commonly used in distributed systems and cloud environments.
+
+Local Development (Docker)
+
+Run the full backend stack locally using Docker Compose:
+
+docker compose \
+  -f deploy/docker/compose/base.yml \
+  -f deploy/docker/compose/development.yml \
+  up -d
+
+
+API: http://localhost:8000
+
+Docs: http://localhost:8000/api/docs/
+
+Local Development (Virtual Environment)
 cd services/backend
-python -m venv .venv && source .venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
+
 pip install -r requirements/dev.txt
 cp .env.example .env
+
 python manage.py migrate
 python manage.py runserver
-```
 
-## Required production env
-- `SECRET_KEY`, `ALLOWED_HOSTS`
-- `DATABASE_URL`
-- `REDIS_URL`, `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
-- `SERVICE_AUTH_SECRET_DJANGO_BACKEND`, `SERVICE_AUTH_SECRET_API_GATEWAY`, `SERVICE_AUTH_SECRET_CELERY_WORKER`
+Required Production Environment Variables
+Django / Core
 
-## Monorepo map
-- `services/backend/` — Django API (deployed)
-- `services/gateway/` — Optional gateway
-- `services/ai/` — Optional AI services
-- `services/shared/` — Shared utilities
-- `deploy/docker/compose/` — Compose files
+SECRET_KEY
+
+ALLOWED_HOSTS
+
+DATABASE_URL
+
+Caching & Background Jobs
+
+REDIS_URL
+
+CELERY_BROKER_URL
+
+CELERY_RESULT_BACKEND
+
+Internal Service Authentication
+
+SERVICE_AUTH_SECRET_DJANGO_BACKEND
+
+SERVICE_AUTH_SECRET_API_GATEWAY
+
+SERVICE_AUTH_SECRET_CELERY_WORKER
+
+Repository Structure (Monorepo)
+services/
+  backend/        # Django + DRF API (deployed service)
+  gateway/        # Optional API gateway
+  ai/             # Optional AI microservices
+  shared/         # Shared utilities
+
+deploy/
+  docker/compose/ # Docker Compose configurations
+
+Notes for Interviewers
+
+The backend is deployed and publicly accessible.
+
+Health, readiness, and metrics endpoints are production-grade.
+
+JWT authentication is stateless and compatible with service-to-service usage.
+
+Docker Compose mirrors production dependencies locally.
+
+Codebase emphasizes clarity, maintainability, and operational awareness.
