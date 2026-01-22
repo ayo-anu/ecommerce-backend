@@ -1,4 +1,4 @@
-﻿alabaster==0.7.16
+alabaster==0.7.16
 amqp==5.3.1
 annotated-types==0.7.0
 anyio==4.11.0
@@ -148,7 +148,7 @@ urllib3>=2.5.2,<3.0.0  # Security fix for CVE-2025-66471 and CVE-2025-66418
 vine==5.1.0
 wcwidth==0.2.14
 webencodings==0.5.1
-wheel==0.45.1
+wheel==0.46.2
 whitenoise==6.6.0
 
 # OpenTelemetry for Distributed Tracing
