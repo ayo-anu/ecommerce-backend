@@ -4,7 +4,7 @@ Production-ready Django REST Framework backend for an e-commerce platform, deplo
 
 This service exposes a secure, observable API with health checks, metrics, JWT authentication, and background processing.
 
-## Recruiter Quick Start (2 minutes)
+## Quick Start (2 minutes)
 
 Open the live API documentation:
 - Swagger UI: https://ecommerce-system-8701.onrender.com/api/docs/
