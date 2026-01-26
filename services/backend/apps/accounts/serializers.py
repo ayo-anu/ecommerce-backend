@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.utils.html import strip_tags
+from django.db import transaction
 from .models import Address, UserProfile
 
 User = get_user_model()
@@ -35,10 +36,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data.pop('password2')
-        user = User.objects.create_user(**validated_data)
-        UserProfile.objects.create(user=user)
+        with transaction.atomic():
+            user = User.objects.create_user(**validated_data)
+            UserProfile.objects.create(user=user)
         from apps.notifications.tasks import send_verification_email
-        send_verification_email.delay(user.id)
+        transaction.on_commit(lambda: send_verification_email.delay(user.id))
         
         return user
 

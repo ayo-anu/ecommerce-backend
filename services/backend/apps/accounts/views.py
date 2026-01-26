@@ -35,6 +35,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
+    throttle_scope = "login"
 
 
 class UserRegistrationView(generics.CreateAPIView):

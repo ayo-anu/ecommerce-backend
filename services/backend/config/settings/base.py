@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'rest_framework',
 
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 
     'corsheaders',
 
@@ -270,6 +271,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
 
         'rest_framework.throttling.UserRateThrottle',
+
+        'rest_framework.throttling.ScopedRateThrottle',
 
     ),
 
