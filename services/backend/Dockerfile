@@ -98,7 +98,7 @@ CMD ["sh", "-c", "gunicorn config.wsgi:application \
      --max-requests 1000 \
      --max-requests-jitter 50 \
      --timeout 30 \
-     --preload-app \
+     --preload \
      --access-logfile - \
      --error-logfile - \
      --log-level info"]
