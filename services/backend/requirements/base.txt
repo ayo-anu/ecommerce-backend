@@ -32,18 +32,18 @@ dill==0.4.0
 dj-database-url==2.1.0
 Django>=5.1.14,<5.2.0  # Security fix for CVE-2025-64459 (SQL injection) and GHSA-frmv-pr5f-9mcr
 django-celery-beat==2.8.1
-django-celery-results==2.5.1
-django-cors-headers==4.3.1
+django-celery-results==2.6.0
+django-cors-headers==4.9.0
 django-opensearch-dsl>=0.5.0,<1.0.0
 django-email-validation==2.1.1
 django-extensions==3.2.3
-django-filter==24.2
-django-prometheus==2.3.1
+django-filter==24.3
+django-prometheus==2.4.1
 django-ratelimit==4.1.0
 django-redis==5.4.0
-django-storages==1.14.2
-django-timezone-field==7.1
-djangorestframework==3.15.2
+django-storages==1.14.6
+django-timezone-field==7.2.1
+djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 docutils==0.20.1
 dparse==0.6.4
