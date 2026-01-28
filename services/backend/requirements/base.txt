@@ -24,7 +24,7 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
 colorama==0.4.6
-coverage==7.11.0
+coverage==7.13.2
 cron_descriptor==2.0.6
 cryptography==46.0.3
 decorator==5.2.1
@@ -51,7 +51,7 @@ drf-spectacular==0.27.0
 opensearch-dsl>=2.1.0,<3.0.0
 opensearch-py>=2.5.0,<3.0.0
 executing==2.2.1
-factory-boy==3.3.0
+factory-boy==3.3.3
 Faker==20.1.0
 filelock>=3.20.1,<4.0.0  # Security fix for CVE-2025-68146 (TOCTOU race condition)
 flower==2.0.1
@@ -97,9 +97,9 @@ pydantic_core==2.41.5
 pyflakes>=3.4.0,<3.5.0
 Pygments==2.19.2
 PyJWT==2.10.1
-pytest==7.4.3
+pytest==7.4.4
 pytest-cov==4.1.0
-pytest-django==4.7.0
+pytest-django==4.11.1
 python-crontab==3.3.0
 python-dateutil==2.8.2
 python-decouple==3.8
