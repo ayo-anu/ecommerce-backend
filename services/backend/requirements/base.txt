@@ -145,7 +145,7 @@ tzdata==2025.2
 uritemplate==4.2.0
 urllib3>=2.5.2,<3.0.0  # Security fix for CVE-2025-66471 and CVE-2025-66418
 vine==5.1.0
-wcwidth==0.2.14
+wcwidth==0.5.2
 webencodings==0.5.1
 wheel==0.45.1
 whitenoise==6.6.0
