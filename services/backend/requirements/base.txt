@@ -8,7 +8,7 @@ astroid==3.0.3
 asttokens==3.0.0
 attrs==25.4.0
 Authlib==1.6.5
-babel==2.17.0
+babel==2.18.0
 backcall==0.2.0
 billiard==4.2.2
 bleach==6.3.0
