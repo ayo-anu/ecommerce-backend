@@ -3,7 +3,7 @@ annotated-types==0.7.0
 anyio==4.11.0
 argon2-cffi==23.1.0
 argon2-cffi-bindings==25.1.0
-asgiref==3.10.0
+asgiref==3.11.1
 astroid==3.0.3
 asttokens==3.0.0
 attrs==25.4.0
